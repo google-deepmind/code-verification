@@ -259,8 +259,10 @@ theorem stageP2Over_qpan_cli_memInv_placed_at_B_of_pathC {Φ : Memory → Prop} 
     (hPathC :
       StageP2PathCOverQpanCliMemInvPlacedAtStmt Φ A lim PromEnv X mmpl gh W B
         P2OverErrEnv P2OverOkEnv)
-    (hPromMiss : PromoteMatchingMissGenPlacedProp A.repAlloc
-      (cliGhostExterns gh (cliExternsPlaced mmpl W)))
+    (hPromMiss :
+      RunHooksPlaced A lim (cliGhostExterns gh (cliExternsPlaced mmpl W)) →
+      PromoteMatchingMissGenPlacedProp A.repAlloc
+        (cliGhostExterns gh (cliExternsPlaced mmpl W)))
     (hPromOver :
       RunHooksPlaced A lim (cliGhostExterns gh (cliExternsPlaced mmpl W)) →
       PromoteOverGenPlacedWithEnvProp M A lim PromEnv
@@ -271,10 +273,10 @@ theorem stageP2Over_qpan_cli_memInv_placed_at_B_of_pathC {Φ : Memory → Prop} 
     hfs hCode1 htr01 hsp1 hsp0 hsp_sub hpc1 hrun1 halign1 hregs1 herr hok
   have hh' : RunHooksPlaced A lim (cliGhostExterns gh (cliExternsPlaced mmpl W)) :=
     ⟨hh.alloc, hh.allocFs, hh.panics, hh.memcpyRO, hh.bcmp, hh.fs, hh.utf8, hh.memrchr,
-      hh.codecHooks, hh.allocZeroed, hh.stringClone, hh.formatInner⟩
+      hh.codecHooks, hh.allocZeroed, hh.stringClone, hh.formatInner, hh.blackBox⟩
   have hr_scope : scopeIn r := hsub r (scope_of_loadRec_some hfPeer hload)
   exact hPathC S Scope y st_b g1 r s_old s0 s1 sp rngPtr v_a8 v_b8 v_d0 Q Qpan
-    hPromMiss (hPromOver hh') hh' hfits hcoins hdecOk.toDecPkOk₀_emptyScope
+    (hPromMiss hh') (hPromOver hh') hh' hfits hcoins hdecOk.toDecPkOk₀_emptyScope
     hsub hfPeer hcur hr_scope hnot htrust hg1
     hfs hCode1 htr01 hsp1 hsp0 hsp_sub hpc1 hrun1 halign1 hregs1
     (fun sf Pf hpcf hrunf hstepsf hspf hcsf hvregsf hinvf
@@ -374,8 +376,10 @@ theorem stageP2Over_qpan_cli_regErr_placed_at_of_pathC {Φ : Memory → Prop} [L
     (hPathC :
       StageP2PathCOverQpanCliRegErrMemInvPlacedAtStmt Φ A lim PromEnv X mmpl gh W B
         P2OverErrEnv)
-    (hPromMiss : PromoteMatchingMissGenPlacedProp A.repAlloc
-      (cliGhostExterns gh (cliExternsPlaced mmpl W)))
+    (hPromMiss :
+      RunHooksPlaced A lim (cliGhostExterns gh (cliExternsPlaced mmpl W)) →
+      PromoteMatchingMissGenPlacedProp A.repAlloc
+        (cliGhostExterns gh (cliExternsPlaced mmpl W)))
     (hPromOver :
       RunHooksPlaced A lim (cliGhostExterns gh (cliExternsPlaced mmpl W)) →
       PromoteOverGenPlacedWithEnvProp M A lim PromEnv
@@ -386,10 +390,10 @@ theorem stageP2Over_qpan_cli_regErr_placed_at_of_pathC {Φ : Memory → Prop} [L
     hfs hCode1 htr01 hsp1 hsp0 hsp_sub hpc1 hrun1 halign1 hregs1 herr
   have hh' : RunHooksPlaced A lim (cliGhostExterns gh (cliExternsPlaced mmpl W)) :=
     ⟨hh.alloc, hh.allocFs, hh.panics, hh.memcpyRO, hh.bcmp, hh.fs, hh.utf8, hh.memrchr,
-      hh.codecHooks, hh.allocZeroed, hh.stringClone, hh.formatInner⟩
+      hh.codecHooks, hh.allocZeroed, hh.stringClone, hh.formatInner, hh.blackBox⟩
   have hr_scope : scopeIn r := hsub r (scope_of_loadRec_some hfPeer hload)
   exact hPathC S Scope y hRegErr st_b g1 r s_old s0 s1 sp rngPtr v_a8 v_b8 v_d0 Q Qpan
-    hPromMiss (hPromOver hh') hh' hfits hcoins hdecOk.toDecPkOk₀_emptyScope
+    (hPromMiss hh') (hPromOver hh') hh' hfits hcoins hdecOk.toDecPkOk₀_emptyScope
     hsub hfPeer hcur hr_scope hnot htrust hg1
     hfs hCode1 htr01 hsp1 hsp0 hsp_sub hpc1 hrun1 halign1 hregs1
     (fun sf Pf hpcf hrunf hstepsf hspf hcsf hvregsf hinvf
@@ -479,7 +483,7 @@ theorem stageP2Over_qpan_cli_archive_frozen_at_B_of_init75_and_kits [LibsignalFu
   stageP2Over_qpan_cli_memInv_placed_at_B_of_pathC
     (stageP2PathCOver_qpan_cli_archive_frozen_of_init75_and_kits A lim X mmpl gh W B
       hDropNz hG hInit75 hErrEnv hOkEnv hFitsSplit hSelfKit hSpkKit hKpkKit hPkKit)
-    (cliPromoteMatchingMissGen_placed_ok A.repAlloc mmpl gh W)
+    (fun hh => cliPromoteMatchingMissGen_placed_ok A.repAlloc mmpl gh W hh.blackBox)
     (fun hh => cliPromoteOverGen_archive_placed_ok mmpl gh W hh hGrow hRaw)
 
 theorem stageP2Over_qpan_cli_archive_regErr_frozen_at_B_of_init75_and_kits [LibsignalFullPlacement]
@@ -540,7 +544,7 @@ theorem stageP2Over_qpan_cli_archive_regErr_frozen_at_B_of_init75_and_kits [Libs
   stageP2Over_qpan_cli_regErr_placed_at_of_pathC
     (stageP2PathCOver_qpan_cli_archive_regErr_placed_at_of_init75_and_kits A lim X mmpl gh W B
       hErrEnv hFitsErr hDropNz hG hInit75 hSelfKit hSpkKit hKpkKit hPkKit)
-    (cliPromoteMatchingMissGen_placed_ok A.repAlloc mmpl gh W)
+    (fun hh => cliPromoteMatchingMissGen_placed_ok A.repAlloc mmpl gh W hh.blackBox)
     (fun hh => cliPromoteOverGen_archive_placed_ok mmpl gh W hh hGrow hRaw)
 
 end LibsignalBinary.Proofs.SignalSession.Cli.Run.Proofs.DecryptPrekey.Over.DecPkD2cCanonStage2OverBPlacedBudgetFd

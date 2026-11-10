@@ -62,7 +62,7 @@ open CryptoVerification.E2E.Pqxdh.ResponderClosure (ClosureCalleeSaved)
 open CryptoVerification.E2E.Pqxdh.WireEntries (DistinctSid)
 open CryptoVerification.LibsignalPublicApi.StoreKit (LibsignalCodeRoLoaded withLsCodeRoLoaded)
 open CryptoVerification.LibsignalSpqrV1 (spqrV1)
-open CryptoVerification.LibsignalTripleRatchet (SeedsLen32 SpqrModel extHookStack rootStack)
+open CryptoVerification.LibsignalTripleRatchet (SeedsLen32 SpqrModel rootStack)
 open CryptoVerification.LibsignalTripleRatchet.Record (CloneRel)
 open CryptoVerification.LibsignalTripleRatchetRepr (
   AddrGhost SessionGhost SignalMessageGhost UuidParser decryptDraws uuidTryParse
@@ -78,7 +78,7 @@ open CryptoVerification.SignalSession.Cli.RunProofs.Poll (
   LsTokenInit dpPollEntryPlaced dpPollProgPlaced
 )
 open CryptoVerification.SignalSession.Cli.Slots (
-  cliGhostExterns_panic_handle_error cliGhostExterns_sat_of_cliExternsPlaced
+  cliGhostExterns_panic_handle_error
 )
 open CryptoVerification.SignalSession.Coins (coinsAfterPlaced coinsAtPlaced)
 open LibsignalBinary.Heap (
@@ -135,7 +135,7 @@ open LibsignalBinary.Proofs.SignalSession.Cli.Run.Slots.CliHookSatPlacedBudget (
   CliGhostAllocHooks cliExternsPlaced_alloc_budget_sat cliExternsPlaced_dealloc_budget_sat
   cliExternsPlaced_framelessMemcpy_budget_sat cliExternsPlaced_noAllocShim_budget_sat
   cliExternsPlaced_realloc_budget_sat cliExternsPlaced_sessionMemcpyRegion_budget_sat
-  cliExternsPlaced_sessionMemmove_budget_sat cliExternsPlaced_shim_budget_sat
+  cliExternsPlaced_shim_budget_sat
 )
 open LibsignalBinary.Proofs.SignalSession.Cli.SpecsPlacedBudget (AllocContractsXCliPlaced)
 open LibsignalBinary.Proofs.SignalSession.Cli.SpqrV1PlacedSeamsBudget (SpqrV1PlacedSeams)
@@ -443,8 +443,6 @@ theorem cliVerNe1e04_placed_ok [LibsignalPlacement]
     ((show lsRustDeallocSymCli = lsRustDeallocSym by decide) ▸
       cliExternsPlaced_dealloc_budget_sat mmpl gh W hG)
     (cli_framelessMemcpy_sat mmpl gh W hG)
-    (cliGhostExterns_sat_of_cliExternsPlaced mmpl gh W
-      (cliExternsPlaced_sessionMemmove_budget_sat mmpl W extHookStack))
     (cliGhostExterns_panic_handle_error mmpl gh W)
     (chainMerge5CroPlacedOkExt_cli mmpl gh W hG)
 
@@ -715,8 +713,6 @@ theorem cliVerNe1e04_full_placed_ok [LibsignalFullPlacement]
     ((show lsRustDeallocSymCli = lsRustDeallocSym by decide) ▸
       cliExternsPlaced_dealloc_budget_sat mmpl gh W hG)
     (cli_framelessMemcpy_sat mmpl gh W hG)
-    (cliGhostExterns_sat_of_cliExternsPlaced mmpl gh W
-      (cliExternsPlaced_sessionMemmove_budget_sat mmpl W extHookStack))
     (cliGhostExterns_panic_handle_error mmpl gh W)
     (chainMerge5CroPlacedOkExt_cli mmpl gh W hG)
 

@@ -247,22 +247,6 @@ structure CliPubCalleesPlacedFd [LibsignalPlacement] (mmpl : Obj.MultiPlacement)
       (cliGhostExterns g (cliExternsPlaced mmpl W)) cliRunBudgets S (cliRunNeeds decPkNeed)
       cliResStack
 
-private theorem cliGhostExterns_bcmp_keepsFs_sat (mmpl : Obj.MultiPlacement)
-    (g : CliGhostHooks) (W : CliHooks) :
-    HookSat (cliGhostExterns g (cliExternsPlaced mmpl W))
-      CryptoVerification.SignalSession.Cli.cliBcmpName
-      (LibsignalBinary.Heap.SpecBudget.withVmPreserved
-        CryptoVerification.SignalSession.Cli.cliBcmpSpec).keepsFs := by
-  refine CryptoVerification.SignalSession.Cli.Slots.cliGhostExterns_sat_of_cliExternsPlaced
-    mmpl g W ?_
-  rcases LibsignalBinary.Proofs.SignalSession.Cli.Run.Slots.CliHookSatPlacedBudget.cliExternsPlaced_bcmp_budget_sat
-    mmpl W with ⟨f, hf, hok⟩
-  have hbcmp := CryptoVerification.SignalSession.Cli.RunGlue.cliExternsPlaced_bcmp mmpl W
-  rw [hbcmp] at hf
-  injection hf with hfg
-  subst hfg
-  exact ⟨_, hbcmp, hok.keepsFs fun _ => rfl⟩
-
 /-- Discharges `dirGet`, `splitId`, `splitSigned`, `dropSpeX`, and `dropSpe` of
 `CliPubCalleesPlacedFd` at `cliRunCalleesEnvs ReadEnv` from `CliRunHooksBundleFd` and `hPath589`,
 leaving `bundleRead` and `arms`. -/
@@ -291,7 +275,7 @@ theorem cliPubCallees_of_arms_placed_fd [LibsignalPlacement]
       dirGet_placed_caller_ok_of_deps_fd
         (callerProg := lsProg_579 H) (i := 579)
         (pathProg := lsProg_589 H) (jPath := 589)
-        (fun _ hp => hp.2) hh.allocFs (cliGhostExterns_bcmp_keepsFs_sat mmpl g W)
+        (fun _ hp => hp.2) hh.allocFs hh.bcmp
         (by decide) (by decide)
         hPath589
         hHooks.readFileSat
@@ -590,7 +574,7 @@ theorem cliPubCallees_of_arms_frozen_placed_fd [LibsignalPlacement]
       dirGet_placed_caller_ok_of_deps_fd
         (callerProg := lsProg_579 H) (i := 579)
         (pathProg := lsProg_589 H) (jPath := 589)
-        (fun _ hp => hp.2) hh.allocFs (cliGhostExterns_bcmp_keepsFs_sat mmpl g W)
+        (fun _ hp => hp.2) hh.allocFs hh.bcmp
         (by decide) (by decide)
         hPath589
         hHooks.readFileSat

@@ -25,6 +25,7 @@ import LibsignalBinary.Proofs.SignalSession.Cli.Run.Proofs.DecryptPrekey.Poll.St
 public import LibsignalBinary.Proofs.SignalSession.Cli.Run.Proofs.DecryptPrekey.Poll.StagesInst.Stage2V1Agree -- proof-setup: allow-public-import
 import Arm64.Trusted.Spec.Hoare
 import Arm64.Trusted.Spec.SepLogic
+import LibsignalBinary.Proofs.Cli.E2E.Pqxdh.ResponderClosure.Kits.StageP2PurePlacedBudgetSat
 import LibsignalBinary.Proofs.Common.SharedHelpers
 meta import LibsignalBinary.Proofs.Common.SharedHelpers -- shake: keep
 import LibsignalBinary.Proofs.SignalSession.Cli.Run.Proofs.DecryptPrekey.Poll.ClosureCallees
@@ -90,7 +91,7 @@ open CryptoVerification.SignalSession.Cli (
 open CryptoVerification.SignalSession.Cli.MainHops (cliIo coinsInstalledPlaced storesAt)
 open CryptoVerification.SignalSession.Cli.RunCompose (DecPkGhost RunSem decResAt dpPollNeed)
 open CryptoVerification.SignalSession.Cli.RunGlue (
-  CliGhostHooks cliExternsPlaced_row cliGhostExterns cliGhostExterns_other
+  CliGhostHooks cliGhostExterns
 )
 open CryptoVerification.SignalSession.Cli.RunProofs (dpFutDoneAt)
 open CryptoVerification.SignalSession.Cli.RunProofs.Poll (
@@ -103,7 +104,7 @@ open CryptoVerification.SignalSession.Cli.RunProofs.Poll (
 )
 open CryptoVerification.SignalSession.Cli.RunSkeleton (RunBudgets)
 open CryptoVerification.SignalSession.Cli.Slots (
-  EncodeInjOn FilesOkPeer blackBox_row_placed loadRec scopeIn scopeKit
+  EncodeInjOn FilesOkPeer loadRec scopeIn scopeKit
 )
 open LibsignalBinary.Heap (
   AllocCostModel AllocEvent BudgetLimits FitsEnv FreeOnlyEvs RustCliAllocBudget SeqEnv
@@ -119,7 +120,7 @@ open LibsignalBinary.Proofs.Cli.E2E.Pqxdh.ResponderClosure.Kits.StageP2Mid3Place
   P2Sub1To4Arm3Env P2Sub1To4OkEnv P2Sub4OkEnv
 )
 open LibsignalBinary.Proofs.Cli.E2E.Pqxdh.ResponderClosure.Kits.StageP2PurePlacedBudget (
-  StageP2BaseCalleesPlaced4K.of_hooks isSameAccount_4k_placed_ok_on_stageP1
+  StageP2BaseCalleesPlaced4K.of_hooks
 )
 open LibsignalBinary.Proofs.Cli.E2E.Pqxdh.ResponderClosure.Kits.StageP2Sub5DefsPlacedBudget (
   isSameAccountDistinctSpecExt_to_at_placed p2_stageP2bStack_le_bobV1
@@ -210,7 +211,7 @@ private theorem r20f_toSkeletonRunHooksPlaced [LibsignalPlacement] {M : AllocCos
   { alloc := hh.alloc, allocFs := hh.allocFs, panics := hh.panics, memcpyRO := hh.memcpyRO,
     bcmp := hh.bcmp, fs := hh.fs, utf8 := hh.utf8, memrchr := hh.memrchr,
     codecHooks := hh.codecHooks, allocZeroed := hh.allocZeroed, stringClone := hh.stringClone,
-    formatInner := hh.formatInner }
+    formatInner := hh.formatInner, blackBox := hh.blackBox }
 
 private def r20a6w_dummyExtras : UnreachedPqxdhPrimitives :=
   ⟨fun _ => [], fun _ _ _ => [], fun _ _ => [], fun _ _ => [], fun _ => ([], []),
@@ -290,10 +291,8 @@ private theorem r20a6w_baseCalleesPlaced4K [LibsignalPlacement]
     hh.codecHooks.alloc
     hh.codecHooks.dealloc
     (r20a6w_hookSat_sessionMemcpyBudget allocHookStack hh.codecHooks.memcpy)
-    (isSameAccount_4k_placed_ok_on_stageP1
-      ((cliGhostExterns_other gh _ (by decide) (by decide) (by decide)
-          (by decide) (by decide) (by decide)).trans
-        (cliExternsPlaced_row mmpl W (blackBox_row_placed mmpl W)))
+    (LibsignalBinary.Proofs.Cli.E2E.Pqxdh.ResponderClosure.Kits.StageP2PurePlacedBudgetSat.isSameAccount_4k_placed_ok_on_stageP1_sat
+      hh.blackBox
       (uuidTryParse_placed_vm_code_ok (cliGhostExterns gh (cliExternsPlaced mmpl W))))
 
 private theorem r20a6w_pureCalleesPlaced4K [LibsignalPlacement]
@@ -935,7 +934,7 @@ private theorem r20a6w_stageP2_badKem_reject_body_of_kits [LibsignalFullPlacemen
         w.opkWord y.g.msg.baseKey B hfs1
     have hPromMissAt :=
       promoteMatchingMissAt_placed_of_gen
-        (cliPromoteMatchingMissGen_placed_d3 A.repAlloc mmpl gh W)
+        (cliPromoteMatchingMissGen_placed_d3 A.repAlloc mmpl gh W hh.blackBox)
         y.fut g recG sess 4#8 (5#8 :: bytesToBv8 (mkBadKemHdr y.g.msg kp).ekAPk)
         (not_p2SessMatchesMsg_of_v4_badKem kp hv4 hnm)
         (by

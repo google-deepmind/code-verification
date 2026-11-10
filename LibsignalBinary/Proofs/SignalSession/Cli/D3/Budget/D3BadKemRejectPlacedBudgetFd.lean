@@ -125,7 +125,7 @@ private theorem toClosureRunHooksPlaced [LibsignalPlacement] {M : AllocCostModel
   { alloc := hh.alloc, allocFs := hh.allocFs, panics := hh.panics, memcpyRO := hh.memcpyRO,
     bcmp := hh.bcmp, fs := hh.fs, utf8 := hh.utf8, memrchr := hh.memrchr,
     codecHooks := hh.codecHooks, allocZeroed := hh.allocZeroed, stringClone := hh.stringClone,
-    formatInner := hh.formatInner }
+    formatInner := hh.formatInner, blackBox := hh.blackBox }
 
 private theorem toSkeletonRunHooksPlaced [LibsignalPlacement] {M : AllocCostModel}
     {A : RustCliAllocBudget M} {lim : BudgetLimits} {ext : LibsignalHooks}
@@ -135,7 +135,7 @@ private theorem toSkeletonRunHooksPlaced [LibsignalPlacement] {M : AllocCostMode
   { alloc := hh.alloc, allocFs := hh.allocFs, panics := hh.panics, memcpyRO := hh.memcpyRO,
     bcmp := hh.bcmp, fs := hh.fs, utf8 := hh.utf8, memrchr := hh.memrchr,
     codecHooks := hh.codecHooks, allocZeroed := hh.allocZeroed, stringClone := hh.stringClone,
-    formatInner := hh.formatInner }
+    formatInner := hh.formatInner, blackBox := hh.blackBox }
 
 private theorem stageP2BadKemRejectEnv_nonempty [LibsignalPlacement]
     {A : CryptoVerification.RustHeap.RustAlloc} {B : RunBudgets}

@@ -120,7 +120,7 @@ open CryptoVerification.SignalSession.Cli.MainHops
 open CryptoVerification.SignalSession.Cli.RunCompose
   (DecPkGhost RunSem decResAt dpPollNeed dpSlotArgsPlaced slotOutTr)
 open CryptoVerification.SignalSession.Cli.RunGlue
-  (CliGhostHooks cliExternsPlaced_row cliGhostExterns cliGhostExterns_other
+  (CliGhostHooks cliExternsPlaced_row cliExtraGhostSyms cliGhostExterns cliGhostExterns_other
    withPanics_cliGhostExterns)
 open CryptoVerification.SignalSession.Cli.RunProofs
   (DecPkOkD2c DecPkOk₀ SessMatchesPm decPkDef decPkDefD2c
@@ -382,9 +382,12 @@ private theorem cliGhost_row_aux (mmpl : Obj.MultiPlacement) (g : CliGhostHooks)
     (h5 : sym ≠ lsRustNoAllocShimSymCli := by decide) (h6 : sym ≠ lsStringCloneSym := by decide)
     (h7 : sym ≠ lsReadFileSym := by decide) (h8 : sym ≠ lsReadStdinSym := by decide)
     (h9 : sym ≠ CryptoVerification.SignalSession.lsMemsetSym := by decide)
-    (h10 : sym ≠ CryptoVerification.SignalSession.lsMemcpySym := by decide) :
+    (h10 : sym ≠ CryptoVerification.SignalSession.lsMemcpySym := by decide)
+    (hExtra : cliExtraGhostSyms.contains sym = false ∨ g.extra.lookup sym = none := by
+      left; decide) :
     cliGhostExterns g (cliExternsPlaced mmpl W) sym = some f :=
-  (cliGhostExterns_other g _ h1 h2 h3 h4 h5 h6 h7 h8 h9 h10).trans (cliExternsPlaced_row mmpl W hrow)
+  (cliGhostExterns_other g _ h1 h2 h3 h4 h5 h6 h7 h8 h9 h10 hExtra).trans
+    (cliExternsPlaced_row mmpl W hrow)
 
 private theorem fmtWriteHook0_budget_ok_aux {M : AllocCostModel}
     (A : RustCliAllocBudget M) (lim : BudgetLimits) :

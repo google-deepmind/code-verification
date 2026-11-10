@@ -232,7 +232,7 @@ theorem fromUtf8Ascii_ok_cliExterns {img : Obj.Image} {hookStack : Nat} (W : Cli
     subroutine_ok (mProg img (cliExterns W))
       ((mProg img (cliExterns W)).fnAddr "core::str::converts::from_utf8")
       ((fromUtf8AsciiSpec hookStack).inImage img) :=
-  fromUtf8Ascii_ok (err := W.utf8Err) (cliExterns_row W (List.mem_append_right _ (by simp)))
+  fromUtf8Ascii_ok (err := CryptoVerification.SignalSession.cliDefaultUtf8Err) (cliExterns_row W (List.mem_append_right _ (by simp)))
 
 section MainCalleesCheck
 open CryptoGames.LibsignalSession CryptoVerification.RustHeap

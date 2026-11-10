@@ -33,6 +33,7 @@ import LibsignalBinary.Proofs.SpecLemmas.SignalSession.ElfSlicesPqOomH2KMemset
 import LibsignalBinary.Proofs.SpecLemmas.SignalSession.ElfSlicesPqOomH2KNarrowR1
 import LibsignalBinary.Proofs.SpecLemmas.SignalSession.ElfSlicesPqOomH2KWitness
 import LibsignalBinary.Proofs.SpecLemmas.SignalSession.ElfSlicesPqOomH2StepsLiftR2
+import LibsignalBinary.Proofs.SignalSession.Cli.HooksDehook.C2RowLayoutFacts.T4Witness -- rooting-only, no decl used
 import Symbolic.Proofs.TopLevelHelpers.Composed.Cli.RefinementKElf
 import Symbolic.Proofs.TopLevelHelpers.Composed.Cli.AsmLevelSecurityKElf
 

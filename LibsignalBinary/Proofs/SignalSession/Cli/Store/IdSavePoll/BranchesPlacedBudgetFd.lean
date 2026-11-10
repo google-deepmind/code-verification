@@ -432,6 +432,65 @@ theorem ispoll_call_publicKeyEq_placed_fd [LibsignalPlacement] {prog : Program} 
     exact sepWPp_conseq (Entails.of_eq (by sep_ac_rfl))
       (hnext sm hpcm hrunm hspm hcsm hinvm hfdsm hx0m htrm)
 
+theorem ispoll_call_publicKeyEq16_placed_fd [LibsignalPlacement] {prog : Program}
+    {M : AllocCostModel} {A : RustCliAllocBudget M} {lim : BudgetLimits}
+    {callee ret_pc ret : BitVec 64}
+    (hcall : subroutine_ok prog callee
+      (withLsCodeRoLoaded lsmpl
+        (withFdsGe3Closed
+          (withVmPreserved
+            LibsignalBinary.Proofs.ConsumeMessageKey.FindIndexProofs.CtEqSat.publicKeyEqMemSpec16))))
+    (p1 : BitVec 64) (pk1 : PublicKey) (p2 : BitVec 64) (pk2 : PublicKey)
+    (st : M.σ) (F : SepProp)
+    {s : State} {P : SepProp} {Q Qp : State → SepProp → Prop}
+    (hpc : s.pc = callee) (hrun : s.status = .Running) (hsp_align : s.spAligned = true)
+    (hlr : s.readReg64 Reg.lr = ret_pc)
+    (hinv : LibsignalCodeRoLoaded lsmpl s.mem)
+    (hfds : FdsGe3Closed s.fs)
+    (hx0 : s.readReg64 .x0 = p1) (hx1 : s.readReg64 .x1 = p2)
+    (hpre : P ⊢ ((p1 ↦ₛ pk1.bytes.toList) ∗ (p2 ↦ₛ pk2.bytes.toList) ∗
+      A.pool lim st s ∗ stackAt s.sp 80) ∗ F)
+    (hnext : ∀ sm : State,
+      sm.pc = ret_pc → sm.status = .Running →
+      sm.sp = s.sp → CalleeSavedPreserved s sm → LibsignalCodeRoLoaded lsmpl sm.mem →
+      FdsGe3Closed sm.fs →
+      sm.readReg64 .x0 = (if pk1 == pk2 then 1#64 else 0#64) → sm.trace = s.trace →
+      SepWPp prog ret sm
+        (((p1 ↦ₛ pk1.bytes.toList) ∗ (p2 ↦ₛ pk2.bytes.toList) ∗
+          A.pool lim st sm ∗ stackAt s.sp 80) ∗ F) Q Qp) :
+    SepWPp prog ret s P Q Qp := by
+  refine ispoll_call_total_raw_placed hcall (p1, pk1, p2, pk2, s.sp) (A.pool lim st s ∗ F)
+    hpc hrun hsp_align hlr hinv ?_ ?_ ?_ ?_ ?_
+  · refine Entails.trans hpre ?_
+    dsimp only [withFdsGe3Closed, withVmPreserved,
+      LibsignalBinary.Proofs.ConsumeMessageKey.FindIndexProofs.CtEqSat.publicKeyEqMemSpec16,
+      stackAt]
+    simp only [sepConj_assoc]
+    exact Entails.pure_right hfds
+      (Entails.pure_right ⟨hx0, hx1, trivial⟩ (Entails.of_eq (by sep_ac_rfl)))
+  · intro sm R' hpost
+    dsimp only [withFdsGe3Closed, withVmPreserved,
+      LibsignalBinary.Proofs.ConsumeMessageKey.FindIndexProofs.CtEqSat.publicKeyEqMemSpec16] at hpost
+    exact not_satisfies_false_sepConj hpost
+  · intro code sm R' hpost
+    dsimp only [withFdsGe3Closed, withVmPreserved,
+      LibsignalBinary.Proofs.ConsumeMessageKey.FindIndexProofs.CtEqSat.publicKeyEqMemSpec16] at hpost
+    exact not_satisfies_false_sepConj hpost
+  · intro sm R' hpost
+    dsimp only [withFdsGe3Closed, withVmPreserved,
+      LibsignalBinary.Proofs.ConsumeMessageKey.FindIndexProofs.CtEqSat.publicKeyEqMemSpec16] at hpost
+    exact not_satisfies_false_sepConj hpost
+  · intro sm hpcm hrunm hspm hcsm hinvm
+    dsimp only [withFdsGe3Closed, withVmPreserved,
+      LibsignalBinary.Proofs.ConsumeMessageKey.FindIndexProofs.CtEqSat.publicKeyEqMemSpec16,
+      stackAt]
+    simp only [sepConj_assoc]
+    refine SepWPp.pure_elim fun hfdsm =>
+      SepWPp.pure_elim fun hvm => SepWPp.pure_elim fun ⟨hx0m, htrm⟩ => ?_
+    rw [← A.pool_transport lim st s sm hvm]
+    exact sepWPp_conseq (Entails.of_eq (by dsimp only [stackAt]; sep_ac_rfl))
+      (hnext sm hpcm hrunm hspm hcsm hinvm hfdsm hx0m htrm)
+
 theorem ispoll_call_serialize_placed_fd [LibsignalPlacement] {prog : Program} {M : AllocCostModel}
     {A : RustCliAllocBudget M} {lim : BudgetLimits}
     {callee ret_pc ret : BitVec 64}

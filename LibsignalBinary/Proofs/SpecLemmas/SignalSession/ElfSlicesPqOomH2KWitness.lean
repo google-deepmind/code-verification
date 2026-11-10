@@ -13,6 +13,7 @@ public import LibsignalBinary.Specifications.SignalSession.CliElf
 public import LibsignalBinary.Proofs.SignalSession.Cli.D3.F3.D3BinaryOomProofF3G
 public import LibsignalBinary.Proofs.SignalSession.Cli.F3.L4B.CliStrictPlaced2G
 public import LibsignalBinary.Proofs.SignalSession.Cli.HooksDehook.Block617TransferG
+public import LibsignalBinary.Proofs.SignalSession.Cli.HooksDehook.C2EntryGuard -- proof-setup: allow-public-import
 public import LibsignalBinary.Proofs.SpecLemmas.SignalSession.ElfSlicesPqOomPlaced
 public import LibsignalBinary.Proofs.SpecLemmas.SignalSession.ElfSlicesPqOomPlacedInst
 public import LibsignalBinary.Proofs.SpecLemmas.SignalSession.ElfSlicesPqOomH2KHooks
@@ -82,12 +83,12 @@ open LibsignalBinary.Proofs.SignalSession.Cli.F3.HRead.ReadFileBudgetPlaced (Rea
 open LibsignalBinary.Proofs.SignalSession.Cli.F3.L4B.CliStrictPlaced2
   (MainOkCliExtPqB2NeedLocksPlacedAt b2MainSpecTightNeedLocksFineAt cliBudgetLimits)
 open LibsignalBinary.Proofs.SignalSession.Cli.F3.L4B.CliStrictPlaced2G
-  (F3MemsetMemcpyEntryLrFalse MainOkCliF3PqB2NeedLocksPlacedAtG
-   mainOkCliF3PqG_of_block617TransferFixedG)
+  (MainOkCliF3PqB2NeedLocksPlacedAtG mainOkCliF3PqG_of_block617TransferFixedG)
 open LibsignalBinary.Proofs.SignalSession.Cli.F3.L4B.F3HarnessPlaced
   (cliProgExtPlacedAt cliStaticsPlacedAt)
 open LibsignalBinary.Proofs.SignalSession.Cli.HooksDehook.Block617TransferG
   (Block617TransferFixedHypG)
+open LibsignalBinary.Proofs.SignalSession.Cli.HooksDehook.C2EntryGuard (F3C2EntryGuard)
 open LibsignalBinary.Proofs.SignalSession.Cli.M24.B2MainFrameComposeBudget (libsignalPlacementOf)
 open LibsignalBinary.Proofs.SignalSession.Cli.M24.MainIoBoundedPlaced (ReadStdinBoundedEnv)
 open LibsignalBinary.Proofs.SignalSession.Cli.Parity.F3.BundleInitElfF3
@@ -121,7 +122,7 @@ structure F3CliElfGhostWitnessK (mpl mmpl : MultiPlacement) where
     letI : LibsignalPlacement := libsignalPlacementOf mpl hblk hext_nodup
     Block617TransferFixedHypG mpl mmpl
       (fun W => cliGhostExterns ghFixed (cliExternsPlaced mmpl W))
-      (cliExternsPlaced mmpl) (F3MemsetMemcpyEntryLrFalse mmpl)
+      (cliExternsPlaced mmpl) (F3C2EntryGuard mpl mmpl)
       (LibsignalFrozen mpl) (F3CodeOk mpl mmpl)
       (mallocngAddrsOfPlacement mmpl).libc cliElfImage.brkStart cliMainStk
   hGSpqrK :

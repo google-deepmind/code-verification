@@ -39,7 +39,7 @@ open CryptoVerification.LibsignalPublicApi.StoreKit
   (subroutine_ok_rocl_of_withLsCodeRoLoaded subroutine_ok_withLsCodeRoLoaded_of_plain withLsRoCl)
 open CryptoVerification.LibsignalTripleRatchetRepr (UuidParser)
 open CryptoVerification.SignalSession
-  (fromUtf8Hook lsFromUtf8Sym lsMemrchrSym memrchrHook strlenHook)
+  (fromUtf8Hook lsFromUtf8Sym lsMemrchrSym memrchrHook)
 open CryptoVerification.SignalSession.Cli.Main.Placed (lsProg_617)
 open CryptoVerification.SignalSession.Cli.Placed (lsProg_580)
 open LibsignalBinary.Heap (AllocCostModel BudgetLimits RustCliAllocBudget)
@@ -48,8 +48,7 @@ open LibsignalBinary.Proofs.SignalSession.Cli.HooksDehook.WithLsRet
   (hookSat_withLsRet withLsRet)
 open LibsignalBinary.Proofs.SignalSession.Cli.M24.CalleesRO
   (MainCalleesROBlk617 addressSpecRO fromUtf8AsciiSpecRO fromUtf8Hook_ro_ok
-   fromUtf8Hook_vmPreserved memrchrHook_ro_ok memrchrHook_vmPreserved memrchrSpecRO
-   strlen_ro_placed_ok_of_hooks)
+   fromUtf8Hook_vmPreserved memrchrHook_ro_ok memrchrHook_vmPreserved memrchrSpecRO)
 open LibsignalBinary.Proofs.SignalSession.Cli.Main.HopsPlacedBudget (MainCalleesBlk617)
 
 private theorem subroutine_ok_rocl_of_plain [LibsignalPlacement] {α : Type}
@@ -108,20 +107,18 @@ theorem memrchr_ro_blk580_ok_of_hooks_sat [LibsignalPlacement]
     exact ls_hook_ok_ultra_of_mem hext (by decide)
   exact subroutine_ok_rocl_of_plain hplain
 
-/-- `HookSat` sibling of `mainCalleesROBlk617_of_mainCalleesBlk617_and_addr` (`CalleesRO.lean:653`),
+/-- `HookSat` sibling of `mainCalleesROBlk617_of_mainCalleesBlk617_and_addr` (`CalleesRO.lean`),
     replacing `hutf8` with `HookSat` and dropping `err`. -/
 theorem mainCalleesROBlk617_of_mainCalleesBlk617_and_addr_sat [LibsignalPlacement]
     {M : AllocCostModel} {A : RustCliAllocBudget M} {lim : BudgetLimits}
     {H : LibsignalHooks} {uuidParse : UuidParser} {hookStack resStack : Nat}
     (hc : MainCalleesBlk617 A lim H uuidParse hookStack resStack)
-    (hstrlen : H "strlen" = some strlenHook)
     (hutf8 : HookSat H lsFromUtf8Sym (withVmPreserved (fromUtf8AsciiSpecRO hookStack)))
     (haddr : subroutine_ok (lsProg_617 H) (lsmpl.base 580)
       (withLsRoCl lsmpl (addressSpecRO A lim uuidParse resStack))) :
     MainCalleesROBlk617 A lim H uuidParse hookStack resStack where
   alloc := hc.alloc
   allocFs := hc.allocFs
-  strlen := strlen_ro_placed_ok_of_hooks hstrlen
   fromUtf8 := fromUtf8Ascii_ro_placed_ok_of_hooks_sat hutf8
   address := haddr
   reserve16 := hc.reserve16

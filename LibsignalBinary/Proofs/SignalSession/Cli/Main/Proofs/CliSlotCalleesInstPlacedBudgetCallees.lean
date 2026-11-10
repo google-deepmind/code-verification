@@ -151,11 +151,11 @@ open LibsignalBinary.Proofs.SignalSession.Cli.Run.Proofs.Ratchet.EncryptLemmas.I
 )
 open LibsignalBinary.Proofs.SignalSession.Cli.Run.Slots.CliHookSatPlacedBudget (
   CliGhostAllocHooks cliExternsPlaced_alloc_budget_sat cliExternsPlaced_compress256Multi_budget_sat
-  cliExternsPlaced_dealloc_budget_sat cliExternsPlaced_durationSinceBounded_budget_sat
-  cliExternsPlaced_exactMemcpy_sat cliExternsPlaced_framelessMemcpy_budget_sat
-  cliExternsPlaced_noAllocShim_budget_sat cliExternsPlaced_realloc_budget_sat
-  cliExternsPlaced_sessionMemcpyRegion_budget_sat cliExternsPlaced_sessionMemsetRegion_budget_sat
-  cliExternsPlaced_shim_budget_sat cliExternsPlaced_timeAdd_budget_sat
+  cliExternsPlaced_dealloc_budget_sat cliExternsPlaced_exactMemcpy_sat
+  cliExternsPlaced_framelessMemcpy_budget_sat cliExternsPlaced_noAllocShim_budget_sat
+  cliExternsPlaced_realloc_budget_sat cliExternsPlaced_sessionMemcpyRegion_budget_sat
+  cliExternsPlaced_sessionMemsetRegion_budget_sat cliExternsPlaced_shim_budget_sat
+  cliGhostExterns_durationSinceBounded_budget_sat cliGhostExterns_timeAdd_budget_sat
 )
 open LibsignalBinary.Proofs.TripleRatchet.Alloc.DefsBudget (noAllocShimBudgetSpec)
 open LibsignalBinary.Proofs.TripleRatchet.Alloc.PublicKeySerializeBudget (
@@ -261,10 +261,12 @@ theorem publicApiEncHooksBudget_cli [LibsignalPlacement] {M : AllocCostModel}
   realloc := cliExternsPlaced_realloc_budget_sat mmpl g W hH.alloc.toCliGhostAllocHooks
   memcpy := cliExternsPlaced_sessionMemcpyRegion_budget_sat mmpl g W hH.alloc.toCliGhostAllocHooks
   stringClone := hH.stringCloneEnc
-  timeAdd := cliGhostExterns_sat_of_cliExternsPlaced mmpl g W
-    (cliExternsPlaced_timeAdd_budget_sat mmpl W)
-  durationSince := cliGhostExterns_sat_of_cliExternsPlaced mmpl g W
-    (cliExternsPlaced_durationSinceBounded_budget_sat mmpl W)
+  timeAdd :=
+    cliGhostExterns_timeAdd_budget_sat g (cliExternsPlaced mmpl W)
+      hH.alloc.toCliGhostAllocHooks.extraOk
+  durationSince :=
+    cliGhostExterns_durationSinceBounded_budget_sat g (cliExternsPlaced mmpl W)
+      hH.alloc.toCliGhostAllocHooks.extraOk
   handleError := cliGhostExterns_panic_handle_error mmpl g W
   handleAllocError := cliGhostExterns_panic_handle_alloc_error mmpl g W
   expectFailed := cliGhostExterns_panic_option_expect_failed mmpl g W

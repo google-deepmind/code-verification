@@ -245,7 +245,7 @@ theorem cliPubCallees_of_arms_placed [LibsignalPlacement]
         (callerProg := lsProg_579 H) (i := 579)
         (pathProg := lsProg_589 H) (jPath := 589)
         (readProg := lsProg_579 H) (jRead := 579)
-        (fun _ hp => hp.2) hh.alloc hh.memcpyRO hh.bcmp
+        (fun _ hp => hp.2) hh.alloc hh.memcpyRO hh.bcmp.of_keepsFs
         (by decide) (by decide)
         (path_placed_ok (callerProg := lsProg_589 H) (i := 589)
           hh (Nat.le_refl pathNeed) (by decide))
@@ -711,7 +711,7 @@ theorem cliPubCallees_of_arms_frozen_placed [LibsignalPlacement]
         (callerProg := lsProg_579 H) (i := 579)
         (pathProg := lsProg_589 H) (jPath := 589)
         (readProg := lsProg_579 H) (jRead := 579)
-        (fun _ hp => hp.2) hh.alloc hh.memcpyRO hh.bcmp
+        (fun _ hp => hp.2) hh.alloc hh.memcpyRO hh.bcmp.of_keepsFs
         (by decide) (by decide)
         (path_placed_ok (callerProg := lsProg_589 H) (i := 589)
           hh (Nat.le_refl pathNeed) (by decide))

@@ -178,7 +178,7 @@ theorem deserializeX_placed_ok_of_stage2 [LibsignalPlacement]
 
 set_option maxRecDepth 200000 in
 /-- Relocatable `SessionRecord::deserialize` (block `46`) satisfies `deserializeQExactPlacedSpecW` on
-`lsProg_46 H` under allocator, `memcpy`, `memmove`, shim, and panic hook contracts. -/
+`lsProg_46 H` under allocator, `memcpy`, shim, and panic hook contracts. -/
 theorem deserializeXExact_placed_ok [LibsignalPlacement]
     {H : LibsignalHooks}
     (halloc : HookSat H lsRustAllocSym (rustAllocSpec A0))
@@ -186,19 +186,18 @@ theorem deserializeXExact_placed_ok [LibsignalPlacement]
     (hrealloc : HookSat H lsRustReallocSym (rustReallocSpec A0))
     (hshim : HookSat H lsRustNoAllocShimSym sessionShimSpec)
     (hmemcpy : HookSat H "memcpy" (sessionMemcpySpec extHookStack))
-    (hmemmove : HookSat H "memmove" (sessionMemmoveSpec extHookStack))
     (hpan_err : H lsHandleErrorSym = some Rust.panicked)
     (hpan_alloc : H "_RNvNtCs69KKACWg7bl_5alloc5alloc18handle_alloc_error" = some Rust.panicked) :
     subroutine_ok (lsProg_46 H) (blkPl_46).base
       Symbolic.Swarm.TRREF.B3DeserQ.deserializeQExactPlacedSpecW :=
   Symbolic.Swarm.TRREF.B3DeserQ.deserializeExactAtQ_placed_ok_of_alloc
     (Proofs.libsignal.Stage1X.AllocContractsPlaced.of_hooks
-      halloc hdealloc hrealloc hshim hmemmove hpan_err hpan_alloc)
+      halloc hdealloc hrealloc hshim hpan_err hpan_alloc)
     (ls_subroutine_ok_cl_of_plain_prog (ls_hook_ok_of_caller hmemcpy))
 
 set_option maxRecDepth 200000 in
 /-- Relocatable `SessionRecord::deserialize` (block `46`) satisfies `deserializeQPlacedSpecW` on
-`lsProg_46 H` under allocator, `memcpy`, `memmove`, shim, and panic hook contracts. -/
+`lsProg_46 H` under allocator, `memcpy`, shim, and panic hook contracts. -/
 theorem deserializeX_placed_ok [LibsignalPlacement]
     {H : LibsignalHooks}
     (halloc : HookSat H lsRustAllocSym (rustAllocSpec A0))
@@ -206,14 +205,13 @@ theorem deserializeX_placed_ok [LibsignalPlacement]
     (hrealloc : HookSat H lsRustReallocSym (rustReallocSpec A0))
     (hshim : HookSat H lsRustNoAllocShimSym sessionShimSpec)
     (hmemcpy : HookSat H "memcpy" (sessionMemcpySpec extHookStack))
-    (hmemmove : HookSat H "memmove" (sessionMemmoveSpec extHookStack))
     (hpan_err : H lsHandleErrorSym = some Rust.panicked)
     (hpan_alloc : H "_RNvNtCs69KKACWg7bl_5alloc5alloc18handle_alloc_error" = some Rust.panicked) :
     subroutine_ok (lsProg_46 H) (blkPl_46).base
       Symbolic.Swarm.TRREF.B3DeserQ.deserializeQPlacedSpecW :=
   Symbolic.Swarm.TRREF.B3DeserQ.deserializeBodyQ_placed_ok_of_alloc
     (Proofs.libsignal.Stage1X.AllocContractsPlaced.of_hooks
-      halloc hdealloc hrealloc hshim hmemmove hpan_err hpan_alloc)
+      halloc hdealloc hrealloc hshim hpan_err hpan_alloc)
     (ls_subroutine_ok_cl_of_plain_prog (ls_hook_ok_of_caller hmemcpy))
 
 end Placed

@@ -67,7 +67,7 @@ theorem strlen_row (W : CliHooks) : ("strlen", strlenHook) ∈ cliHookTable W :=
   List.mem_append_right _ (List.mem_of_getElem? (i := 9) rfl)
 
 theorem fromUtf8_row (W : CliHooks) :
-    ("core::str::converts::from_utf8", fromUtf8Hook W.utf8Err) ∈ cliHookTable W :=
+    ("core::str::converts::from_utf8", fromUtf8Hook CryptoVerification.SignalSession.cliDefaultUtf8Err) ∈ cliHookTable W :=
   List.mem_append_right _ (List.mem_of_getElem? (i := 15) rfl)
 
 theorem blackBox_row (W : CliHooks) :
@@ -584,7 +584,7 @@ theorem hookMemset_fr : HookFr true hookMemset := by
 theorem hookMemcpy_fr : HookFr true hookMemcpy := by
   intro s; unfold hookMemcpy; fr_close
 theorem hookMemmove_fr : HookFr true hookMemmove := hookMemcpy_fr
-theorem cliBcmpHook_fr : HookFr true (cliBcmpHook W.bcmp) := by
+theorem cliBcmpHook_fr : HookFr true (cliBcmpHook CryptoVerification.SignalSession.cliDefaultBcmp) := by
   intro s; unfold cliBcmpHook; fr_close
 theorem strlenHook_fr : HookFr true strlenHook := by
   intro s; unfold strlenHook unmodelled; fr_close
@@ -598,7 +598,7 @@ theorem writeStdoutHook_fr : HookFr false writeStdoutHook := by
   intro s; unfold writeStdoutHook unitResult unmodelled; fr_close
 theorem memrchrHook_fr : HookFr true memrchrHook := by
   intro s; unfold memrchrHook unmodelled; fr_close
-theorem fromUtf8Hook_fr : HookFr true (fromUtf8Hook W.utf8Err) := by
+theorem fromUtf8Hook_fr : HookFr true (fromUtf8Hook CryptoVerification.SignalSession.cliDefaultUtf8Err) := by
   intro s; unfold fromUtf8Hook unmodelled; fr_close
 theorem stringCloneHook0_fr : HookFr true E2E.stringCloneHook0 := by
   intro s; unfold E2E.stringCloneHook0 E2E.returnFreshVecU8; fr_close
@@ -698,8 +698,8 @@ theorem cliHookTable_fr (W : CliHooks) :
     HookFr.weak hookNoop_fr,
     HookFr.weak allocHook0_fr, HookFr.weak deallocHook_fr, HookFr.weak reallocHook0_fr,
     HookFr.weak allocZeroedHook0_fr, HookFr.weak hookMemset_fr, HookFr.weak hookMemmove_fr,
-    HookFr.weak hookMemcpy_fr, HookFr.weak (cliBcmpHook_fr W), HookFr.weak strlenHook_fr,
-    HookFr.weak readFileHook_fr, HookFr.weak memrchrHook_fr, HookFr.weak (fromUtf8Hook_fr W),
+    HookFr.weak hookMemcpy_fr, HookFr.weak cliBcmpHook_fr, HookFr.weak strlenHook_fr,
+    HookFr.weak readFileHook_fr, HookFr.weak memrchrHook_fr, HookFr.weak fromUtf8Hook_fr,
     HookFr.weak stringCloneHook0_fr, HookFr.weak fmtWriteHook0_fr,
     HookFr.weak formatInnerHook0_fr, HookFr.weak durationSinceExactHook_fr,
     HookFr.weak timeAddHook_fr, HookFr.weak blackBoxHook_fr, HookFr.weak (compress256Hook_fr W),
@@ -783,7 +783,7 @@ theorem cliExterns_ok (W : CliHooks) :
       (fun _ _ => True) (fun _ => trivial) (Cli.MainHops.memrchrHook_ok extHookStack)
       (fun _ _ _ hp => hp) (fun _ _ _ _ _ _ hq => hq) (fun _ _ _ _ hq => hq)
       (fun _ _ _ _ _ hq => hq) (fun _ _ _ _ hq => hq))
-  fromUtf8 := hookSat_row (fromUtf8_row W) (Cli.MainHops.fromUtf8Hook_ok extHookStack W.utf8Err)
+  fromUtf8 := hookSat_row (fromUtf8_row W) (Cli.MainHops.fromUtf8Hook_ok extHookStack CryptoVerification.SignalSession.cliDefaultUtf8Err)
   fmtWrite := hookSat_of_cliExterns (Cli.Slots.fmtWrite_row W) (Cli.Slots.cliExterns_fmtWrite W)
   formatInner :=
     hookSat_of_cliExterns (Cli.Slots.formatInner_row W) (Cli.Slots.cliExterns_formatInner W)

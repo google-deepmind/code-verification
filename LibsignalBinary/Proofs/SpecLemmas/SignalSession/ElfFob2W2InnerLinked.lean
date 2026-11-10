@@ -71,14 +71,14 @@ open CryptoVerification.SignalSession
    lsReadStdinSym lsRustAllocSymCli lsRustAllocZeroedSymCli lsRustDeallocSymCli
    lsRustNoAllocShimSymCli lsRustReallocSymCli)
 open CryptoVerification.SignalSession.Cli (StoresGhost)
-open CryptoVerification.SignalSession.Cli.KitInst
-  (cliGhostExterns_blackBox cliIdentityVtRoSym)
+open CryptoVerification.SignalSession.Cli.KitInst (cliIdentityVtRoSym)
 open CryptoVerification.SignalSession.Cli.KitInst.IdKit (cliIdentityKitSpecPlaced_quiet)
 open CryptoVerification.SignalSession.Cli.KitInst.SessKit (cliSessionKitSpecPlaced_quiet)
 open CryptoVerification.SignalSession.Cli.MainHops (cliIo cliRunBudgets cliWrOk)
 open CryptoVerification.SignalSession.Cli.Placed (lsProg_589)
 open CryptoVerification.SignalSession.Cli.RunGlue
-  (CliGhostHooks CliGhostHooksFs cliExternsPlaced_row cliGhostExterns cliGhostExterns_other)
+  (CliGhostHooks CliGhostHooksFs cliExternsPlaced_row cliExtraGhostSyms cliGhostExterns
+   cliGhostExterns_other)
 open CryptoVerification.SignalSession.Cli.RunSkeleton (RunBudgets)
 open CryptoVerification.SignalSession.Cli.Slots
   (cliDecModelRecOkAt_opened fmtWrite_row_placed formatInner_row_placed libcruxHmac_row_placed
@@ -123,7 +123,7 @@ open LibsignalBinary.Proofs.SessionRecordMin.DeserializeCancelBudget
   (RecordDeserializeCancelEnv sessDeserEvents_mem_recordDeserializeCancelEnv)
 open LibsignalBinary.Proofs.SignalSession.Cli.F3.HRead.ReadFileBudgetPlaced (ReadFileRuleEnvFixed)
 open LibsignalBinary.Proofs.SignalSession.Cli.KitInst.IdentityKitOkPlacedBudget
-  (cliIdKitOkIE_placed)
+  (cliIdKitOkIE_placed_sat)
 open LibsignalBinary.Proofs.SignalSession.Cli.KitInst.SessionKitOkCliPlacedBudget
   (cliSessKitOkSE_seqFree_placed)
 open LibsignalBinary.Proofs.SignalSession.Cli.M24.B2MainFrameComposeBudget (libsignalPlacementOf)
@@ -201,9 +201,12 @@ private theorem fob2_cliGhost_row_aux (mmpl : MultiPlacement) (g : CliGhostHooks
     (h5 : sym ≠ lsRustNoAllocShimSymCli := by decide) (h6 : sym ≠ lsStringCloneSym := by decide)
     (h7 : sym ≠ lsReadFileSym := by decide) (h8 : sym ≠ lsReadStdinSym := by decide)
     (h9 : sym ≠ CryptoVerification.SignalSession.lsMemsetSym := by decide)
-    (h10 : sym ≠ CryptoVerification.SignalSession.lsMemcpySym := by decide) :
+    (h10 : sym ≠ CryptoVerification.SignalSession.lsMemcpySym := by decide)
+    (hExtra : cliExtraGhostSyms.contains sym = false ∨ g.extra.lookup sym = none := by
+      left; decide) :
     cliGhostExterns g (cliExternsPlaced mmpl W) sym = some f :=
-  (cliGhostExterns_other g _ h1 h2 h3 h4 h5 h6 h7 h8 h9 h10).trans (cliExternsPlaced_row mmpl W hrow)
+  (cliGhostExterns_other g _ h1 h2 h3 h4 h5 h6 h7 h8 h9 h10 hExtra).trans
+    (cliExternsPlaced_row mmpl W hrow)
 
 private theorem fob2_fmtWriteHook0_budget_ok {M : AllocCostModel}
     (A : RustCliAllocBudget M) (lim : BudgetLimits) :
@@ -300,7 +303,7 @@ theorem fob2_decBinaryIdKitPlacedFixed_okIE [LibsignalPlacement]
       (decIdKitPlaced A.repAlloc F0 peer B)
       (decBinaryIdKitPlacedBudgetFixed A.repAlloc B F0 peer)
       (cliGhostExterns gh (cliExternsPlaced mmpl W)) :=
-  cliIdKitOkIE_placed
+  cliIdKitOkIE_placed_sat
     (readProg := lsProg_589 (cliGhostExterns gh (cliExternsPlaced mmpl W))) (jRead := 589)
     (vtSym := cliIdentityVtRoSym)
     hDropNz (fun _ hp => hp.2) hh
@@ -308,7 +311,7 @@ theorem fob2_decBinaryIdKitPlacedFixed_okIE [LibsignalPlacement]
       (ls_hook_ok_ultra_of_mem
         (prog := lsProg_589 (cliGhostExterns gh (cliExternsPlaced mmpl W))) (i := 589)
         hReadHook (by decide) (by decide) (by decide)))
-    (cliGhostExterns_blackBox mmpl gh W)
+    hh.blackBox
     (by decide) (Nat.le_refl _) (by decide) (Nat.le_refl _)
 
 /-! ## `InnerDecryptFrozenPlacedOk` Producers for `decryptSignal` -/

@@ -35,7 +35,7 @@ namespace LibsignalBinary.Proofs.SignalSession.Cli.Store.ShimCommonPlacedBudget
 open Arm64 Arm64.Obj ProofLib
 open CryptoVerification (IsLsBlockProg LibsignalHooks LibsignalPlacement lsmpl lsρ)
 open CryptoVerification.LibsignalTripleRatchet
-  (extHookStack memcpyName memmoveName memsetName withStack)
+  (extHookStack memcpyName memsetName withStack)
 open CryptoVerification.LibsignalPublicApi.StoreKit
   (LibsignalCodeRoLoaded extract_withLsCodeRoLoaded withLsCodeRoLoaded)
 open CryptoVerification.SignalSession
@@ -52,7 +52,7 @@ open LibsignalBinary.Heap.IfaceBudgetLemmas
 open LibsignalBinary.Heap.SpecBudget (withVmPreserved)
 open LibsignalBinary.Proofs.Placed.ElfLsRetAddr (LsRetAddr624)
 open LibsignalBinary.Proofs.TripleRatchet.Hooks.DefsBudget
-  (sessionMemcpyBudgetSpec sessionMemcpyRegionBudgetSpec sessionMemmoveBudgetSpec
+  (sessionMemcpyBudgetSpec sessionMemcpyRegionBudgetSpec
    sessionMemsetBudgetSpec sessionMemsetRegionBudgetSpec sessionShimBudgetSpec)
 open LibsignalBinary.Proofs.TripleRatchet.Hooks2Budget
   (rustAllocNoOomExternSpecWithStack rustAllocNoOomSpecWithStack rustAllocSpecWithStack
@@ -136,9 +136,6 @@ theorem AllocContractsFsPlaced.toAllocContractsX [LibsignalPlacement] {M : Alloc
   memcpy_region stk h1 h2 := subroutine_ok_withLsCodeRoLoaded_of_keepsFs (hA.memcpy_region stk h1 h2)
   session_memcpy_region stk h1 h2 :=
     subroutine_ok_withLsCodeRoLoaded_of_keepsFs (hA.session_memcpy_region stk h1 h2)
-  memmove stk h1 h2 := subroutine_ok_withLsCodeRoLoaded_of_keepsFs (hA.memmove stk h1 h2)
-  session_memmove stk h1 h2 :=
-    subroutine_ok_withLsCodeRoLoaded_of_keepsFs (hA.session_memmove stk h1 h2)
   memset stk h1 h2 := subroutine_ok_withLsCodeRoLoaded_of_keepsFs (hA.memset stk h1 h2)
   session_memset stk h1 h2 := subroutine_ok_withLsCodeRoLoaded_of_keepsFs (hA.session_memset stk h1 h2)
   memset_region stk h1 h2 := subroutine_ok_withLsCodeRoLoaded_of_keepsFs (hA.memset_region stk h1 h2)
@@ -395,26 +392,6 @@ theorem session_memcpy_region_lscro_of_cli [LibsignalPlacement] {M : AllocCostMo
     subroutine_ok callerProg (lsρ memcpyName)
       (withLsCodeRoLoaded lsmpl (withStack sessionMemcpyRegionBudgetSpec stk)) :=
   ls_transfer_lscro (callerProg := callerProg) (j := 617) (hC.session_memcpy_region stk h1 h2) hi
-
-theorem memmove_lscro_of_cli [LibsignalPlacement] {M : AllocCostModel}
-    {A : RustCliAllocBudget M} {lim : BudgetLimits} {H : LibsignalHooks}
-    {callerProg : Program} {i : Nat} [IsLsBlockProg callerProg i H]
-    (hC : AllocContractsXCliPlaced A lim H)
-    {stk : Nat} (h1 : extHookStack ≤ stk := by decide) (h2 : stk ≤ 2 ^ 64 := by decide)
-    (hi : i < 619 := by decide) :
-    subroutine_ok callerProg (lsρ memmoveName)
-      (withLsCodeRoLoaded lsmpl (withVmPreserved (libcMemmoveSpec stk))) :=
-  ls_transfer_lscro (callerProg := callerProg) (j := 617) (hC.memmove stk h1 h2) hi
-
-theorem session_memmove_lscro_of_cli [LibsignalPlacement] {M : AllocCostModel}
-    {A : RustCliAllocBudget M} {lim : BudgetLimits} {H : LibsignalHooks}
-    {callerProg : Program} {i : Nat} [IsLsBlockProg callerProg i H]
-    (hC : AllocContractsXCliPlaced A lim H)
-    {stk : Nat} (h1 : extHookStack ≤ stk := by decide) (h2 : stk ≤ 2 ^ 64 := by decide)
-    (hi : i < 619 := by decide) :
-    subroutine_ok callerProg (lsρ memmoveName)
-      (withLsCodeRoLoaded lsmpl (sessionMemmoveBudgetSpec stk)) :=
-  ls_transfer_lscro (callerProg := callerProg) (j := 617) (hC.session_memmove stk h1 h2) hi
 
 theorem memset_lscro_of_cli [LibsignalPlacement] {M : AllocCostModel}
     {A : RustCliAllocBudget M} {lim : BudgetLimits} {H : LibsignalHooks}

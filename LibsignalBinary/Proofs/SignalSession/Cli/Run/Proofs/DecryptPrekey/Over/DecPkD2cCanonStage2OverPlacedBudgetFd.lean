@@ -114,7 +114,8 @@ open CryptoVerification.SignalSession.Cli.RunProofs.Poll (
   stageP2PostP1At stageP3CoroFrameAt stageP3StackFrameAt x29_eq_sp0_sub_60 x29_eq_sp_add_c70
 )
 open CryptoVerification.SignalSession.Cli.Slots (FilesOkPeer scopeIn scopeKit)
-open LibsignalBinary.Proofs.SignalSession.Cli.Run.Slots.CliHookSatPlacedBudget (CliGhostAllocHooks)
+open LibsignalBinary.Proofs.SignalSession.Cli.Run.Slots.CliHookSatPlacedBudget
+  (CliGhostAllocHooks cliGhostExterns_blackBoxSat_budget_sat)
 open LibsignalBinary.Heap (
   AllocCostModel AllocEvent BudgetLimits FitsEnv FreeOnlyEvs RustCliAllocBudget SeqEnv
 )
@@ -916,7 +917,8 @@ theorem stageP2Over_qpan_cli_archive_frozen_of_init75_and_kits [LibsignalFullPla
         stageP2PathCOver_qpan_cli_archive_frozen_of_init75_and_kits A lim X mmpl gh W B
           hDropNz hG hInit75 (hErrEnv X B) (hOkEnv X B) (hFitsSplit X B)
           (hSelfKit B) (hSpkKit B) (hKpkKit B) (hPkKit B))
-      (cliPromoteMatchingMissGen_placed_ok A.repAlloc mmpl gh W)
+      (cliPromoteMatchingMissGen_placed_ok A.repAlloc mmpl gh W
+        (cliGhostExterns_blackBoxSat_budget_sat gh (cliExternsPlaced mmpl W) hG.extraOk))
       (fun hh => cliPromoteOverGen_archive_placed_ok mmpl gh W hh hGrow hRaw)
 
 end LibsignalBinary.Proofs.SignalSession.Cli.Run.Proofs.DecryptPrekey.Over.DecPkD2cCanonStage2OverPlacedBudgetFd

@@ -907,7 +907,7 @@ open Proofs.libsignal.Hooks2
   (subroutine_ok_withLsCodeLoaded_map' subroutine_ok_withLsCl_map'
    subroutine_ok_withLsCl_withHookStack_mono subroutine_ok_withExternStackFromAlloc')
 
-/-- Relocatable contract-form allocator + `memmove` + panic bundle at `extHookStack = 16384`. -/
+/-- Relocatable contract-form allocator + `shim` + panic bundle at `extHookStack = 16384`. -/
 structure AllocContractsPlaced [LibsignalPlacement] (A : RustAlloc) (H : LibsignalHooks) : Prop where
   alloc : ∀ {callerProg : Program} {callerBlk : Nat} [IsLsBlockProg callerProg callerBlk H],
     subroutine_ok callerProg (lsρ lsRustAllocSym) (withLsCl lsmpl (Proofs.libsignal.Stage1X.rustAllocSpecWithStack A extHookStack))
@@ -917,8 +917,6 @@ structure AllocContractsPlaced [LibsignalPlacement] (A : RustAlloc) (H : Libsign
     subroutine_ok callerProg (lsρ lsRustReallocSym) (withLsCl lsmpl (Proofs.libsignal.Stage1X.rustReallocExternSpecWithStack A extHookStack))
   shim : ∀ {callerProg : Program} {callerBlk : Nat} [IsLsBlockProg callerProg callerBlk H],
     subroutine_ok callerProg (lsρ lsRustNoAllocShimSym) (withLsCl lsmpl Proofs.libsignal.Stage1X.session2ShimSpecX)
-  session_memmove : ∀ {callerProg : Program} {callerBlk : Nat} [IsLsBlockProg callerProg callerBlk H],
-    subroutine_ok callerProg (lsρ "memmove") (withLsCl lsmpl (sessionMemmoveSpec extHookStack))
   panic_handle_error : H lsHandleErrorSym = some Rust.panicked
   panic_handle_alloc_error : H "_RNvNtCs69KKACWg7bl_5alloc5alloc18handle_alloc_error" = some Rust.panicked
 
@@ -928,18 +926,16 @@ theorem AllocContractsPlaced.of_block0 [LibsignalPlacement] {A : RustAlloc} {H :
     (hdealloc : subroutine_ok blk0Prog (lsρ lsRustDeallocSym) (withLsCodeLoaded lsmpl (Proofs.libsignal.Stage1X.rustDeallocExternSpecWithStack A extHookStack)))
     (hrealloc : subroutine_ok blk0Prog (lsρ lsRustReallocSym) (withLsCodeLoaded lsmpl (Proofs.libsignal.Stage1X.rustReallocExternSpecWithStack A extHookStack)))
     (hshim : subroutine_ok blk0Prog (lsρ lsRustNoAllocShimSym) (withLsCodeLoaded lsmpl Proofs.libsignal.Stage1X.session2ShimSpecX))
-    (hmemmove : subroutine_ok blk0Prog (lsρ "memmove") (withLsCodeLoaded lsmpl (sessionMemmoveSpec extHookStack)))
     (hpan_err : H lsHandleErrorSym = some Rust.panicked) (hpan_alloc : H "_RNvNtCs69KKACWg7bl_5alloc5alloc18handle_alloc_error" = some Rust.panicked) :
     AllocContractsPlaced A H :=
   ⟨ls_subroutine_ok_cl_of_callee (j := 0) halloc, ls_subroutine_ok_cl_of_callee (j := 0) hdealloc,
    ls_subroutine_ok_cl_of_callee (j := 0) hrealloc, ls_subroutine_ok_cl_of_callee (j := 0) hshim,
-   ls_subroutine_ok_cl_of_callee (j := 0) hmemmove, hpan_err, hpan_alloc⟩
+   hpan_err, hpan_alloc⟩
 
 /-- Construct `AllocContractsPlaced A H` from `HookSat H` single-step hooks via `stackAt_split_bottom` slack framing. -/
 theorem AllocContractsPlaced.of_hooks [LibsignalPlacement] {A : RustAlloc} {H : LibsignalHooks}
     (halloc : HookSat H lsRustAllocSym (rustAllocSpec A)) (hdealloc : HookSat H lsRustDeallocSym (rustDeallocSpec A))
     (hrealloc : HookSat H lsRustReallocSym (rustReallocSpec A)) (hshim : HookSat H lsRustNoAllocShimSym sessionShimSpec)
-    (hmemmove : HookSat H "memmove" (sessionMemmoveSpec extHookStack))
     (hpan_err : H lsHandleErrorSym = some Rust.panicked) (hpan_alloc : H "_RNvNtCs69KKACWg7bl_5alloc5alloc18handle_alloc_error" = some Rust.panicked) :
     AllocContractsPlaced A H where
   alloc := fun {callerProg callerBlk _} => by
@@ -967,7 +963,6 @@ theorem AllocContractsPlaced.of_hooks [LibsignalPlacement] {A : RustAlloc} {H : 
       · dsimp only [Spec.withHookStack] at hpre; exact Satisfies.mono (Entails.of_eq (by ac_rfl)) hpre
       · dsimp only [Spec.withHookStack]; exact Satisfies.mono (Entails.of_eq (by ac_rfl)) hpost
     exact subroutine_ok_withLsCl_withHookStack_mono (by decide) (by decide) h0
-  session_memmove := ls_subroutine_ok_cl_of_plain_prog (ls_hook_ok_of_caller hmemmove)
   panic_handle_error := hpan_err
   panic_handle_alloc_error := hpan_alloc
 

@@ -69,6 +69,7 @@ public import LibsignalBinary.Proofs.SpqrV1.Top.Recv.FinalPlacedBudget
 public import LibsignalBinary.Specifications.SignalSession.CliElf
 public meta import LibsignalBinary.Proofs.Common.SharedHelpers -- shake: keep
 import LibsignalBinary.Proofs.Common.SharedHelpers
+import LibsignalBinary.Proofs.HookDischarge.Libc.Memmove
 import LibsignalBinary.Proofs.SpqrV1.States.Recv.TopPlacedBudgetSat
 import LibsignalBinary.Proofs.SpqrV1Sync.Codec.PbState
 import LibsignalBinary.Proofs.SpqrV1Sync.SendTotal.BraidCodec
@@ -125,8 +126,7 @@ open CryptoVerification.SignalSession
    lsFmtWriteSym lsFormatInnerSym lsReadFileSym lsReadStdinSym lsRustAllocSymCli
    lsRustAllocZeroedSymCli lsRustDeallocSymCli lsRustNoAllocShimSymCli lsRustReallocSymCli)
 open CryptoVerification.SignalSession.Cli (StoresGhost)
-open CryptoVerification.SignalSession.Cli.KitInst
-  (cliGhostExterns_blackBox cliIdentityVtRoSym)
+open CryptoVerification.SignalSession.Cli.KitInst (cliIdentityVtRoSym)
 open CryptoVerification.SignalSession.Cli.KitInst.IdKit (cliIdentityKitSpecPlaced_quiet)
 open CryptoVerification.SignalSession.Cli.KitInst.SessKit (cliSessionKitSpecPlaced_quiet)
 open CryptoVerification.SignalSession.Cli.MainHops
@@ -136,8 +136,8 @@ open CryptoVerification.SignalSession.Cli.Run.Placed (lsProg_579)
 open CryptoVerification.SignalSession.Cli.RunCompose
   (DecSigGhost RunSem idVtPlaced mkSlot sessVtPlaced withCodeOk)
 open CryptoVerification.SignalSession.Cli.RunGlue
-  (CliGhostHooks CliGhostHooksFs cliExternsPlaced_row cliGhostExterns cliGhostExterns_other
-   hookSat_of_eq withPanics_cliGhostExterns)
+  (CliGhostHooks CliGhostHooksFs cliExternsPlaced_row cliExtraGhostSyms cliGhostExterns
+   cliGhostExterns_other hookSat_of_eq withPanics_cliGhostExterns)
 open CryptoVerification.SignalSession.Cli.RunProofs (cliDecryptPrekeyNeed cliDecryptSignalNeed)
 open CryptoVerification.SignalSession.Cli.RunProofs.DecryptLemmas (toDecryptGhost)
 open CryptoVerification.SignalSession.Cli.RunSkeleton (RunBudgets)
@@ -180,6 +180,7 @@ open LibsignalBinary.Proofs.Cli.SpqrV1.M4.RecordDecryptPV1TrapPlacedBudget
   (recordDecryptV1_full_placed_region_vregs_ok_PTight_cli_of_tdEnv)
 open LibsignalBinary.Proofs.Cli.SpqrV1.M4.TryDecryptPV1TrapPlacedBudget (TryDecryptCliEnvOf)
 open LibsignalBinary.Proofs.HookDischarge.CryptoMallocngBudget (aesDecHookMallocng_budget_ok)
+open LibsignalBinary.Proofs.HookDischarge.Libc.Memmove (sessionMemmoveBoundedSpec)
 open LibsignalBinary.Proofs.PeakBudget.CliFitsTraceArith (cliBudgetLimits)
 open LibsignalBinary.Proofs.PeakBudget.DecPkD2cSlotOkLinked
   (TryDecryptCliEnvOfPure tryDecryptCmkSeg4Env tryDecryptEnvArgsToGhost)
@@ -212,7 +213,7 @@ open LibsignalBinary.Proofs.PublicApi.StoreKit.PlacedBudget
 open LibsignalBinary.Proofs.SessionRecordAt.Hooks2.DeserBudget.FineCredit (HasFineReallocCredit)
 open LibsignalBinary.Proofs.SignalSession.Cli.F3.HRead.ReadFileBudgetPlaced (ReadFileRuleEnvFixed)
 open LibsignalBinary.Proofs.SignalSession.Cli.KitInst.IdentityKitOkPlacedBudget
-  (cliIdKitOkIE_placed)
+  (cliIdKitOkIE_placed_sat)
 open LibsignalBinary.Proofs.SignalSession.Cli.KitInst.SessionKitOkCliPlacedBudget
   (cliSessKitOkSE_seqFree_placed)
 open LibsignalBinary.Proofs.SignalSession.Cli.M24.B2MainFrameComposeBudget (libsignalPlacementOf)
@@ -344,9 +345,12 @@ private theorem w2t_cliGhost_row_aux (mmpl : MultiPlacement) (g : CliGhostHooks)
     (h3 : sym ≠ lsRustReallocSymCli := by decide) (h4 : sym ≠ lsRustAllocZeroedSymCli := by decide)
     (h5 : sym ≠ lsRustNoAllocShimSymCli := by decide) (h6 : sym ≠ lsStringCloneSym := by decide)
     (h7 : sym ≠ lsReadFileSym := by decide) (h8 : sym ≠ lsReadStdinSym := by decide)
-    (h9 : sym ≠ "memset" := by decide) (h10 : sym ≠ "memcpy" := by decide) :
+    (h9 : sym ≠ "memset" := by decide) (h10 : sym ≠ "memcpy" := by decide)
+    (hExtra : cliExtraGhostSyms.contains sym = false ∨ g.extra.lookup sym = none := by
+      left; decide) :
     cliGhostExterns g (cliExternsPlaced mmpl W) sym = some f :=
-  (cliGhostExterns_other g _ h1 h2 h3 h4 h5 h6 h7 h8 h9 h10).trans (cliExternsPlaced_row mmpl W hrow)
+  (cliGhostExterns_other g _ h1 h2 h3 h4 h5 h6 h7 h8 h9 h10 hExtra).trans
+    (cliExternsPlaced_row mmpl W hrow)
 
 private theorem w2t_fmtWriteHook0_budget_ok {M : AllocCostModel}
     (A : RustCliAllocBudget M) (lim : BudgetLimits) :
@@ -432,7 +436,7 @@ private theorem w2t_decBinaryIdKitPlacedFixed_okIE [LibsignalPlacement]
       (decIdKitPlaced A.repAlloc F0 peer B)
       (decBinaryIdKitPlacedBudgetFixed A.repAlloc B F0 peer)
       (cliGhostExterns gh (cliExternsPlaced mmpl W)) :=
-  cliIdKitOkIE_placed
+  cliIdKitOkIE_placed_sat
     (readProg := lsProg_589 (cliGhostExterns gh (cliExternsPlaced mmpl W))) (jRead := 589)
     (vtSym := cliIdentityVtRoSym)
     hDropNz (fun _ hp => hp.2) hh
@@ -440,7 +444,7 @@ private theorem w2t_decBinaryIdKitPlacedFixed_okIE [LibsignalPlacement]
       (ls_hook_ok_ultra_of_mem
         (prog := lsProg_589 (cliGhostExterns gh (cliExternsPlaced mmpl W))) (i := 589)
         hReadHook (by decide) (by decide) (by decide)))
-    (cliGhostExterns_blackBox mmpl gh W)
+    hh.blackBox
     (by decide) (Nat.le_refl _) (by decide) (Nat.le_refl _)
 
 private theorem w2t_w2_inner_binaryKitFixed_frozen_placed_ok_of_region [LibsignalPlacement]
@@ -1122,14 +1126,16 @@ private theorem w2t_spqrRecv_topStateGuarded_seam_of_contracts [LibsignalPlaceme
 
 private theorem w2t_hookSat_withAllocVmPreserved_memmove_of_zero
     {H : String → Option (State → State)} {sym : String} (hookStack : Nat)
-    (h : HookSat H sym (withAllocVmPreserved (sessionMemmoveSpec 0))) :
-    HookSat H sym (withAllocVmPreserved (sessionMemmoveSpec hookStack)) := by
+    (h : HookSat H sym (withAllocVmPreserved (sessionMemmoveBoundedSpec 0))) :
+    HookSat H sym (withAllocVmPreserved (sessionMemmoveBoundedSpec hookStack)) := by
   refine ProofLib.HookSat.mono h fun ⟨base, buf, dst, src, len⟩ R s0 hpre =>
     ⟨(base, buf, dst, src, len), stackAt s0.sp hookStack ∗ R, ?_, fun sf hpost => ?_⟩
-  · dsimp only [withAllocVmPreserved, sessionMemmoveSpec, libcMemmoveSpec, stackAt] at hpre ⊢
+  · dsimp only [withAllocVmPreserved, sessionMemmoveBoundedSpec, sessionMemmoveSpec,
+      libcMemmoveSpec, stackAt] at hpre ⊢
     simp only [ProofLib.memRegion_zero, sepConj_emp]
     ac_nf at hpre ⊢
-  · dsimp only [withAllocVmPreserved, sessionMemmoveSpec, stackAt] at hpost ⊢
+  · dsimp only [withAllocVmPreserved, sessionMemmoveBoundedSpec, sessionMemmoveSpec,
+      stackAt] at hpost ⊢
     simp only [ProofLib.memRegion_zero, sepConj_emp] at hpost
     ac_nf at hpost ⊢
 
@@ -1159,7 +1165,7 @@ private theorem w2t_statesRecv_recv_exactTight_ok [LibsignalPlacement]
     (cliRecvCt2PlacedAllocExt mmpl gh W hA hExt)
     (w2t_hookSat_withAllocVmPreserved_memmove_of_zero growOneStack
       (hookSat_of_eq (hExt_wp _ (by decide))
-        (cliExternsPlaced_sessionMemmove_allocVm_sat mmpl gh W)))
+        (cliExternsPlaced_sessionMemmove_allocVm_sat mmpl gh W hA.extraOk)))
     hMemset_wp
     (hookSat_of_eq (hExt_wp _ (by decide))
       (cliGhostExterns_sat_of_cliExternsPlaced mmpl gh W

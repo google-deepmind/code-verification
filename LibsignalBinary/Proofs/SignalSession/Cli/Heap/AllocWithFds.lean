@@ -560,6 +560,7 @@ theorem cliGhostAllocHooks_withFds [LibsignalPlacement] {M : AllocCostModel}
   memcpy := h.memcpy
   memcpy_exact := h.memcpy_exact
   memset_acp := h.memset_acp
+  extraOk := h.extraOk
 
 theorem cliGhostSpqrAllocHooks_withFds [LibsignalPlacement] {M : AllocCostModel}
     {A : RustCliAllocBudget M} {lim : BudgetLimits} {g : CliGhostHooks}

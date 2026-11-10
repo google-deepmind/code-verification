@@ -92,9 +92,9 @@ theorem w2_inner_placed_ok_of_region [LibsignalPlacement]
       (by decide) (Nat.le_refl _) (by decide) (by decide)
   have hId : IdentityStoreKitPlacedOkI (EncryptLemmas.w1IdKitPlaced B F0 peer)
       (cliGhostExterns gh (cliExternsPlaced mmpl W)) :=
-    KitInst.cliIdKitOkIE_cli_placed mmpl gh W (F0 := F0) (peer := peer) (readStk := B.readFile)
+    KitInst.cliIdKitOkIE_cli_placed_sat mmpl gh W (F0 := F0) (peer := peer) (readStk := B.readFile)
       (readProg := lsProg_589 (cliGhostExterns gh (cliExternsPlaced mmpl W))) (jRead := 589)
-      hDropNz hh hRead
+      hDropNz hG.extraOk hh hRead
       (by decide) (Nat.le_refl _) (by decide) (Nat.le_refl _)
   have hq : (EncryptLemmas.w1SessKitPlaced B F0 peer).Quiet ∧
       (EncryptLemmas.w1IdKitPlaced B F0 peer).Quiet :=
@@ -144,6 +144,7 @@ theorem w2_inner_placed_ok [LibsignalPlacement]
     (mmpl : Obj.MultiPlacement) (gh : CliGhostHooks) (W : CliHooks) {B : RunBudgets}
     (hDropNz : lsmpl.base 547 ≠ 0#64)
     (hG : Slots.CliGhostA0Hooks E2E.HooksE.A0 gh)
+    (hMv : gh.extra.lookup "memmove" = some hookMemmove)
     (hh : RunHooksPlaced E2E.HooksE.A0 (cliGhostExterns gh (cliExternsPlaced mmpl W)))
     (hRead : subroutine_ok (lsProg_589 (cliGhostExterns gh (cliExternsPlaced mmpl W)))
       (lsρ lsReadFileSym) (readFileSpecPlaced cliIo.rd cliWrOk E2E.HooksE.A0 B.readFile))
@@ -156,7 +157,7 @@ theorem w2_inner_placed_ok [LibsignalPlacement]
   w2_inner_placed_ok_of_region mmpl gh W hDropNz hG hh hRead
     (region_ok_restrictPre_true
       (CryptoVerification.Cli.LibsignalSpqrV1.recordDecryptV1_placed_region_vregs_ok_PTight_cli
-        mmpl gh W 0#64 hG hAesDec hSpqr hclosure))
+        mmpl gh W 0#64 hG hMv hAesDec hSpqr hclosure))
 
 /-- Reduces `InnerDecryptFrozenPlacedOk` on Block `463` to the `withLsFrozen`-guarded
 `recordDecryptPlacedSpecTPTight` region obligation. -/
@@ -186,9 +187,9 @@ theorem w2_inner_frozen_placed_ok_of_region [LibsignalPlacement]
       (by decide) (Nat.le_refl _) (by decide) (by decide)
   have hId : IdentityStoreKitPlacedOkI (EncryptLemmas.w1IdKitPlaced B F0 peer)
       (cliGhostExterns gh (cliExternsPlaced mmpl W)) :=
-    KitInst.cliIdKitOkIE_cli_placed mmpl gh W (F0 := F0) (peer := peer) (readStk := B.readFile)
+    KitInst.cliIdKitOkIE_cli_placed_sat mmpl gh W (F0 := F0) (peer := peer) (readStk := B.readFile)
       (readProg := lsProg_589 (cliGhostExterns gh (cliExternsPlaced mmpl W))) (jRead := 589)
-      hDropNz hh hRead
+      hDropNz hG.extraOk hh hRead
       (by decide) (Nat.le_refl _) (by decide) (Nat.le_refl _)
   have hq : (EncryptLemmas.w1SessKitPlaced B F0 peer).Quiet ∧
       (EncryptLemmas.w1IdKitPlaced B F0 peer).Quiet :=
@@ -241,6 +242,7 @@ theorem w2_inner_full_placed_ok [LibsignalFullPlacement]
     (mmpl : Obj.MultiPlacement) (gh : CliGhostHooks) (W : CliHooks) {B : RunBudgets}
     (hDropNz : lsmpl.base 547 ≠ 0#64)
     (hG : Slots.CliGhostA0Hooks E2E.HooksE.A0 gh)
+    (hMv : gh.extra.lookup "memmove" = some hookMemmove)
     (hh : RunHooksPlaced E2E.HooksE.A0 (cliGhostExterns gh (cliExternsPlaced mmpl W)))
     (hRead : subroutine_ok (lsProg_589 (cliGhostExterns gh (cliExternsPlaced mmpl W)))
       (lsρ lsReadFileSym) (readFileSpecPlaced cliIo.rd cliWrOk E2E.HooksE.A0 B.readFile))
@@ -251,6 +253,6 @@ theorem w2_inner_full_placed_ok [LibsignalFullPlacement]
   w2_inner_frozen_placed_ok_of_region mmpl gh W hDropNz hG hh hRead
     (region_ok_restrictPre_true
       (CryptoVerification.Cli.LibsignalSpqrV1.recordDecryptV1_full_placed_region_vregs_ok_PTight_cli
-        mmpl gh W 0#64 hG hAesDec hSpqr))
+        mmpl gh W 0#64 hG hMv hAesDec hSpqr))
 
 end CryptoVerification.SignalSession.Cli.RunProofs.DecryptLemmas

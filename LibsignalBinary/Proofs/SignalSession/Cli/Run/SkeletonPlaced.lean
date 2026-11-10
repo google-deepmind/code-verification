@@ -29,6 +29,7 @@ public import LibsignalBinary.Proofs.SignalSession.Cli.Main.Proofs.TryAllocateIn
 public import LibsignalBinary.Proofs.SignalSession.Cli.Main.Proofs.Reserve11Placed
 public import LibsignalBinary.Proofs.SignalSession.Cli.Dir.Path.Placed
 public import LibsignalBinary.Proofs.RecordCodecs.IdentityKeyDecode
+public import LibsignalBinary.Proofs.ConsumeMessageKey.FindIndexProofs.CtEqSat
 public import LibsignalBinary.Proofs.ConsumeMessageKey.FindIndexProofs.Deserialize
 public import LibsignalBinary.Proofs.TripleRatchet.Wire.TryFromHooks
 import all Arm64.Trusted.Spec.Hoare
@@ -88,6 +89,9 @@ structure RunHooksPlaced [LibsignalPlacement] (A : RustAlloc)
   allocZeroed : HookSat ext lsRustAllocZeroedSymCli (rustAllocZeroedSpec A)
   stringClone : HookSat ext lsStringCloneSym (LibsignalPublicApi.stringCloneSpec A)
   formatInner : HookSat ext lsFormatInnerSym (LibsignalTripleRatchet.formatInnerSpec A)
+  blackBox :
+    HookSat ext lsBlackBoxSym
+      LibsignalBinary.Proofs.ConsumeMessageKey.FindIndexProofs.CtEqSat.blackBoxSpecSat
 
 /-- Relocatable `[LibsignalPlacement]` callee contracts for `signal_session::run` (Block `579`, `lsProg_579 ext`). -/
 structure RunCalleesPlaced [LibsignalPlacement] (A : RustAlloc)
@@ -367,28 +371,5 @@ theorem pkDeserializeFull_placed_ok [LibsignalPlacement] {callerProg : Program} 
   dsimp only [withLsRoCl] at hpost
   rw [sepConj_assoc, satisfies_pure_sepConj] at hpost
   exact hpost.2
-
-/-- Instantiates `RunHooksPlaced` at `cliGhostExterns g (cliExternsPlaced mmpl W)` and `E2E.HooksE.A0`. -/
-theorem RunHooksPlaced.cli [LibsignalPlacement]
-    (mmpl : Obj.MultiPlacement) (g : CliGhostHooks) (W : CliHooks)
-    (hG : CliGhostA0Hooks E2E.HooksE.A0 g)
-    (hStrFsT : ∀ f, g.stringClone = some f → HookFsTraced IsFsC f)
-    (hStrClone : HookSat (cliGhostExterns g (cliExternsPlaced mmpl W)) lsStringCloneSym
-      (LibsignalPublicApi.stringCloneSpec E2E.HooksE.A0))
-    (hFmtInner : HookSat (cliGhostExterns g (cliExternsPlaced mmpl W)) lsFormatInnerSym
-      (LibsignalTripleRatchet.formatInnerSpec E2E.HooksE.A0)) :
-    RunHooksPlaced E2E.HooksE.A0 (cliGhostExterns g (cliExternsPlaced mmpl W)) where
-  alloc := allocContractsXCliPlaced_cli mmpl g W hG
-  allocFs := allocContractsFsPlaced_cli mmpl g W hG
-  panics := fun _ hmem => cliGhostExterns_panic_of_mem mmpl g W hmem
-  memcpyRO := cliExternsPlaced_memcpyRegionRO_sat mmpl g W hG
-  bcmp := cliGhostExterns_sat_of_cliExternsPlaced mmpl g W (cli_hookSat_bcmp_placed mmpl W)
-  fs := fun _ _ => traceFsSound_lsProg_cli_ghost mmpl g W (cliGhostA0Hooks_to_fs hG hStrFsT)
-  utf8 := ⟨W.utf8Err, cliGhostExterns_fromUtf8_eq mmpl g W⟩
-  memrchr := cliGhostExterns_memrchr_eq mmpl g W
-  codecHooks := codecHooksPlaced_cli mmpl g W hG
-  allocZeroed := cliExternsPlaced_allocZeroed_sat mmpl g W hG
-  stringClone := hStrClone
-  formatInner := hFmtInner
 
 end CryptoVerification.SignalSession.Cli.RunSkeleton

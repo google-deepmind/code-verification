@@ -27,7 +27,7 @@ set_option autoImplicit false
 
 **Checked by Lean. Untrusted (`Role::Proof`).** Discharges the concrete ELF parse, well-formedness,
 `brkStart`, segment geometry, and `CliElfMallocngLayout` obligations over the pinned from-source
-stock `ld.lld` `libsignal-cli.elf` (`CliElf.cliElfBytes`, `617,448` B, SHA-256 `2f20c836…`) using
+stock `ld.lld` `libsignal-cli.elf` (`CliElf.cliElfBytes`, `619,032` B, SHA-256 `50066cbd…`) using
 pure kernel reduction (`std3` axioms `{propext, Classical.choice, Quot.sound}` only; `0` `sorry`,
 `0` `native_decide`, `0` `bv_decide`).
 -/

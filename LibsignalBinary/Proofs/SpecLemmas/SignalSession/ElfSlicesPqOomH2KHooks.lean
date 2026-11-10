@@ -15,6 +15,8 @@ public import LibsignalBinary.Proofs.SignalSession.Cli.F3.HInit.CliInitSlotOkPla
 public import LibsignalBinary.Proofs.SignalSession.Cli.F3.HRead.F3ReadFileGhostHook
 public import LibsignalBinary.Proofs.SignalSession.Cli.F3.HRead.ReadFileCliIoInst
 public import LibsignalBinary.Proofs.SignalSession.Cli.F3.L4B.F3AllocStdinGhostHooks
+public import LibsignalBinary.Proofs.SignalSession.Cli.HooksDehook.C2EntryGuard
+public import LibsignalBinary.Proofs.SignalSession.Cli.HooksDehook.C2RowLayoutFacts
 public import LibsignalBinary.Proofs.SignalSession.Cli.HooksDehook.MemcpyExactCore
 public import LibsignalBinary.Proofs.SignalSession.Cli.HooksDehook.NarrowF3R1Witness
 public import LibsignalBinary.Proofs.SignalSession.Cli.M24.MainIoBoundedPlaced
@@ -29,6 +31,9 @@ public import ProofLib.FsTrace
 import LibsignalBinary.Proofs.Common.SharedHelpers
 import LibsignalBinary.Proofs.PeakBudget.RealCliDecPkSlotOk
 import LibsignalBinary.Proofs.SignalSession.Cli.F3.HRead.AgreesOutsideReadHooks
+import LibsignalBinary.Proofs.SignalSession.Cli.HooksDehook.C2RowLayoutFacts.T4Witness
+import LibsignalBinary.Proofs.SignalSession.Cli.HooksDehook.LinkedCallHookG
+import LibsignalBinary.Proofs.SignalSession.Cli.HooksDehook.StripRunPanicExterns
 import LibsignalBinary.Proofs.SignalSession.Cli.Main.Proofs.KeepsFsBudget
 import LibsignalBinary.Proofs.SignalSession.Cli.Run.Glue.FsTracedPlaced
 import ProofLib.Process.OracleEq
@@ -64,8 +69,7 @@ namespace LibsignalBinary.Proofs.SpecLemmas.SignalSession.ElfSlicesPqOomH2KHooks
 open Arm64 (FsTraced GhostName HookFsTraced HookOk HookSat Memory Program Reg SepProp Spec State
   SubroutineOutcome subroutine_ok)
 open Arm64.Obj (MultiPlacement)
-open ProofLib (hookNoop libcMemcpySpec libcMemmoveSpec libcMemsetSpec memcpyRegionSpec
-  memsetRegionSpec)
+open ProofLib (hookNoop libcMemcpySpec libcMemsetSpec memcpyRegionSpec memsetRegionSpec)
 open VerifiedLibraries (mallocngLib)
 open CryptoVerification (IsLsBlockProg LibsignalHooks LibsignalPlacement lsHandleErrorSym
   lsRustAllocSym lsRustDeallocSym lsRustNoAllocShimSym lsRustReallocSym lsmpl lsρ)
@@ -73,20 +77,21 @@ open CryptoVerification.LibsignalPublicApi.StoreKit (FsFiles TraceFsSound withLs
   withLsRoCl)
 open CryptoVerification.LibsignalSessionRepr (VecGhost)
 open CryptoVerification.LibsignalTripleRatchet (extHookStack framelessMemcpySpec lsMemcpySym
-  memcpyName memmoveName memsetName noAllocShimSpec sessionMemcpyRegionSpec sessionMemcpySpec
+  memcpyName memsetName noAllocShimSpec sessionMemcpyRegionSpec sessionMemcpySpec
   sessionMemsetRegionSpec sessionMemsetSpec withStack)
 open CryptoVerification.LibsignalTripleRatchet.Prost (lsHandleAllocErrorSym)
 open CryptoVerification.SignalSession (CliHooks cliElfBytes cliElfImage cliExternsPlaced
-  libsignalSessionLib lsFormatInnerSym lsFromUtf8Sym lsMemrchrSym lsReadFileSym lsReadStdinSym
-  lsRustAllocSymCli lsRustAllocZeroedSymCli lsRustDeallocSymCli lsRustNoAllocShimSymCli
-  lsRustReallocSymCli lsStringCloneSym lsWriteFileSym lsWriteStdoutSym)
+  libsignalSessionLib lsBlackBoxSym lsDurationSinceSym lsFormatInnerSym lsFromUtf8Sym lsMemrchrSym
+  lsReadFileSym lsReadStdinSym lsRustAllocSymCli lsRustAllocZeroedSymCli lsRustDeallocSymCli
+  lsRustNoAllocShimSymCli lsRustReallocSymCli lsSharedSecretDropSym lsStaticSecretDropSym
+  lsStringCloneSym lsTimeAddSym lsWriteFileSym lsWriteStdoutSym)
 open CryptoVerification.SignalSession.Cli (ReadFileGhost ReadRule cliBcmpSpec)
 open CryptoVerification.SignalSession.Cli.Main.Placed (lsProg_617)
 open CryptoVerification.SignalSession.Cli.MainHops (IoModel ReadFileLitGhost ReadStdinGhost cliIo
   cliRunBudgets cliWrOk fromUtf8AsciiSpec hookOk_withStack memrchrSpec)
 open CryptoVerification.SignalSession.Cli.Run.Placed (lsProg_579)
 open CryptoVerification.SignalSession.Cli.RunGlue (CliGhostHooks CliGhostHooksFs IsFsC
-  cliGhostExterns)
+  cliGhostExterns cliGhostExternsWithExtra)
 open CryptoVerification.SignalSession.Cli.Store.PlacedCommon (CliPanicHooksPlaced)
 open CryptoVerification.SignalSession.CliExt (ReadFileCall)
 open CryptoVerification.SpqrV1.Alloc (sessionMemcpyRegionROSpec)
@@ -108,13 +113,48 @@ open LibsignalBinary.Proofs.SignalSession.Cli.F3.HRead.ReadStdinBudgetPlaced (
 open LibsignalBinary.Proofs.SignalSession.Cli.F3.L4B.F3AllocStdinGhostHooks (ActiveF3CallPre
   f3AllocFallback f3DeallocFallback f3LinkedCallHook f3LinkedCallHook_fs f3LinkedCallHook_fsT
   f3ReadStdinFallback f3ReallocFallback f3StringCloneFallback)
+open LibsignalBinary.Proofs.SignalSession.Cli.HooksDehook.BcmpGhostReplays (bcmpGhost)
+open LibsignalBinary.Proofs.SignalSession.Cli.HooksDehook.BlackBoxGhostReplays (blackBoxGhost)
+open LibsignalBinary.Proofs.SignalSession.Cli.HooksDehook.C2EntryGuard (c2GuardOf)
+open LibsignalBinary.Proofs.SignalSession.Cli.HooksDehook.C2RowLayoutFacts (
+  c2_bcmpGhost_rowOk_guardOf c2_blackBoxGhost_rowOk_guardOf c2_durationSinceGhost_rowOk_guardOf
+  c2_fromUtf8Ghost_rowOk_guardOf c2_memmoveGhost_rowOk_guardOf c2_memrchrGhost_rowOk_guardOf
+  c2_sharedSecretDropGhost_rowOk_guardOf c2_staticSecretDropGhost_rowOk_guardOf
+  c2_strlenGhost_rowOk_guardOf c2_timeAddGhost_rowOk_guardOf)
+open LibsignalBinary.Proofs.SignalSession.Cli.HooksDehook.C2RowLayoutFacts.T4Witness (
+  c2ExternTableFacts_lsmpl c2Lib2RxSliceFacts_lsmpl c2ResolveFacts_lsmpl c2RoSliceFacts)
+open LibsignalBinary.Proofs.SignalSession.Cli.HooksDehook.C2RowLayoutFacts.Time (c2TimeMpl)
+open LibsignalBinary.Proofs.SignalSession.Cli.HooksDehook.DurationSinceGhostReplays (
+  durationSinceGhost)
+open LibsignalBinary.Proofs.SignalSession.Cli.HooksDehook.ExtraGhostReplay (
+  ExtraReplaysOn GhostRowOk)
+open LibsignalBinary.Proofs.SignalSession.Cli.HooksDehook.FromUtf8GhostReplays (fromUtf8MplGhost)
+open LibsignalBinary.Proofs.SignalSession.Cli.HooksDehook.LinkedCallHookG (linkedCallHookG)
 open LibsignalBinary.Proofs.SignalSession.Cli.HooksDehook.MemcpyExactCore (HookExactMemcpy)
+open LibsignalBinary.Proofs.SignalSession.Cli.HooksDehook.MemmoveExtraReplays (memmoveGhost)
+open LibsignalBinary.Proofs.SignalSession.Cli.HooksDehook.MemrchrExtraReplays (memrchrGhost)
+open LibsignalBinary.Proofs.SignalSession.Cli.HooksDehook.MemsetGhostK (emptyStdProg)
 open LibsignalBinary.Proofs.SignalSession.Cli.HooksDehook.NarrowF3R1Witness (
   f3EmptyMemcpyGhostHookNarrow f3EmptyMemcpyGhostHookNarrow_exact f3EmptyMemcpyGhostHookNarrow_fsT
   f3EmptyMemcpyGhostHookNarrow_noAllocFailed f3EmptyMemcpyGhostHookNarrow_r1_allocWitness
   f3EmptyMemsetGhostHookNarrow f3EmptyMemsetGhostHookNarrow_eq_narrow
   f3EmptyMemsetGhostHookNarrow_fsT f3EmptyMemsetGhostHookNarrow_noAllocFailed
   f3EmptyMemsetGhostHookNarrow_r1_allocWitness)
+open LibsignalBinary.Proofs.SignalSession.Cli.HooksDehook.SharedSecretDropGhostReplays (
+  sharedSecretDropGhost)
+open LibsignalBinary.Proofs.SignalSession.Cli.HooksDehook.StaticSecretDropGhostReplays (
+  staticSecretDropGhost)
+open LibsignalBinary.Proofs.SignalSession.Cli.HooksDehook.StrlenGhostReplays (strlenGhost)
+open LibsignalBinary.Proofs.SignalSession.Cli.HooksDehook.StripRunPanicExterns (externOnlyStdProg)
+open LibsignalBinary.Proofs.SignalSession.Cli.HooksDehook.TimeAddGhostReplays (
+  timeAddGhost timeAddPanicExterns)
+open LibsignalBinary.Proofs.SignalSession.Cli.HooksDehook.TimeAddPanicGhostK (
+  timeAddGhostHookExternOnlyLsRet timeAddGhostHookExternOnly_eq)
+open LibsignalBinary.Proofs.SignalSession.Cli.Run.Slots.ExtraGhostSpecs (
+  CompleteExtraKeysList ExtraFullListSpecOk ExtraGhostTable ExtraSpecOk FreshExtraKeysList
+  cliExtraGhostSyms)
+open LibsignalBinary.Proofs.SpecLemmas.SignalSession.ElfF3Relink.StartupStatics (F3CodeInv)
+open LibsignalBinary.Proofs.SpecLemmas.SignalSession.Wp4LayoutGen (c2FromUtf8TableAddr)
 open LibsignalBinary.Proofs.SignalSession.Cli.M24.B2MainFrameComposeBudget (libsignalPlacementOf)
 open LibsignalBinary.Proofs.SignalSession.Cli.M24.MainIoBoundedPlaced (ReadStdinBoundedEnv
   readStdinSpecOfPlaced)
@@ -126,8 +166,8 @@ open LibsignalBinary.Proofs.SpecLemmas.SignalSession.ElfSlicesPqOomPlacedInst (
   hole2_ActiveStrCloneRun hole2_emptyProg hole2_hblk hole2_hext_nodup hole2_hookStack hole2_keep
   hole2_keepSub hole2_targets)
 open LibsignalBinary.Proofs.TripleRatchet.Hooks.DefsBudget (sessionMemcpyBudgetSpec
-  sessionMemcpyRegionBudgetSpec sessionMemmoveBudgetSpec sessionMemsetBudgetSpec
-  sessionMemsetRegionBudgetSpec sessionShimBudgetSpec)
+  sessionMemcpyRegionBudgetSpec sessionMemsetBudgetSpec sessionMemsetRegionBudgetSpec
+  sessionShimBudgetSpec)
 open LibsignalBinary.Proofs.TripleRatchet.Hooks2Budget (rustAllocSpecWithStack
   rustDeallocExternSpecWithStack rustReallocExternSpecWithStack)
 
@@ -255,6 +295,8 @@ structure h2k_CliGhostAllocHooksK [LibsignalPlacement] (M : AllocCostModel) (A :
     HookFsTraced IsFsC f
   memcpy_exact : ∀ f, g.memcpy = some f → HookExactMemcpy f
   memset_acp : ∀ f, g.memset = some f → ∀ s : State, (f s).sigActions = s.sigActions ∧ (f s).oracle = s.oracle
+  extraOk :
+    LibsignalBinary.Proofs.SignalSession.Cli.Run.Slots.ExtraGhostSpecs.ExtraSpecOk g
 
 /-- K-twin of `CliGhostSpqrAllocHooks` extending `h2k_CliGhostAllocHooksK` with
 `h2k_allocZeroedSpecK`. -/
@@ -300,12 +342,6 @@ structure h2k_AllocContractsXCliPlacedK [LibsignalPlacement] {M : AllocCostModel
   session_memcpy_region : ∀ (stk : Nat), extHookStack ≤ stk → stk ≤ 2 ^ 64 →
     subroutine_ok (lsProg_617 H) (lsρ memcpyName)
       (withLsCodeRoLoaded lsmpl (withStack sessionMemcpyRegionBudgetSpec stk))
-  memmove : ∀ (stk : Nat), extHookStack ≤ stk → stk ≤ 2 ^ 64 →
-    subroutine_ok (lsProg_617 H) (lsρ memmoveName)
-      (withLsCodeRoLoaded lsmpl (withVmPreserved (libcMemmoveSpec stk)))
-  session_memmove : ∀ (stk : Nat), extHookStack ≤ stk → stk ≤ 2 ^ 64 →
-    subroutine_ok (lsProg_617 H) (lsρ memmoveName)
-      (withLsCodeRoLoaded lsmpl (sessionMemmoveBudgetSpec stk))
   memset : ∀ (stk : Nat), extHookStack ≤ stk → stk ≤ 2 ^ 64 →
     subroutine_ok (lsProg_617 H) (lsρ memsetName)
       (withLsCodeRoLoaded lsmpl (withVmPreserved (libcMemsetSpec stk)))
@@ -344,12 +380,6 @@ structure h2k_AllocContractsFsPlacedK [LibsignalPlacement] {M : AllocCostModel}
   session_memcpy_region : ∀ (stk : Nat), extHookStack ≤ stk → stk ≤ 2 ^ 64 →
     subroutine_ok (lsProg_617 H) (lsρ memcpyName)
       (withLsCodeRoLoaded lsmpl (withStack sessionMemcpyRegionBudgetSpec stk).keepsFs)
-  memmove : ∀ (stk : Nat), extHookStack ≤ stk → stk ≤ 2 ^ 64 →
-    subroutine_ok (lsProg_617 H) (lsρ memmoveName)
-      (withLsCodeRoLoaded lsmpl (withVmPreserved (libcMemmoveSpec stk)).keepsFs)
-  session_memmove : ∀ (stk : Nat), extHookStack ≤ stk → stk ≤ 2 ^ 64 →
-    subroutine_ok (lsProg_617 H) (lsρ memmoveName)
-      (withLsCodeRoLoaded lsmpl (sessionMemmoveBudgetSpec stk).keepsFs)
   memset : ∀ (stk : Nat), extHookStack ≤ stk → stk ≤ 2 ^ 64 →
     subroutine_ok (lsProg_617 H) (lsρ memsetName)
       (withLsCodeRoLoaded lsmpl (withVmPreserved (libcMemsetSpec stk)).keepsFs)
@@ -373,14 +403,18 @@ structure h2k_RunHooksPlacedK [LibsignalPlacement] {M : AllocCostModel}
   allocFs : h2k_AllocContractsFsPlacedK A lim ext
   panics : CliPanicHooksPlaced ext
   memcpyRO : HookSat ext lsMemcpySym (withVmPreserved sessionMemcpyRegionROSpec)
-  bcmp : HookSat ext "bcmp" (withVmPreserved cliBcmpSpec)
+  bcmp : HookSat ext "bcmp" (withVmPreserved cliBcmpSpec).keepsFs
   fs : ∀ (prog : Program) (i : Nat), [IsLsBlockProg prog i ext] → TraceFsSound prog
   utf8 : ∀ stk : Nat, HookSat ext lsFromUtf8Sym (withVmPreserved (fromUtf8AsciiSpec stk))
-  memrchr : ∀ stk : Nat, HookSat ext lsMemrchrSym (withVmPreserved (memrchrSpec stk))
+  memrchr : HookSat ext lsMemrchrSym
+    (LibsignalBinary.Proofs.SignalSession.Cli.HooksDehook.WithLsRet.withLsRet
+      (withVmPreserved (memrchrSpec extHookStack)))
   codecHooks : h2k_CodecHooksPlacedK M A lim ext
   allocZeroed : HookSat ext lsRustAllocZeroedSymCli (h2k_allocZeroedSpecK M A lim)
   stringClone : HookSat ext lsStringCloneSym (h2k_stringCloneBudgetSpecK M A lim)
   formatInner : HookSat ext lsFormatInnerSym (formatInnerBudgetSpec M A lim)
+  blackBox : HookSat ext lsBlackBoxSym
+    LibsignalBinary.Proofs.ConsumeMessageKey.FindIndexProofs.CtEqSat.blackBoxSpecSat
 
 /-- K-twin of `CliRunHooksBundle` combining `h2k_RunHooksPlacedK` with `lsReadFileSym`
 `subroutine_ok` at `h2k_readFileSpecK`. -/
@@ -561,7 +595,24 @@ noncomputable def h2k_readStdinGhostHookFineSubK [LibsignalPlacement]
   ⟨h2k_readStdinGhostHookFineK keep P_real P_sub entry_io mmpl brkStart lim stk,
    h2k_readStdinGhostHookFineK_fsT keep P_real P_sub entry_io mmpl brkStart lim stk⟩
 
-/-- K ghost-hook tuple instantiating `hole2_ghFixed` at the seven `h2k_*SpecK` specs. -/
+/-- Canonical 10-row ELF-linked Cutover-2 `ExtraGhostTable` for `h2k_ghFixedK` at ambient `lsmpl`
+    (canonical `cliExtraGhostSyms` order, `"memmove"` first). -/
+noncomputable def c2LinkedExtraGhosts [LibsignalPlacement] (mmpl : MultiPlacement) :
+    ExtraGhostTable :=
+  [ ("memmove",             memmoveGhost lsmpl mmpl)
+  , ("bcmp",                bcmpGhost lsmpl mmpl)
+  , ("strlen",              strlenGhost lsmpl mmpl)
+  , (lsMemrchrSym,          memrchrGhost lsmpl mmpl)
+  , (lsFromUtf8Sym,         fromUtf8MplGhost lsmpl mmpl c2FromUtf8TableAddr)
+  , (lsDurationSinceSym,    durationSinceGhost c2TimeMpl)
+  , (lsTimeAddSym,          timeAddGhost c2TimeMpl)
+  , (lsBlackBoxSym,         blackBoxGhost lsmpl mmpl)
+  , (lsStaticSecretDropSym, staticSecretDropGhost lsmpl mmpl)
+  , (lsSharedSecretDropSym, sharedSecretDropGhost lsmpl mmpl)
+  ]
+
+/-- K ghost-hook tuple instantiating `hole2_ghFixed` at the seven `h2k_*SpecK` specs and the
+    10 Cutover-2 `c2LinkedExtraGhosts` rows. -/
 noncomputable def h2k_ghFixedK [LibsignalPlacement] (mpl mmpl : MultiPlacement) : CliGhostHooks where
   alloc := h2k_allocGhostHookFineK hole2_keepSub hole2_emptyProg f3TrialRxProg
     (hole2_targets mpl).alloc mmpl cliElfImage.brkStart cliBudgetLimits
@@ -579,11 +630,253 @@ noncomputable def h2k_ghFixedK [LibsignalPlacement] (mpl mmpl : MultiPlacement) 
     (hole2_targets mpl).readStdin mmpl cliElfImage.brkStart cliBudgetLimits hole2_hookStack)
   memset := some (f3EmptyMemsetGhostHookNarrow mmpl)
   memcpy := some (f3EmptyMemcpyGhostHookNarrow mmpl)
+  extra := c2LinkedExtraGhosts mmpl
 
 /-- Per-symbol `keepSet` selector (`hole2_keep` on `lsStringCloneSym`, `hole2_keepSub` on the
 six allocator / I/O hooks). -/
 def h2k_keepSetForSym (sym : String) : BitVec 64 → Bool :=
   if sym == lsStringCloneSym then hole2_keep else hole2_keepSub
+
+/-! ## Cutover-2 `c2LinkedExtraGhosts` Row-Ok, `ExtraSpecOk`, and `ExtraReplaysOn` -/
+
+private theorem h2k_lookup_cons_some {V : Type} {sym k : String} {v f : V}
+    {tl : List (String × V)} {P : String → V → Prop}
+    (hLook : ((k, v) :: tl).lookup sym = some f)
+    (hv : P k v) (htl : tl.lookup sym = some f → P sym f) : P sym f := by
+  simp only [List.lookup] at hLook
+  cases h : (sym == k) with
+  | true =>
+    rw [h] at hLook
+    injection hLook with hf
+    subst hf
+    rw [beq_iff_eq.mp h]
+    exact hv
+  | false =>
+    rw [h] at hLook
+    exact htl hLook
+
+private theorem h2k_lookup_here {V : Type} (k : String) (v : V) (tl : List (String × V)) :
+    ((k, v) :: tl).lookup k = some v := by
+  simp [List.lookup]
+
+private theorem h2k_lookup_there {V : Type} {k sym : String} (v : V) (tl : List (String × V))
+    (hne : (sym == k) = false := by decide) :
+    ((k, v) :: tl).lookup sym = tl.lookup sym := by
+  simp [List.lookup, hne]
+
+private theorem h2k_extra_lookup_memmove [LibsignalPlacement] (mpl mmpl : MultiPlacement) :
+    (h2k_ghFixedK mpl mmpl).extra.lookup "memmove" = some (memmoveGhost lsmpl mmpl) :=
+  h2k_lookup_here _ _ _
+
+private theorem h2k_extra_lookup_bcmp [LibsignalPlacement] (mpl mmpl : MultiPlacement) :
+    (h2k_ghFixedK mpl mmpl).extra.lookup "bcmp" = some (bcmpGhost lsmpl mmpl) :=
+  (h2k_lookup_there _ _).trans (h2k_lookup_here _ _ _)
+
+private theorem h2k_extra_lookup_strlen [LibsignalPlacement] (mpl mmpl : MultiPlacement) :
+    (h2k_ghFixedK mpl mmpl).extra.lookup "strlen" = some (strlenGhost lsmpl mmpl) :=
+  (h2k_lookup_there _ _).trans <| (h2k_lookup_there _ _).trans (h2k_lookup_here _ _ _)
+
+private theorem h2k_extra_lookup_fromUtf8 [LibsignalPlacement] (mpl mmpl : MultiPlacement) :
+    (h2k_ghFixedK mpl mmpl).extra.lookup lsFromUtf8Sym =
+      some (fromUtf8MplGhost lsmpl mmpl c2FromUtf8TableAddr) :=
+  (h2k_lookup_there _ _).trans <| (h2k_lookup_there _ _).trans <|
+    (h2k_lookup_there _ _).trans <| (h2k_lookup_there _ _).trans (h2k_lookup_here _ _ _)
+
+private theorem h2k_extra_lookup_blackBox [LibsignalPlacement] (mpl mmpl : MultiPlacement) :
+    (h2k_ghFixedK mpl mmpl).extra.lookup lsBlackBoxSym = some (blackBoxGhost lsmpl mmpl) :=
+  (h2k_lookup_there _ _).trans <| (h2k_lookup_there _ _).trans <|
+    (h2k_lookup_there _ _).trans <| (h2k_lookup_there _ _).trans <|
+    (h2k_lookup_there _ _).trans <| (h2k_lookup_there _ _).trans <|
+    (h2k_lookup_there _ _).trans (h2k_lookup_here _ _ _)
+
+private theorem h2k_extra_lookup_staticSecretDrop [LibsignalPlacement] (mpl mmpl : MultiPlacement) :
+    (h2k_ghFixedK mpl mmpl).extra.lookup lsStaticSecretDropSym =
+      some (staticSecretDropGhost lsmpl mmpl) :=
+  (h2k_lookup_there _ _).trans <| (h2k_lookup_there _ _).trans <|
+    (h2k_lookup_there _ _).trans <| (h2k_lookup_there _ _).trans <|
+    (h2k_lookup_there _ _).trans <| (h2k_lookup_there _ _).trans <|
+    (h2k_lookup_there _ _).trans <| (h2k_lookup_there _ _).trans (h2k_lookup_here _ _ _)
+
+private theorem h2k_extra_lookup_sharedSecretDrop [LibsignalPlacement] (mpl mmpl : MultiPlacement) :
+    (h2k_ghFixedK mpl mmpl).extra.lookup lsSharedSecretDropSym =
+      some (sharedSecretDropGhost lsmpl mmpl) :=
+  (h2k_lookup_there _ _).trans <| (h2k_lookup_there _ _).trans <|
+    (h2k_lookup_there _ _).trans <| (h2k_lookup_there _ _).trans <|
+    (h2k_lookup_there _ _).trans <| (h2k_lookup_there _ _).trans <|
+    (h2k_lookup_there _ _).trans <| (h2k_lookup_there _ _).trans <|
+    (h2k_lookup_there _ _).trans (h2k_lookup_here _ _ _)
+
+private theorem h2k_guardOf_memmove (mpl : MultiPlacement) (s0 : State)
+    (h : c2GuardOf mpl "memmove" s0) :
+    LibsignalBinary.Proofs.SignalSession.Cli.HooksDehook.MemmoveExtraReplays.memmoveEntryGuard mpl s0 := by
+  unfold c2GuardOf at h
+  have h0 : ("memmove" == "memmove") = true := by decide
+  simpa only [h0, ↓reduceIte] using h
+
+private theorem h2k_guardOf_bcmp (mpl : MultiPlacement) (s0 : State)
+    (h : c2GuardOf mpl "bcmp" s0) :
+    LibsignalBinary.Proofs.SignalSession.Cli.HooksDehook.BcmpGhostReplays.bcmpEntryGuard mpl s0 := by
+  unfold c2GuardOf at h
+  have h0 : ("bcmp" == "memmove") = false := by decide
+  have h1 : ("bcmp" == "bcmp") = true := by decide
+  simpa only [h0, h1, Bool.false_eq_true, ↓reduceIte] using h
+
+private theorem h2k_guardOf_strlen (mpl : MultiPlacement) (s0 : State)
+    (h : c2GuardOf mpl "strlen" s0) :
+    LibsignalBinary.Proofs.SignalSession.Cli.HooksDehook.StrlenGhostReplays.strlenEntryGuard mpl s0 := by
+  unfold c2GuardOf at h
+  have h0 : ("strlen" == "memmove") = false := by decide
+  have h1 : ("strlen" == "bcmp") = false := by decide
+  have h2 : ("strlen" == "strlen") = true := by decide
+  simpa only [h0, h1, h2, Bool.false_eq_true, ↓reduceIte] using h
+
+private theorem h2k_guardOf_fromUtf8 (mpl : MultiPlacement) (s0 : State)
+    (h : c2GuardOf mpl lsFromUtf8Sym s0) :
+    LibsignalBinary.Proofs.SignalSession.Cli.HooksDehook.FromUtf8GhostReplays.fromUtf8EntryGuard mpl s0 := by
+  unfold c2GuardOf at h
+  have h0 : (lsFromUtf8Sym == "memmove") = false := by decide
+  have h1 : (lsFromUtf8Sym == "bcmp") = false := by decide
+  have h2 : (lsFromUtf8Sym == "strlen") = false := by decide
+  have h3 : (lsFromUtf8Sym == lsMemrchrSym) = false := by decide
+  have h4 : (lsFromUtf8Sym == lsFromUtf8Sym) = true := by decide
+  simpa only [h0, h1, h2, h3, h4, Bool.false_eq_true, ↓reduceIte] using h
+
+private theorem h2k_guardOf_blackBox (mpl : MultiPlacement) (s0 : State)
+    (h : c2GuardOf mpl lsBlackBoxSym s0) :
+    LibsignalBinary.Proofs.SignalSession.Cli.HooksDehook.BlackBoxGhostReplays.blackBoxEntryGuard mpl s0 := by
+  unfold c2GuardOf at h
+  have h0 : (lsBlackBoxSym == "memmove") = false := by decide
+  have h1 : (lsBlackBoxSym == "bcmp") = false := by decide
+  have h2 : (lsBlackBoxSym == "strlen") = false := by decide
+  have h3 : (lsBlackBoxSym == lsMemrchrSym) = false := by decide
+  have h4 : (lsBlackBoxSym == lsFromUtf8Sym) = false := by decide
+  have h5 : (lsBlackBoxSym == lsDurationSinceSym) = false := by decide
+  have h6 : (lsBlackBoxSym == lsTimeAddSym) = false := by decide
+  have h7 : (lsBlackBoxSym == lsBlackBoxSym) = true := by decide
+  simpa only [h0, h1, h2, h3, h4, h5, h6, h7, Bool.false_eq_true, ↓reduceIte] using h
+
+private theorem h2k_guardOf_staticSecretDrop (mpl : MultiPlacement) (s0 : State)
+    (h : c2GuardOf mpl lsStaticSecretDropSym s0) :
+    LibsignalBinary.Proofs.SignalSession.Cli.HooksDehook.StaticSecretDropGhostReplays.staticSecretDropEntryGuard
+      mpl s0 := by
+  unfold c2GuardOf at h
+  have h0 : (lsStaticSecretDropSym == "memmove") = false := by decide
+  have h1 : (lsStaticSecretDropSym == "bcmp") = false := by decide
+  have h2 : (lsStaticSecretDropSym == "strlen") = false := by decide
+  have h3 : (lsStaticSecretDropSym == lsMemrchrSym) = false := by decide
+  have h4 : (lsStaticSecretDropSym == lsFromUtf8Sym) = false := by decide
+  have h5 : (lsStaticSecretDropSym == lsDurationSinceSym) = false := by decide
+  have h6 : (lsStaticSecretDropSym == lsTimeAddSym) = false := by decide
+  have h7 : (lsStaticSecretDropSym == lsBlackBoxSym) = false := by decide
+  have h8 : (lsStaticSecretDropSym == lsStaticSecretDropSym) = true := by decide
+  simpa only [h0, h1, h2, h3, h4, h5, h6, h7, h8, Bool.false_eq_true, ↓reduceIte] using h
+
+private theorem h2k_guardOf_sharedSecretDrop (mpl : MultiPlacement) (s0 : State)
+    (h : c2GuardOf mpl lsSharedSecretDropSym s0) :
+    LibsignalBinary.Proofs.SignalSession.Cli.HooksDehook.SharedSecretDropGhostReplays.sharedSecretDropEntryGuard
+      mpl s0 := by
+  unfold c2GuardOf at h
+  have h0 : (lsSharedSecretDropSym == "memmove") = false := by decide
+  have h1 : (lsSharedSecretDropSym == "bcmp") = false := by decide
+  have h2 : (lsSharedSecretDropSym == "strlen") = false := by decide
+  have h3 : (lsSharedSecretDropSym == lsMemrchrSym) = false := by decide
+  have h4 : (lsSharedSecretDropSym == lsFromUtf8Sym) = false := by decide
+  have h5 : (lsSharedSecretDropSym == lsDurationSinceSym) = false := by decide
+  have h6 : (lsSharedSecretDropSym == lsTimeAddSym) = false := by decide
+  have h7 : (lsSharedSecretDropSym == lsBlackBoxSym) = false := by decide
+  have h8 : (lsSharedSecretDropSym == lsStaticSecretDropSym) = false := by decide
+  have h9 : (lsSharedSecretDropSym == lsSharedSecretDropSym) = true := by decide
+  simpa only [h0, h1, h2, h3, h4, h5, h6, h7, h8, h9, Bool.false_eq_true, ↓reduceIte] using h
+
+private theorem h2k_extraRowOk [LibsignalPlacement]
+    (mpl mmpl : MultiPlacement)
+    (hLs : libsignalSessionLib.LinkedAt cliElfBytes mpl)
+    (hlsmpl : lsmpl = mpl := by rfl)
+    {sym : String} {f : State → State}
+    (hLook : (h2k_ghFixedK mpl mmpl).extra.lookup sym = some f) :
+    GhostRowOk lsmpl mmpl
+      (fun u : State => F3CodeInv lsmpl mmpl u.mem ∧ True)
+      (fun W' => cliGhostExternsWithExtra (h2k_ghFixedK mpl mmpl)
+        (h2k_ghFixedK mpl mmpl).extra (cliExternsPlaced mmpl W'))
+      sym
+      (c2GuardOf lsmpl sym)
+      f := by
+  have hLs' : libsignalSessionLib.LinkedAt cliElfBytes lsmpl := hlsmpl ▸ hLs
+  have hRo := c2RoSliceFacts
+  have hRes := c2ResolveFacts_lsmpl hLs'
+  have hRx := c2Lib2RxSliceFacts_lsmpl hLs'
+  have hExt := c2ExternTableFacts_lsmpl hLs'
+  let g := h2k_ghFixedK mpl mmpl
+  let RowP : String → (State → State) → Prop := fun s gHook =>
+    GhostRowOk lsmpl mmpl
+      (fun u : State => F3CodeInv lsmpl mmpl u.mem ∧ True)
+      (fun W' => cliGhostExternsWithExtra g g.extra (cliExternsPlaced mmpl W'))
+      s (c2GuardOf lsmpl s) gHook
+  have hLook' : (c2LinkedExtraGhosts mmpl).lookup sym = some f := hLook
+  refine h2k_lookup_cons_some (P := RowP) hLook' ?_ fun hLook' => ?_
+  · exact c2_memmoveGhost_rowOk_guardOf mmpl (fun _ => True) (c2GuardOf lsmpl) g g.extra
+      (h2k_extra_lookup_memmove mpl mmpl) (h2k_guardOf_memmove lsmpl) (Or.inr rfl) (Or.inr rfl)
+      hRes hRx hExt hLs'
+  · refine h2k_lookup_cons_some (P := RowP) hLook' ?_ fun hLook' => ?_
+    · exact c2_bcmpGhost_rowOk_guardOf mmpl (fun _ => True) (c2GuardOf lsmpl) g g.extra
+        (h2k_extra_lookup_bcmp mpl mmpl) (h2k_guardOf_bcmp lsmpl) hRes hRx hExt hLs'
+    · refine h2k_lookup_cons_some (P := RowP) hLook' ?_ fun hLook' => ?_
+      · exact c2_strlenGhost_rowOk_guardOf mmpl (fun _ => True) (c2GuardOf lsmpl) g g.extra
+          (h2k_extra_lookup_strlen mpl mmpl) (h2k_guardOf_strlen lsmpl) hRes hRx hExt hLs'
+      · refine h2k_lookup_cons_some (P := RowP) hLook' ?_ fun hLook' => ?_
+        · exact c2_memrchrGhost_rowOk_guardOf mmpl (fun _ => True) (c2GuardOf lsmpl) g g.extra
+            hRes hRx hExt hLs'
+        · refine h2k_lookup_cons_some (P := RowP) hLook' ?_ fun hLook' => ?_
+          · exact c2_fromUtf8Ghost_rowOk_guardOf mmpl (fun _ => True) (c2GuardOf lsmpl) g g.extra
+              (h2k_extra_lookup_fromUtf8 mpl mmpl) (h2k_guardOf_fromUtf8 lsmpl)
+              hRes hRx hRo hExt hLs'
+          · refine h2k_lookup_cons_some (P := RowP) hLook' ?_ fun hLook' => ?_
+            · exact c2_durationSinceGhost_rowOk_guardOf mmpl (fun _ => True) (c2GuardOf lsmpl)
+                g g.extra hRes hRx hRo hExt hLs'
+            · refine h2k_lookup_cons_some (P := RowP) hLook' ?_ fun hLook' => ?_
+              · exact c2_timeAddGhost_rowOk_guardOf mmpl (fun _ => True) (c2GuardOf lsmpl)
+                  g g.extra hRes hRx hExt hLs'
+              · refine h2k_lookup_cons_some (P := RowP) hLook' ?_ fun hLook' => ?_
+                · exact c2_blackBoxGhost_rowOk_guardOf mmpl (fun _ => True) (c2GuardOf lsmpl)
+                    g g.extra (h2k_extra_lookup_blackBox mpl mmpl) (h2k_guardOf_blackBox lsmpl)
+                    hRes hRx hExt hLs'
+                · refine h2k_lookup_cons_some (P := RowP) hLook' ?_ fun hLook' => ?_
+                  · exact c2_staticSecretDropGhost_rowOk_guardOf mmpl (fun _ => True)
+                      (c2GuardOf lsmpl) g g.extra (h2k_extra_lookup_staticSecretDrop mpl mmpl)
+                      (h2k_guardOf_staticSecretDrop lsmpl) hRes hRx hExt hLs'
+                  · refine h2k_lookup_cons_some (P := RowP) hLook' ?_ fun hLook' => nomatch hLook'
+                    exact c2_sharedSecretDropGhost_rowOk_guardOf mmpl (fun _ => True)
+                      (c2GuardOf lsmpl) g g.extra (h2k_extra_lookup_sharedSecretDrop mpl mmpl)
+                      (h2k_guardOf_sharedSecretDrop lsmpl) hRes hRx hExt hLs'
+
+/-- Full Cutover-2 `ExtraSpecOk` bundle for `h2k_ghFixedK` across all 10 `c2LinkedExtraGhosts`
+    rows. -/
+theorem h2k_extraSpecOk [LibsignalPlacement]
+    (mpl mmpl : MultiPlacement)
+    (hLs : libsignalSessionLib.LinkedAt cliElfBytes mpl)
+    (hlsmpl : lsmpl = mpl := by rfl) :
+    ExtraSpecOk (h2k_ghFixedK mpl mmpl) :=
+  { fresh := by
+      dsimp only [FreshExtraKeysList, h2k_ghFixedK, c2LinkedExtraGhosts, List.map]
+      decide
+    rowOk := fun _sym _f hLook => (h2k_extraRowOk mpl mmpl hLs hlsmpl hLook).1
+    complete := by
+      dsimp only [CompleteExtraKeysList, h2k_ghFixedK, c2LinkedExtraGhosts, List.map]
+      decide }
+
+/-- Full Cutover-2 `ExtraReplaysOn` witness for `h2k_ghFixedK` across all 10 `c2LinkedExtraGhosts`
+    rows (feeds `R5.3` `block617TransferFixedG_replaysOn_false_codeOnly_withExtra` at
+    `ElfSlicesPqOomH2Asm` / `ElfSlicesPqOomH2KAssembly`). -/
+theorem c2_extraReplaysOn_h2k [LibsignalPlacement]
+    (mpl mmpl : MultiPlacement)
+    (hLs : libsignalSessionLib.LinkedAt cliElfBytes mpl)
+    (hlsmpl : lsmpl = mpl := by rfl) :
+    ExtraReplaysOn mpl mmpl
+      (fun u : State => F3CodeInv mpl mmpl u.mem ∧ True)
+      (c2GuardOf mpl) (h2k_ghFixedK mpl mmpl) := by
+  subst hlsmpl
+  intro _sym _f _hDom hLook
+  exact (h2k_extraRowOk lsmpl mmpl hLs rfl hLook).2
 
 /-! ## Hook Closure Lemmas and Non-`.Exception` Guard Extraction -/
 
@@ -595,7 +888,6 @@ theorem h2k_hole2_hFsK
     letI : LibsignalPlacement := libsignalPlacementOf mpl (hole2_hblk mpl hLs) (hole2_hext_nodup mpl hLs)
     CliGhostHooksFs (h2k_ghFixedK mpl mmpl) := by
   letI : LibsignalPlacement := libsignalPlacementOf mpl (hole2_hblk mpl hLs) (hole2_hext_nodup mpl hLs)
-  have _ := hLs
   have _ := hMm
   refine
     { alloc_fsT := f3LinkedCallHook_fsT _ _ _ _ _ _
@@ -605,7 +897,8 @@ theorem h2k_hole2_hFsK
       shim_fsT := CryptoVerification.SignalSession.Cli.RunGlue.hookNoop_fsT
       stringClone_fsT := ?_
       memset_fsT := ?_
-      memcpy_fsT := ?_ }
+      memcpy_fsT := ?_
+      extra_fsT := (h2k_extraSpecOk mpl mmpl hLs).fsT }
   · intro f hf
     dsimp only [h2k_ghFixedK] at hf
     injection hf with hfeq
@@ -735,6 +1028,150 @@ private theorem h2k_readStdinGhostHookFineK_noAllocFailed [LibsignalPlacement]
       · exact LibsignalBinary.Proofs.SignalSession.Cli.F3.HInit.CliInitSlotOkPlacedAt.traceDeltaNoAllocFailed_of_eq rfl
   · exact LibsignalBinary.Proofs.SignalSession.Cli.F3.HInit.CliInitSlotOkPlacedAt.traceDeltaNoAllocFailed_of_eq rfl
 
+private theorem h2k_emptyStdProg_steps_noAllocFailed {s0 sf : State} {entry : BitVec 64}
+    (h : Arm64.Steps emptyStdProg (s0.setPC entry) sf) :
+    LibsignalBinary.Proofs.SignalSession.Cli.F3.HInit.CliInitSlotOkPlacedAt.TraceDeltaNoAllocFailed
+      s0 sf :=
+  LibsignalBinary.Proofs.SignalSession.Cli.F3.HInit.CliInitSlotOkPlacedAt.traceDeltaNoAllocFailed_trans
+    (s1 := s0.setPC entry)
+    (LibsignalBinary.Proofs.SignalSession.Cli.F3.HInit.CliInitSlotOkPlacedAt.traceDeltaNoAllocFailed_of_eq rfl)
+    (LibsignalBinary.Proofs.SignalSession.Cli.F3.HInit.CliInitSlotOkPlacedAt.steps_traceDeltaNoAllocFailed
+      LibsignalBinary.Proofs.SignalSession.Cli.F3.HInit.CliInitSlotOkPlacedAt.execSyscall_noAllocFailed
+      (fun pc _ he => nomatch (rfl : emptyStdProg.externAt? pc = none).symm.trans he)
+      h)
+
+private theorem h2k_f3LinkedCallHook_emptyStdProg_noAllocFailed {α : Type}
+    (keep : BitVec 64 → Bool) (P_sub : Program) (entryTarget : BitVec 64)
+    (specOf : GhostName → BitVec 64 → Spec α) (fallback : State → State) :
+    LibsignalBinary.Proofs.SignalSession.Cli.F3.HInit.CliInitSlotOkPlacedAt.HookNoAllocFailed
+      (f3LinkedCallHook keep emptyStdProg P_sub entryTarget specOf fallback) := by
+  classical
+  intro s0
+  unfold f3LinkedCallHook
+  split
+  · split
+    · rename_i hReal
+      exact h2k_emptyStdProg_steps_noAllocFailed (Classical.choose_spec hReal.2.2.2).1.toSteps
+    · exact LibsignalBinary.Proofs.SignalSession.Cli.F3.HInit.CliInitSlotOkPlacedAt.traceDeltaNoAllocFailed_of_eq rfl
+  · exact LibsignalBinary.Proofs.SignalSession.Cli.F3.HInit.CliInitSlotOkPlacedAt.traceDeltaNoAllocFailed_of_eq rfl
+
+private theorem h2k_linkedCallHook_noAllocFailed_of_svc_ext {α : Type}
+    (keep : BitVec 64 → Bool) (P_real P_sub : Program) (entryTarget : BitVec 64)
+    (spec : Spec α) (fallback : State → State)
+    (hSvc : P_real.svc = emptyStdProg.svc)
+    (hExt : ∀ pc f, P_real.externAt? pc = some f →
+      LibsignalBinary.Proofs.SignalSession.Cli.F3.HInit.CliInitSlotOkPlacedAt.HookNoAllocFailed f) :
+    LibsignalBinary.Proofs.SignalSession.Cli.F3.HInit.CliInitSlotOkPlacedAt.HookNoAllocFailed
+      (LibsignalBinary.Proofs.SignalSession.Cli.AllocGhostLinkTransfer.linkedCallHook
+        keep P_real P_sub entryTarget spec fallback) := by
+  classical
+  intro s0
+  unfold LibsignalBinary.Proofs.SignalSession.Cli.AllocGhostLinkTransfer.linkedCallHook
+  split
+  · split
+    · rename_i hReal
+      exact LibsignalBinary.Proofs.SignalSession.Cli.F3.HInit.CliInitSlotOkPlacedAt.traceDeltaNoAllocFailed_trans
+        (s1 := s0.setPC entryTarget)
+        (LibsignalBinary.Proofs.SignalSession.Cli.F3.HInit.CliInitSlotOkPlacedAt.traceDeltaNoAllocFailed_of_eq rfl)
+        (LibsignalBinary.Proofs.SignalSession.Cli.F3.HInit.CliInitSlotOkPlacedAt.steps_traceDeltaNoAllocFailed
+          (hSvc ▸ LibsignalBinary.Proofs.SignalSession.Cli.F3.HInit.CliInitSlotOkPlacedAt.execSyscall_noAllocFailed)
+          hExt (Classical.choose_spec hReal.2.2.2).1.toSteps)
+    · exact LibsignalBinary.Proofs.SignalSession.Cli.F3.HInit.CliInitSlotOkPlacedAt.traceDeltaNoAllocFailed_of_eq rfl
+  · exact LibsignalBinary.Proofs.SignalSession.Cli.F3.HInit.CliInitSlotOkPlacedAt.traceDeltaNoAllocFailed_of_eq rfl
+
+private theorem h2k_linkedCallHookG_emptyStdProg_noAllocFailed {α : Type}
+    (Guard : State → Prop) (keep : BitVec 64 → Bool) (P_sub : Program)
+    (entryTarget : BitVec 64) (spec : Spec α) (fallback : State → State) :
+    LibsignalBinary.Proofs.SignalSession.Cli.F3.HInit.CliInitSlotOkPlacedAt.HookNoAllocFailed
+      (linkedCallHookG Guard keep emptyStdProg P_sub entryTarget spec fallback) := by
+  classical
+  intro s0
+  unfold linkedCallHookG
+  split
+  · exact h2k_linkedCallHook_noAllocFailed_of_svc_ext keep emptyStdProg P_sub entryTarget spec
+      fallback rfl (fun pc _ he => nomatch (rfl : emptyStdProg.externAt? pc = none).symm.trans he) s0
+  · split
+    · exact LibsignalBinary.Proofs.SignalSession.Cli.F3.HInit.CliInitSlotOkPlacedAt.traceDeltaNoAllocFailed_of_eq rfl
+    · exact LibsignalBinary.Proofs.SignalSession.Cli.F3.HInit.CliInitSlotOkPlacedAt.traceDeltaNoAllocFailed_of_eq rfl
+
+private theorem h2k_timeAddPanicExterns_noAllocFailed :
+    ExternNoAllocFailed timeAddPanicExterns := by
+  intro sym f hf
+  unfold timeAddPanicExterns at hf
+  split at hf
+  · injection hf with hfeq
+    subst hfeq
+    exact LibsignalBinary.Proofs.SignalSession.Cli.F3.HInit.CliInitSlotOkPlacedAt.hookNoAllocFailed_of_trace_eq
+      _ (fun _ => rfl)
+  · cases hf
+
+private theorem h2k_timeAddGhost_noAllocFailed [LibsignalPlacement] (timeMpl : MultiPlacement) :
+    LibsignalBinary.Proofs.SignalSession.Cli.F3.HInit.CliInitSlotOkPlacedAt.HookNoAllocFailed
+      (timeAddGhost timeMpl) := by
+  rw [timeAddGhost, timeAddGhostHookExternOnlyLsRet, timeAddGhostHookExternOnly_eq]
+  exact h2k_linkedCallHook_noAllocFailed_of_svc_ext _ _ _ _ _ _ rfl
+    (LibsignalBinary.Proofs.SignalSession.Cli.F3.HInit.CliInitSlotOkPlacedAt.externAt_noAllocFailed_of_externs
+      LibsignalBinary.Proofs.SignalSession.Cli.F3.HInit.CliInitSlotOkPlacedAt.externNoAllocFailed_none
+      h2k_timeAddPanicExterns_noAllocFailed)
+
+/-- Every row in `c2LinkedExtraGhosts` preserves `HookNoAllocFailed`. -/
+theorem c2LinkedExtraGhosts_noAllocFailed [LibsignalPlacement]
+    (mmpl : MultiPlacement) {sym : String} {f : State → State}
+    (hLook : (c2LinkedExtraGhosts mmpl).lookup sym = some f) :
+    LibsignalBinary.Proofs.SignalSession.Cli.F3.HInit.CliInitSlotOkPlacedAt.HookNoAllocFailed f := by
+  refine h2k_lookup_cons_some (P := fun _ g =>
+    LibsignalBinary.Proofs.SignalSession.Cli.F3.HInit.CliInitSlotOkPlacedAt.HookNoAllocFailed g)
+    hLook ?_ fun hLook => ?_
+  · exact h2k_f3LinkedCallHook_emptyStdProg_noAllocFailed _ _ _ _ _
+  · refine h2k_lookup_cons_some (P := fun _ g =>
+      LibsignalBinary.Proofs.SignalSession.Cli.F3.HInit.CliInitSlotOkPlacedAt.HookNoAllocFailed g)
+      hLook ?_ fun hLook => ?_
+    · exact h2k_f3LinkedCallHook_emptyStdProg_noAllocFailed _ _ _ _ _
+    · refine h2k_lookup_cons_some (P := fun _ g =>
+        LibsignalBinary.Proofs.SignalSession.Cli.F3.HInit.CliInitSlotOkPlacedAt.HookNoAllocFailed g)
+        hLook ?_ fun hLook => ?_
+      · rw [strlenGhost,
+          LibsignalBinary.Proofs.SignalSession.Cli.HooksDehook.StrlenGhostK.f3EmptyStrlenGhostHook_eq,
+          LibsignalBinary.Proofs.SignalSession.Cli.HooksDehook.StrlenGhost.strlenGhostHook]
+        exact h2k_linkedCallHook_noAllocFailed_of_svc_ext _ _ _ _ _ _ rfl
+          (fun pc _ he => nomatch (rfl : emptyStdProg.externAt? pc = none).symm.trans he)
+      · refine h2k_lookup_cons_some (P := fun _ g =>
+          LibsignalBinary.Proofs.SignalSession.Cli.F3.HInit.CliInitSlotOkPlacedAt.HookNoAllocFailed g)
+          hLook ?_ fun hLook => ?_
+        · exact h2k_f3LinkedCallHook_emptyStdProg_noAllocFailed _ _ _ _ _
+        · refine h2k_lookup_cons_some (P := fun _ g =>
+            LibsignalBinary.Proofs.SignalSession.Cli.F3.HInit.CliInitSlotOkPlacedAt.HookNoAllocFailed g)
+            hLook ?_ fun hLook => ?_
+          · exact h2k_linkedCallHookG_emptyStdProg_noAllocFailed _ _ _ _ _ _
+          · refine h2k_lookup_cons_some (P := fun _ g =>
+              LibsignalBinary.Proofs.SignalSession.Cli.F3.HInit.CliInitSlotOkPlacedAt.HookNoAllocFailed g)
+              hLook ?_ fun hLook => ?_
+            · exact h2k_linkedCallHookG_emptyStdProg_noAllocFailed _ _ _ _ _ _
+            · refine h2k_lookup_cons_some (P := fun _ g =>
+                LibsignalBinary.Proofs.SignalSession.Cli.F3.HInit.CliInitSlotOkPlacedAt.HookNoAllocFailed g)
+                hLook ?_ fun hLook => ?_
+              · exact h2k_timeAddGhost_noAllocFailed c2TimeMpl
+              · refine h2k_lookup_cons_some (P := fun _ g =>
+                  LibsignalBinary.Proofs.SignalSession.Cli.F3.HInit.CliInitSlotOkPlacedAt.HookNoAllocFailed g)
+                  hLook ?_ fun hLook => ?_
+                · exact h2k_f3LinkedCallHook_emptyStdProg_noAllocFailed _ _ _ _ _
+                · refine h2k_lookup_cons_some (P := fun _ g =>
+                    LibsignalBinary.Proofs.SignalSession.Cli.F3.HInit.CliInitSlotOkPlacedAt.HookNoAllocFailed g)
+                    hLook ?_ fun hLook => ?_
+                  · exact h2k_f3LinkedCallHook_emptyStdProg_noAllocFailed _ _ _ _ _
+                  · refine h2k_lookup_cons_some (P := fun _ g =>
+                      LibsignalBinary.Proofs.SignalSession.Cli.F3.HInit.CliInitSlotOkPlacedAt.HookNoAllocFailed g)
+                      hLook ?_ fun hLook => nomatch hLook
+                    exact h2k_f3LinkedCallHook_emptyStdProg_noAllocFailed _ _ _ _ _
+
+private theorem h2k_if_bool_false {α : Type} {c : Bool} {t e : α} (h : c = false) :
+    (if c = true then t else e) = e := by
+  rw [h]; rfl
+
+private theorem h2k_if_bool_true {α : Type} {c : Bool} {t e : α} (h : c = true) :
+    (if c = true then t else e) = t := by
+  rw [h]; rfl
+
 /-- Spec-free `ExternNoAllocFailed` companion for `h2k_ghFixedK`. -/
 theorem h2k_hole2_hghNoAllocK
     (mpl mmpl : MultiPlacement)
@@ -746,38 +1183,73 @@ theorem h2k_hole2_hghNoAllocK
   have _ := hLs
   have _ := hMm
   intro name f h
-  unfold cliGhostExterns at h
+  unfold cliGhostExterns cliGhostExternsWithExtra at h
   dsimp only [h2k_ghFixedK, h2k_allocGhostHookFineK, h2k_deallocGhostHookFineK,
     h2k_reallocGhostHookFineK, h2k_allocZeroedGhostHookFineK,
     h2k_readFileFixedGhostHookFineSubK, h2k_readStdinGhostHookFineSubK] at h
-  split at h
-  · injection h with hfeq; subst hfeq; exact h2k_linkedCallHook_noAllocFailed _ _ _
-  · split at h
-    · injection h with hfeq; subst hfeq; exact h2k_linkedCallHook_noAllocFailed _ _ _
-    · split at h
-      · injection h with hfeq; subst hfeq; exact h2k_linkedCallHook_noAllocFailed _ _ _
-      · split at h
-        · injection h with hfeq; subst hfeq; exact h2k_linkedCallHook_noAllocFailed _ _ _
-        · split at h
-          · injection h with hfeq; subst hfeq
+  cases hc1 : (name == lsRustAllocSymCli)
+  · rw [h2k_if_bool_false hc1] at h
+    cases hc2 : (name == lsRustDeallocSymCli)
+    · rw [h2k_if_bool_false hc2] at h
+      cases hc3 : (name == lsRustReallocSymCli)
+      · rw [h2k_if_bool_false hc3] at h
+        cases hc4 : (name == lsRustAllocZeroedSymCli)
+        · rw [h2k_if_bool_false hc4] at h
+          cases hc5 : (name == lsRustNoAllocShimSymCli)
+          · rw [h2k_if_bool_false hc5] at h
+            cases hc6 : (name == lsStringCloneSym)
+            · rw [h2k_if_bool_false hc6] at h
+              cases hc7 : (name == lsReadFileSym)
+              · rw [h2k_if_bool_false hc7] at h
+                cases hc8 : (name == lsReadStdinSym)
+                · rw [h2k_if_bool_false hc8] at h
+                  cases hc9 : (name == CryptoVerification.SignalSession.lsMemsetSym)
+                  · rw [h2k_if_bool_false hc9] at h
+                    cases hc10 : (name == CryptoVerification.SignalSession.lsMemcpySym)
+                    · rw [h2k_if_bool_false hc10] at h
+                      cases hDom : cliExtraGhostSyms.contains name
+                      · rw [h2k_if_bool_false hDom] at h
+                        cases h
+                      · rw [h2k_if_bool_true hDom] at h
+                        cases hex : (c2LinkedExtraGhosts mmpl).lookup name with
+                        | none =>
+                          rw [hex] at h
+                          cases h
+                        | some ex =>
+                          rw [hex] at h
+                          injection h with hfeq; subst hfeq
+                          exact c2LinkedExtraGhosts_noAllocFailed mmpl hex
+                    · rw [h2k_if_bool_true hc10] at h
+                      injection h with hfeq; subst hfeq
+                      exact f3EmptyMemcpyGhostHookNarrow_noAllocFailed mmpl
+                  · rw [h2k_if_bool_true hc9] at h
+                    injection h with hfeq; subst hfeq
+                    exact f3EmptyMemsetGhostHookNarrow_noAllocFailed mmpl
+                · rw [h2k_if_bool_true hc8] at h
+                  injection h with hfeq; subst hfeq
+                  exact h2k_readStdinGhostHookFineK_noAllocFailed _ _ _ _ _ _ _ _
+              · rw [h2k_if_bool_true hc7] at h
+                injection h with hfeq; subst hfeq
+                exact h2k_readFileFixedGhostHookFineK_noAllocFailed _ _ _ _ _ _ _ _
+            · rw [h2k_if_bool_true hc6] at h
+              injection h with hfeq; subst hfeq
+              exact h2k_strCloneGhostHookK_noAllocFailed mpl mmpl
+          · rw [h2k_if_bool_true hc5] at h
+            injection h with hfeq; subst hfeq
             exact LibsignalBinary.Proofs.SignalSession.Cli.F3.HInit.CliInitSlotOkPlacedAt.hookNoAllocFailed_of_trace_eq
               _ (fun _ => rfl)
-          · split at h
-            · injection h with hfeq; subst hfeq
-              exact h2k_strCloneGhostHookK_noAllocFailed mpl mmpl
-            · split at h
-              · injection h with hfeq; subst hfeq
-                exact h2k_readFileFixedGhostHookFineK_noAllocFailed _ _ _ _ _ _ _ _
-              · split at h
-                · injection h with hfeq; subst hfeq
-                  exact h2k_readStdinGhostHookFineK_noAllocFailed _ _ _ _ _ _ _ _
-                · split at h
-                  · injection h with hfeq; subst hfeq
-                    exact f3EmptyMemsetGhostHookNarrow_noAllocFailed mmpl
-                  · split at h
-                    · injection h with hfeq; subst hfeq
-                      exact f3EmptyMemcpyGhostHookNarrow_noAllocFailed mmpl
-                    · cases h
+        · rw [h2k_if_bool_true hc4] at h
+          injection h with hfeq; subst hfeq
+          exact h2k_linkedCallHook_noAllocFailed _ _ _
+      · rw [h2k_if_bool_true hc3] at h
+        injection h with hfeq; subst hfeq
+        exact h2k_linkedCallHook_noAllocFailed _ _ _
+    · rw [h2k_if_bool_true hc2] at h
+      injection h with hfeq; subst hfeq
+      exact h2k_linkedCallHook_noAllocFailed _ _ _
+  · rw [h2k_if_bool_true hc1] at h
+    injection h with hfeq; subst hfeq
+    exact h2k_linkedCallHook_noAllocFailed _ _ _
 
 private theorem h2k_hookOk_of_eq_on_pre {α : Type} {P : State → Prop}
     {f_K f_orig : State → State} {spec : Spec α}
@@ -887,6 +1359,7 @@ theorem h2k_hole2_hGSpqrK
         injection hf with hfeq
         subst hfeq
         exact h2k_f3EmptyMemsetGhostHookNarrow_acp mmpl s
+      extraOk := h2k_extraSpecOk mpl mmpl hLs
       allocZeroed := h2k_hookOk_linkedCallHook_of_orig hOrig.allocZeroed
       allocZeroed_fs := f3LinkedCallHook_fs _ _ _ _ _ _
       allocZeroed_fsT := f3LinkedCallHook_fsT _ _ _ _ _ _ }
@@ -1177,13 +1650,6 @@ private def h2k_dummyQ0 : CryptoVerification.E2E.PqxdhPrims where
 private def h2k_dummyCliHooks : CliHooks where
   C := h2k_dummyC0
   Q := h2k_dummyQ0
-  bcmp a b := if a = b then 0#64 else 1#64
-  bcmp_ok a b _ := by
-    by_cases h : a = b
-    · simp [h]
-    · simp only [h, ↓reduceIte, iff_false]
-      decide
-  utf8Err _ := (0#64, 0#16)
 
 private theorem h2k_strClone_sat_of_bundle [LibsignalPlacement]
     {mmpl : MultiPlacement} {g : CliGhostHooks} {W : CliHooks}
@@ -1252,18 +1718,6 @@ theorem h2k_segc_strCloneGhostHook_okK
 private theorem h2k_hookNoop_vm (s : State) : LibsignalBinary.Heap.VmPreserved s (hookNoop s) :=
   LibsignalBinary.Heap.VmPreserved.refl s
 
-private theorem h2k_writeBytes_perm_eq (m : Memory) (p : BitVec 64) (bs : List (BitVec 8))
-    (a : BitVec 64) : (m.writeBytes p bs).perm a = m.perm a :=
-  congrFun (LibsignalBinary.Heap.IfaceBudgetLemmas.perm_writeBytes_norm m p bs) a
-
-private theorem h2k_hookMemcpy_vm (s : State) :
-    LibsignalBinary.Heap.VmPreserved s (ProofLib.hookMemcpy s) :=
-  ⟨⟨rfl, rfl, rfl⟩, rfl, h2k_writeBytes_perm_eq _ _ _, fun _ _ _ => rfl⟩
-
-private theorem h2k_hookMemmove_vm (s : State) :
-    LibsignalBinary.Heap.VmPreserved s (ProofLib.hookMemmove s) :=
-  h2k_hookMemcpy_vm s
-
 private theorem h2k_hook_placed_rocl_ok [LibsignalPlacement] {α : Type} {H : LibsignalHooks}
     {sym : String} {spec : Spec α}
     (hsat : HookSat H sym spec)
@@ -1272,50 +1726,13 @@ private theorem h2k_hook_placed_rocl_ok [LibsignalPlacement] {α : Type} {H : Li
   CryptoVerification.LibsignalPublicApi.StoreKit.subroutine_ok_withLsCodeRoLoaded_of_plain
     (CryptoVerification.ls_hook_ok_ultra_of_mem hsat hmem)
 
-private theorem h2k_cli_row_ghost_rocl_ok [LibsignalPlacement] {α : Type}
-    (mmpl : MultiPlacement) (g : CliGhostHooks) (W : CliHooks)
-    {sym : String} {f : State → State} {spec : Spec α}
-    (hrow : (sym, f) ∈ CryptoVerification.SignalSession.cliHookTablePlaced mmpl W)
-    (hh : HookOk f spec)
-    (hmem : sym ∈ CryptoVerification.libsignalSessionExterns)
-    (h1 : sym ≠ lsRustAllocSymCli := by decide)
-    (h2 : sym ≠ lsRustDeallocSymCli := by decide)
-    (h3 : sym ≠ lsRustReallocSymCli := by decide)
-    (h4 : sym ≠ lsRustAllocZeroedSymCli := by decide)
-    (h5 : sym ≠ lsRustNoAllocShimSymCli := by decide)
-    (h6 : sym ≠ lsStringCloneSym := by decide)
-    (h7 : sym ≠ lsReadFileSym := by decide)
-    (h8 : sym ≠ lsReadStdinSym := by decide)
-    (h9 : sym ≠ CryptoVerification.SignalSession.lsMemsetSym := by decide)
-    (h10 : sym ≠ CryptoVerification.SignalSession.lsMemcpySym := by decide) :
-    subroutine_ok (lsProg_617 (cliGhostExterns g (cliExternsPlaced mmpl W))) (lsρ sym)
-      (withLsCodeRoLoaded lsmpl spec) :=
-  h2k_hook_placed_rocl_ok
-    (CryptoVerification.SignalSession.Cli.Slots.cliGhostExterns_sat_of_cliExternsPlaced mmpl g W
-      ⟨f, CryptoVerification.SignalSession.Cli.RunGlue.cliExternsPlaced_row mmpl W hrow, hh⟩
-      h1 h2 h3 h4 h5 h6 h7 h8 h9 h10)
-    hmem
-
 set_option maxRecDepth 200000 in
 private theorem h2k_memcpy_mem : memcpyName ∈ CryptoVerification.libsignalSessionExterns := by
   decide
 
 set_option maxRecDepth 200000 in
-private theorem h2k_memmove_mem : memmoveName ∈ CryptoVerification.libsignalSessionExterns := by
-  decide
-
-set_option maxRecDepth 200000 in
 private theorem h2k_memset_mem : memsetName ∈ CryptoVerification.libsignalSessionExterns := by
   decide
-
-private theorem h2k_memmove_ghost_rocl_ok [LibsignalPlacement] {α : Type}
-    (mmpl : MultiPlacement) (g : CliGhostHooks) (W : CliHooks)
-    {f : State → State} {spec : Spec α}
-    (hrow : (memmoveName, f) ∈ CryptoVerification.SignalSession.cliHookTablePlaced mmpl W)
-    (hh : HookOk f spec) :
-    subroutine_ok (lsProg_617 (cliGhostExterns g (cliExternsPlaced mmpl W))) (lsρ memmoveName)
-      (withLsCodeRoLoaded lsmpl spec) :=
-  h2k_cli_row_ghost_rocl_ok mmpl g W hrow hh h2k_memmove_mem
 
 private theorem h2k_stackAt_split_ext (sp : BitVec 64) :
     ProofLib.stackAt sp extHookStack =
@@ -1495,13 +1912,6 @@ private theorem h2k_hole2_hHooksBundleK_at [LibsignalPlacement]
         ⟨fMc, hMcEq, hookOk_withStack (hookOk_withVmPreserved hMcReg hMcVm) stk⟩ h2k_memcpy_mem
       session_memcpy_region := fun stk _ _ => h2k_hook_placed_rocl_ok
         ⟨fMc, hMcEq, hookOk_withStack (hookOk_withVmPreserved hMcSessReg hMcVm) stk⟩ h2k_memcpy_mem
-      memmove := fun stk _ _ => h2k_memmove_ghost_rocl_ok mmpl g W
-        (CryptoVerification.SignalSession.Cli.Slots.memmove_row_placed mmpl W)
-        (hookOk_withVmPreserved (ProofLib.hookMemmove_ok stk) h2k_hookMemmove_vm)
-      session_memmove := fun stk _ _ => h2k_memmove_ghost_rocl_ok mmpl g W
-        (CryptoVerification.SignalSession.Cli.Slots.memmove_row_placed mmpl W)
-        (hookOk_withVmPreserved (CryptoVerification.LibsignalTripleRatchet.hookMemmove_trace_ok stk)
-          h2k_hookMemmove_vm)
       memset := fun stk hle _ => h2k_hook_placed_rocl_ok
         ⟨fMs, hMsEq,
           hookOk_withVmPreserved
@@ -1545,14 +1955,6 @@ private theorem h2k_hole2_hHooksBundleK_at [LibsignalPlacement]
       session_memcpy_region := fun stk _ _ => h2k_hook_placed_rocl_ok
         ⟨fMc, hMcEq, (hookOk_withStack (hookOk_withVmPreserved hMcSessReg hMcVm) stk).keepsFs hMcFs⟩
         h2k_memcpy_mem
-      memmove := fun stk _ _ => h2k_memmove_ghost_rocl_ok mmpl g W
-        (CryptoVerification.SignalSession.Cli.Slots.memmove_row_placed mmpl W) <|
-        (hookOk_withVmPreserved (ProofLib.hookMemmove_ok stk) h2k_hookMemmove_vm).keepsFs
-          CryptoVerification.SignalSession.Cli.MainHops.hookMemmove_fs
-      session_memmove := fun stk _ _ => h2k_memmove_ghost_rocl_ok mmpl g W
-        (CryptoVerification.SignalSession.Cli.Slots.memmove_row_placed mmpl W) <|
-        (hookOk_withVmPreserved (CryptoVerification.LibsignalTripleRatchet.hookMemmove_trace_ok stk)
-          h2k_hookMemmove_vm).keepsFs CryptoVerification.SignalSession.Cli.MainHops.hookMemmove_fs
       memset := fun stk hle _ => h2k_hook_placed_rocl_ok
         ⟨fMs, hMsEq,
           (hookOk_withVmPreserved
@@ -1599,20 +2001,17 @@ private theorem h2k_hole2_hHooksBundleK_at [LibsignalPlacement]
               g hBase.panics
           memcpyRO := ⟨fMc, hMcEq, hookOk_withVmPreserved hMcRO hMcVm⟩
           bcmp :=
-            CryptoVerification.SignalSession.Cli.Slots.cliGhostExterns_sat_of_cliExternsPlaced mmpl g W
-              (LibsignalBinary.Proofs.SignalSession.Cli.Run.Slots.CliHookSatPlacedBudget.cliExternsPlaced_bcmp_budget_sat
-                mmpl W)
+            LibsignalBinary.Proofs.SignalSession.Cli.Run.Slots.CliHookSatPlacedBudget.cliGhostExterns_bcmp_keepsFs_budget_sat
+              g (cliExternsPlaced mmpl W) hGSpqr.extraOk
           fs := fun _ _ _ =>
             CryptoVerification.SignalSession.Cli.RunGlue.traceFsSound_lsProg_cli_ghost
               mmpl g W (h2k_hole2_hFsK mpl mmpl hLs hMm)
           utf8 := fun stk =>
-            CryptoVerification.SignalSession.Cli.Slots.cliGhostExterns_sat_of_cliExternsPlaced mmpl g W
-              (LibsignalBinary.Proofs.SignalSession.Cli.Run.Slots.CliHookSatPlacedBudget.cliExternsPlaced_fromUtf8_budget_sat
-                mmpl W stk)
-          memrchr := fun stk =>
-            CryptoVerification.SignalSession.Cli.Slots.cliGhostExterns_sat_of_cliExternsPlaced mmpl g W
-              (LibsignalBinary.Proofs.SignalSession.Cli.Run.Slots.CliHookSatPlacedBudget.cliExternsPlaced_memrchr_budget_sat
-                mmpl W stk)
+            LibsignalBinary.Proofs.SignalSession.Cli.Run.Slots.CliHookSatPlacedBudget.cliGhostExterns_fromUtf8_budget_sat
+              g (cliExternsPlaced mmpl W) hGSpqr.extraOk stk
+          memrchr :=
+            LibsignalBinary.Proofs.SignalSession.Cli.Run.Slots.CliHookSatPlacedBudget.cliGhostExterns_memrchr_budget_sat
+              g (cliExternsPlaced mmpl W) hGSpqr.extraOk (Nat.le_refl extHookStack)
           codecHooks := hCodec
           allocZeroed := ⟨g.allocZeroed,
             CryptoVerification.SignalSession.Cli.RunGlue.cliGhostExterns_allocZeroed g _,
@@ -1621,7 +2020,10 @@ private theorem h2k_hole2_hHooksBundleK_at [LibsignalPlacement]
             CryptoVerification.SignalSession.Cli.RunGlue.cliGhostExterns_stringClone_some g _ rfl,
             h2k_segc_strCloneGhostHook_okK mpl mmpl hLs hMm γ tp⟩
           formatInner :=
-            LibsignalBinary.Proofs.PeakBudget.RealCliDecPkSlotOk.cliFormatInner_budget_sat mmpl g W }
+            LibsignalBinary.Proofs.PeakBudget.RealCliDecPkSlotOk.cliFormatInner_budget_sat mmpl g W
+          blackBox :=
+            LibsignalBinary.Proofs.SignalSession.Cli.Run.Slots.CliHookSatPlacedBudget.cliGhostExterns_blackBoxSat_budget_sat
+              g (cliExternsPlaced mmpl W) hGSpqr.extraOk }
       readFile579 :=
         CryptoVerification.ls_hook_ok_ultra_of_mem
           (prog := lsProg_579 (cliGhostExterns g (cliExternsPlaced mmpl W))) (i := 579)
@@ -1674,88 +2076,45 @@ private theorem h2k_keepSub_false_of_keep_false {x : BitVec 64} (h : hole2_keep 
 theorem h2k_keepLr_false_of_noException [LibsignalPlacement]
     (mpl mmpl : MultiPlacement)
     {sym : String} {f : State → State} {a : State}
-    (hext : cliGhostExterns (h2k_ghFixedK mpl mmpl) (fun _ => none) sym = some f)
+    (hext : cliGhostExternsWithExtra (h2k_ghFixedK mpl mmpl) [] (fun _ => none) sym = some f)
     (hnoShim : sym ≠ lsRustNoAllocShimSymCli)
     (hnoex : ∀ msg, (f a).status ≠ .Exception msg)
     (hnoMs : sym ≠ CryptoVerification.SignalSession.lsMemsetSym := by decide)
     (hnoMc : sym ≠ CryptoVerification.SignalSession.lsMemcpySym := by decide) :
     h2k_keepSetForSym sym (a.readReg64 .lr) = false := by
   classical
-  unfold cliGhostExterns at hext
+  unfold cliGhostExternsWithExtra at hext
   dsimp only [h2k_ghFixedK, h2k_readFileFixedGhostHookFineSubK,
-    h2k_readStdinGhostHookFineSubK] at hext
-  split at hext
-  · rename_i hc
-    have hsym := beq_iff_eq.mp hc
-    subst hsym
-    injection hext with hfeq; subst hfeq
-    have hne : (lsRustAllocSymCli == lsStringCloneSym) = false := by decide
-    simp only [h2k_keepSetForSym, hne, Bool.false_eq_true, ↓reduceIte]
-    unfold h2k_allocGhostHookFineK f3LinkedCallHook at hnoex
-    have hAct := h2k_activeCallPre_of_dite_noException hnoex
-    dsimp only [h2k_allocSpecK, h2k_withKeepLrFalse] at hAct
-    exact h2k_pure_of_activeCallPre hAct
-  · split at hext
-    · rename_i _ hc
-      have hsym := beq_iff_eq.mp hc
-      subst hsym
-      injection hext with hfeq; subst hfeq
-      have hne : (lsRustDeallocSymCli == lsStringCloneSym) = false := by decide
-      simp only [h2k_keepSetForSym, hne, Bool.false_eq_true, ↓reduceIte]
-      unfold h2k_deallocGhostHookFineK f3LinkedCallHook at hnoex
-      have hAct := h2k_activeCallPre_of_dite_noException hnoex
-      dsimp only [h2k_deallocSpecK, h2k_withKeepLrFalse] at hAct
-      exact h2k_pure_of_activeCallPre hAct
-    · split at hext
-      · rename_i _ _ hc
-        have hsym := beq_iff_eq.mp hc
-        subst hsym
-        injection hext with hfeq; subst hfeq
-        have hne : (lsRustReallocSymCli == lsStringCloneSym) = false := by decide
-        simp only [h2k_keepSetForSym, hne, Bool.false_eq_true, ↓reduceIte]
-        unfold h2k_reallocGhostHookFineK f3LinkedCallHook at hnoex
-        have hAct := h2k_activeCallPre_of_dite_noException hnoex
-        dsimp only [h2k_reallocSpecK, h2k_withKeepLrFalse] at hAct
-        exact h2k_pure_of_activeCallPre hAct
-      · split at hext
-        · rename_i _ _ _ hc
-          have hsym := beq_iff_eq.mp hc
-          subst hsym
-          injection hext with hfeq; subst hfeq
-          have hne : (lsRustAllocZeroedSymCli == lsStringCloneSym) = false := by decide
-          simp only [h2k_keepSetForSym, hne, Bool.false_eq_true, ↓reduceIte]
-          unfold h2k_allocZeroedGhostHookFineK f3LinkedCallHook at hnoex
-          have hAct := h2k_activeCallPre_of_dite_noException hnoex
-          dsimp only [h2k_allocZeroedSpecK, h2k_withKeepLrFalse] at hAct
-          exact h2k_pure_of_activeCallPre hAct
-        · split at hext
-          · rename_i _ _ _ _ hc
-            exact False.elim (hnoShim (beq_iff_eq.mp hc))
-          · split at hext
-            · rename_i _ _ _ _ _ hc
-              have hsym := beq_iff_eq.mp hc
-              subst hsym
-              injection hext with hfeq; subst hfeq
-              have heq : (lsStringCloneSym == lsStringCloneSym) = true := by decide
-              simp only [h2k_keepSetForSym, heq, ↓reduceIte]
-              unfold h2k_strCloneGhostHookK at hnoex
-              have hAct := h2k_activeCallPre_of_dite_noException hnoex
-              dsimp only [h2k_stringCloneSpecK, h2k_withKeepLrFalse] at hAct
-              exact h2k_pure_of_activeCallPre hAct
-            · split at hext
-              · rename_i _ _ _ _ _ _ hc
-                have hsym := beq_iff_eq.mp hc
-                subst hsym
-                injection hext with hfeq; subst hfeq
-                have hne : (lsReadFileSym == lsStringCloneSym) = false := by decide
-                simp only [h2k_keepSetForSym, hne, Bool.false_eq_true, ↓reduceIte]
-                unfold h2k_readFileFixedGhostHookFineK at hnoex
-                have hAct := h2k_activeCallPre_of_dite_noException hnoex
-                dsimp only [h2k_readFileAnySpecK, h2k_withKeepLrAndFds] at hAct
-                exact (h2k_pure_of_activeCallPre hAct).1
-              · split at hext
-                · rename_i _ _ _ _ _ _ _ hc
-                  have hsym := beq_iff_eq.mp hc
+    h2k_readStdinGhostHookFineSubK, List.lookup] at hext
+  cases hc1 : (sym == lsRustAllocSymCli)
+  · rw [h2k_if_bool_false hc1] at hext
+    cases hc2 : (sym == lsRustDeallocSymCli)
+    · rw [h2k_if_bool_false hc2] at hext
+      cases hc3 : (sym == lsRustReallocSymCli)
+      · rw [h2k_if_bool_false hc3] at hext
+        cases hc4 : (sym == lsRustAllocZeroedSymCli)
+        · rw [h2k_if_bool_false hc4] at hext
+          cases hc5 : (sym == lsRustNoAllocShimSymCli)
+          · rw [h2k_if_bool_false hc5] at hext
+            cases hc6 : (sym == lsStringCloneSym)
+            · rw [h2k_if_bool_false hc6] at hext
+              cases hc7 : (sym == lsReadFileSym)
+              · rw [h2k_if_bool_false hc7] at hext
+                cases hc8 : (sym == lsReadStdinSym)
+                · rw [h2k_if_bool_false hc8] at hext
+                  cases hc9 : (sym == CryptoVerification.SignalSession.lsMemsetSym)
+                  · rw [h2k_if_bool_false hc9] at hext
+                    cases hc10 : (sym == CryptoVerification.SignalSession.lsMemcpySym)
+                    · rw [h2k_if_bool_false hc10] at hext
+                      cases hDom : cliExtraGhostSyms.contains sym
+                      · rw [h2k_if_bool_false hDom] at hext
+                        cases hext
+                      · rw [h2k_if_bool_true hDom] at hext
+                        cases hext
+                    · exact False.elim (hnoMc (beq_iff_eq.mp hc10))
+                  · exact False.elim (hnoMs (beq_iff_eq.mp hc9))
+                · rw [h2k_if_bool_true hc8] at hext
+                  have hsym := beq_iff_eq.mp hc8
                   subst hsym
                   injection hext with hfeq; subst hfeq
                   have hne : (lsReadStdinSym == lsStringCloneSym) = false := by decide
@@ -1764,13 +2123,67 @@ theorem h2k_keepLr_false_of_noException [LibsignalPlacement]
                   have hAct := h2k_activeCallPre_of_dite_noException hnoex
                   dsimp only [h2k_readStdinSpecK, h2k_withKeepLrFalse] at hAct
                   exact h2k_pure_of_activeCallPre hAct
-                · split at hext
-                  · rename_i _ _ _ _ _ _ _ _ hc
-                    exact False.elim (hnoMs (beq_iff_eq.mp hc))
-                  · split at hext
-                    · rename_i _ _ _ _ _ _ _ _ _ hc
-                      exact False.elim (hnoMc (beq_iff_eq.mp hc))
-                    · cases hext
+              · rw [h2k_if_bool_true hc7] at hext
+                have hsym := beq_iff_eq.mp hc7
+                subst hsym
+                injection hext with hfeq; subst hfeq
+                have hne : (lsReadFileSym == lsStringCloneSym) = false := by decide
+                simp only [h2k_keepSetForSym, hne, Bool.false_eq_true, ↓reduceIte]
+                unfold h2k_readFileFixedGhostHookFineK at hnoex
+                have hAct := h2k_activeCallPre_of_dite_noException hnoex
+                dsimp only [h2k_readFileAnySpecK, h2k_withKeepLrAndFds] at hAct
+                exact (h2k_pure_of_activeCallPre hAct).1
+            · rw [h2k_if_bool_true hc6] at hext
+              have hsym := beq_iff_eq.mp hc6
+              subst hsym
+              injection hext with hfeq; subst hfeq
+              have heq : (lsStringCloneSym == lsStringCloneSym) = true := by decide
+              simp only [h2k_keepSetForSym, heq, ↓reduceIte]
+              unfold h2k_strCloneGhostHookK at hnoex
+              have hAct := h2k_activeCallPre_of_dite_noException hnoex
+              dsimp only [h2k_stringCloneSpecK, h2k_withKeepLrFalse] at hAct
+              exact h2k_pure_of_activeCallPre hAct
+          · exact False.elim (hnoShim (beq_iff_eq.mp hc5))
+        · rw [h2k_if_bool_true hc4] at hext
+          have hsym := beq_iff_eq.mp hc4
+          subst hsym
+          injection hext with hfeq; subst hfeq
+          have hne : (lsRustAllocZeroedSymCli == lsStringCloneSym) = false := by decide
+          simp only [h2k_keepSetForSym, hne, Bool.false_eq_true, ↓reduceIte]
+          unfold h2k_allocZeroedGhostHookFineK f3LinkedCallHook at hnoex
+          have hAct := h2k_activeCallPre_of_dite_noException hnoex
+          dsimp only [h2k_allocZeroedSpecK, h2k_withKeepLrFalse] at hAct
+          exact h2k_pure_of_activeCallPre hAct
+      · rw [h2k_if_bool_true hc3] at hext
+        have hsym := beq_iff_eq.mp hc3
+        subst hsym
+        injection hext with hfeq; subst hfeq
+        have hne : (lsRustReallocSymCli == lsStringCloneSym) = false := by decide
+        simp only [h2k_keepSetForSym, hne, Bool.false_eq_true, ↓reduceIte]
+        unfold h2k_reallocGhostHookFineK f3LinkedCallHook at hnoex
+        have hAct := h2k_activeCallPre_of_dite_noException hnoex
+        dsimp only [h2k_reallocSpecK, h2k_withKeepLrFalse] at hAct
+        exact h2k_pure_of_activeCallPre hAct
+    · rw [h2k_if_bool_true hc2] at hext
+      have hsym := beq_iff_eq.mp hc2
+      subst hsym
+      injection hext with hfeq; subst hfeq
+      have hne : (lsRustDeallocSymCli == lsStringCloneSym) = false := by decide
+      simp only [h2k_keepSetForSym, hne, Bool.false_eq_true, ↓reduceIte]
+      unfold h2k_deallocGhostHookFineK f3LinkedCallHook at hnoex
+      have hAct := h2k_activeCallPre_of_dite_noException hnoex
+      dsimp only [h2k_deallocSpecK, h2k_withKeepLrFalse] at hAct
+      exact h2k_pure_of_activeCallPre hAct
+  · rw [h2k_if_bool_true hc1] at hext
+    have hsym := beq_iff_eq.mp hc1
+    subst hsym
+    injection hext with hfeq; subst hfeq
+    have hne : (lsRustAllocSymCli == lsStringCloneSym) = false := by decide
+    simp only [h2k_keepSetForSym, hne, Bool.false_eq_true, ↓reduceIte]
+    unfold h2k_allocGhostHookFineK f3LinkedCallHook at hnoex
+    have hAct := h2k_activeCallPre_of_dite_noException hnoex
+    dsimp only [h2k_allocSpecK, h2k_withKeepLrFalse] at hAct
+    exact h2k_pure_of_activeCallPre hAct
 
 /-- Corollary of `h2k_keepLr_false_of_noException`: since `hole2_keepSub ⊆ hole2_keep`, every
     non-`.Exception` call to any of the 7 replayed ghost hooks in `h2k_ghFixedK` satisfies
@@ -1778,7 +2191,7 @@ theorem h2k_keepLr_false_of_noException [LibsignalPlacement]
 theorem h2k_keepSubLr_false_of_noException [LibsignalPlacement]
     (mpl mmpl : MultiPlacement)
     {sym : String} {f : State → State} {a : State}
-    (hext : cliGhostExterns (h2k_ghFixedK mpl mmpl) (fun _ => none) sym = some f)
+    (hext : cliGhostExternsWithExtra (h2k_ghFixedK mpl mmpl) [] (fun _ => none) sym = some f)
     (hnoShim : sym ≠ lsRustNoAllocShimSymCli)
     (hnoex : ∀ msg, (f a).status ≠ .Exception msg)
     (hnoMs : sym ≠ CryptoVerification.SignalSession.lsMemsetSym := by decide)

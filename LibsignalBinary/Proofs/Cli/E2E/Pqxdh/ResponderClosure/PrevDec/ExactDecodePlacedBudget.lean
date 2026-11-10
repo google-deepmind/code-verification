@@ -54,7 +54,6 @@ open CryptoVerification (
 )
 open CryptoVerification.RustHeap (RustAlloc arrayAt arrayAt_concat vecAt vecBuf vecHeader vecOf vecU8 vecU8At)
 open CryptoVerification.LibsignalTripleRatchetRepr (noneCap)
-open CryptoVerification.LibsignalTripleRatchet (extHookStack)
 open CryptoVerification.LibsignalTripleRatchet.RawByteMove (chunks104_6QWAt)
 open CryptoVerification.LibsignalTripleRatchet.Prost (sliceCursorAfter sliceCursorAt)
 open CryptoVerification.LibsignalPublicApi.StoreKit (
@@ -104,7 +103,7 @@ open LibsignalBinary.Proofs.TripleRatchet.Alloc.DefsBudget (
   framelessMemcpyBudgetSpec noAllocShimBudgetSpec
 )
 open LibsignalBinary.Proofs.TripleRatchet.Hooks.DefsBudget (
-  sessionMemmoveBudgetSpec sessionShimBudgetSpec
+  sessionShimBudgetSpec
 )
 open LibsignalBinary.Proofs.SessionRecordAt.Stage1X.GrowOneXBudget (
   AllocContractsPlaced GrowOne104Env finishGrowStackX growOne104Events growOne104SpecX
@@ -2011,7 +2010,7 @@ theorem b518x_overPrevDecode_exact_cro_placed_of_alloc_bm6w_chain5'
     (b518r3_armSender hChain5)
     (b518r3_armRecv hAlloc hChain5)
 
-/-- Hook-discharged Block-`518` (`+0x1ee8..+0x2620`) exact-trace decode theorem from single-step allocator, `memcpy`, `memmove`, and panic hooks plus `b518x_ChainMerge5ExactCroPlacedOkExt'`. -/
+/-- Hook-discharged Block-`518` (`+0x1ee8..+0x2620`) exact-trace decode theorem from single-step allocator, `memcpy`, and panic hooks plus `b518x_ChainMerge5ExactCroPlacedOkExt'`. -/
 theorem b518x_overPrevDecode_exact_cro_placed_of_hooks_chain5'
     [LibsignalPlacement] {M : AllocCostModel}
     {A : RustCliAllocBudget M} {lim : BudgetLimits} {ext : LibsignalHooks}
@@ -2020,13 +2019,12 @@ theorem b518x_overPrevDecode_exact_cro_placed_of_hooks_chain5'
     (hrealloc : HookSat ext lsRustReallocSym (rustCliReallocBudgetSpec M A lim))
     (hdealloc : HookSat ext lsRustDeallocSym (rustCliDeallocBudgetSpec M A lim))
     (hmc : HookSat ext lsMemcpySym framelessMemcpyBudgetSpec)
-    (hmemmove : HookSat ext "memmove" (sessionMemmoveBudgetSpec extHookStack))
     (hpanic_raw : ext lsHandleErrorSym = some Rust.panicked)
     (hChain5 : b518x_ChainMerge5ExactCroPlacedOkExt' A lim ext) :
     b518x_OverPrevDecodeExactCroPlacedAt A lim ext :=
   b518x_overPrevDecode_exact_cro_placed_of_alloc_bm6w_chain5'
     (AllocContractsPlaced.of_hooks halloc hdealloc hrealloc
-      (b518x_sessionShim_of_noAllocShim hshim) hmemmove)
+      (b518x_sessionShim_of_noAllocShim hshim))
     (bytes_merge_6_placed_ok_w_cro (callerProg := lsProg_518 ext)
       hshim halloc hrealloc hdealloc hmc hpanic_raw)
     hChain5
@@ -2051,13 +2049,12 @@ theorem b518x_overPrevDecode_exact_cro_placed_of_hooks_chain5
     (hrealloc : HookSat ext lsRustReallocSym (rustCliReallocBudgetSpec M A lim))
     (hdealloc : HookSat ext lsRustDeallocSym (rustCliDeallocBudgetSpec M A lim))
     (hmc : HookSat ext lsMemcpySym framelessMemcpyBudgetSpec)
-    (hmemmove : HookSat ext "memmove" (sessionMemmoveBudgetSpec extHookStack))
     (hpanic_raw : ext lsHandleErrorSym = some Rust.panicked)
     (hChain5 : b518x_ChainMerge5ExactCroPlacedOkExt A lim ext) :
     b518x_OverPrevDecodeExactCroPlacedAt A lim ext :=
   b518x_overPrevDecode_exact_cro_placed_of_alloc_bm6w_chain5
     (AllocContractsPlaced.of_hooks halloc hdealloc hrealloc
-      (b518x_sessionShim_of_noAllocShim hshim) hmemmove)
+      (b518x_sessionShim_of_noAllocShim hshim))
     (bytes_merge_6_placed_ok_w_cro (callerProg := lsProg_518 ext)
       hshim halloc hrealloc hdealloc hmc hpanic_raw)
     hChain5

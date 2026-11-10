@@ -172,11 +172,11 @@ private theorem cliPollId_kitPlacedOkI_a0 [LibsignalPlacement]
       (cliPollIdKitPlaced E2E.HooksE.A0 F0 peer (cliKitStk B))
       (cliGhostExterns gh (cliExternsPlaced mmpl W)) :=
   cliIdKitPlacedOkI_full
-    (IdKit.cliIdKitOkIE_placed
+    (IdKit.cliIdKitOkIE_placed_sat
       (readProg := dpPollProgPlaced (cliGhostExterns gh (cliExternsPlaced mmpl W))) (jRead := 518)
       hDropNz (fun _ hp => hp.2) hh
       (StoreKit.subroutine_ok_withLsCodeRoLoaded_of_plain hread)
-      (cliGhostExterns_blackBox mmpl gh W)
+      hh.blackBox
       (Nat.le_refl _) (Nat.le_refl _) (Nat.le_refl _) (Nat.le_refl _)
       (by decide) (by decide))
 

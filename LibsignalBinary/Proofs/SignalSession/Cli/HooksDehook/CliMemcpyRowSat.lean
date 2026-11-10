@@ -57,7 +57,7 @@ open CryptoVerification.E2E.Pqxdh.Initiator (pqxdhMemcpyRegionSpec)
 open CryptoVerification.LibsignalPublicApi.MessageDecrypt (lsExpectFailedSym)
 open CryptoVerification.LibsignalPublicApi.StoreKit (withLsCodeRoLoaded)
 open CryptoVerification.LibsignalTripleRatchet (
-  extHookStack framelessMemcpySpec memcpyName memcpyROExtSpec memmoveName memsetName
+  extHookStack framelessMemcpySpec memcpyName memcpyROExtSpec memsetName
   sessionMemcpyROXSpec sessionMemcpyRegionSpec sessionMemcpySpec
   sessionMemsetRegionSpec sessionMemsetSpec withStack
 )
@@ -72,20 +72,17 @@ open CryptoVerification.SignalSession (
 )
 open CryptoVerification.SignalSession.Cli.MainHops (
   cliExternsPlaced_memcpy_none cliExternsPlaced_memset_none
-  hookMemcpy_fs hookMemmove_fs hookMemset_fs hookNoop_fs hookOk_withStack
+  hookMemcpy_fs hookMemset_fs hookNoop_fs hookOk_withStack
 )
 open CryptoVerification.SignalSession.Cli.Run.Placed (lsProg_579)
 open CryptoVerification.SignalSession.Cli.RunCompose (PksmGhost RunSem)
 open CryptoVerification.SignalSession.Cli.RunGlue (
-  CliGhostHooks IsFsC cliExternsPlaced_row cliGhostExterns cliGhostExterns_alloc
+  CliGhostHooks IsFsC cliGhostExterns cliGhostExterns_alloc
   cliGhostExterns_dealloc cliGhostExterns_memcpy_none cliGhostExterns_memcpy_some
-  cliGhostExterns_memset_none cliGhostExterns_memset_some cliGhostExterns_other
-  cliGhostExterns_realloc cliGhostExterns_shim hookMemcpy_fsT hookMemset_fsT hookSat_of_eq
+  cliGhostExterns_memset_none cliGhostExterns_memset_some
+  cliGhostExterns_realloc cliGhostExterns_shim hookMemcpy_fsT hookMemset_fsT
 )
 open CryptoVerification.SignalSession.Cli.RunProofs.Pksm (pksmParse)
-open CryptoVerification.SignalSession.Cli.Slots (
-  memmove_row_placed
-)
 open CryptoVerification.SignalSession.Cli.Store.PlacedCommon (CliPanicHooksPlaced)
 open CryptoVerification.SignalSession.CliExt (memcpyROSpec memcpySpec memsetSpec)
 open LibsignalBinary.Heap (
@@ -162,7 +159,6 @@ open LibsignalBinary.Proofs.SignalSession.Cli.Run.Proofs.PksmTryFromPlacedBudget
 )
 open LibsignalBinary.Proofs.SignalSession.Cli.Run.Slots.CliHookSatPlacedBudget (
   allocContractsFsPlaced_of_hookSat allocContractsXCliPlaced_of_hookSat
-  cliExternsPlaced_memmove_budget_sat cliExternsPlaced_sessionMemmove_budget_sat
   codecHooksPlaced_of_hookSat publicApiDecHooksPlaced_of_hookSat stage2ContractsMinPlaced_of_hookSat
 )
 open LibsignalBinary.Proofs.SignalSession.Cli.SpecsPlacedBudget (
@@ -239,13 +235,12 @@ theorem memcpyStripKeepsFrozen_memcpyGhostHookK
     HookFsTraced IsFsC f
 
 /-- Ghost-compatible `BaseHelperRows` counterpart: replaces `memcpy_eq` and `memset_eq` with
-`GhostMemcpyRow` and `GhostMemsetRow` while keeping `memmove_eq`, `bcmp_eq`, `utf8_eq`,
+`GhostMemcpyRow` and `GhostMemsetRow` while keeping `bcmp_eq`, `utf8_eq`,
 `memrchr_eq`, and `panics` unchanged. -/
 structure BaseHelperRowsSat (mmpl : Obj.MultiPlacement) (W : CliHooks)
     (baseExt : LibsignalHooks) : Prop where
   memcpy_sat : GhostMemcpyRow baseExt
   memset_sat : GhostMemsetRow baseExt
-  memmove_eq : baseExt memmoveName = cliExternsPlaced mmpl W memmoveName
   bcmp_eq : baseExt "bcmp" = cliExternsPlaced mmpl W "bcmp"
   utf8_eq : baseExt lsFromUtf8Sym = cliExternsPlaced mmpl W lsFromUtf8Sym
   memrchr_eq : baseExt lsMemrchrSym = cliExternsPlaced mmpl W lsMemrchrSym
@@ -308,13 +303,12 @@ theorem BaseHelperRows.toSat {mmpl : Obj.MultiPlacement} {W : CliHooks}
     BaseHelperRowsSat mmpl W baseExt where
   memcpy_sat := hMc
   memset_sat := hMs
-  memmove_eq := hBase.memmove_eq
   bcmp_eq := hBase.bcmp_eq
   utf8_eq := hBase.utf8_eq
   memrchr_eq := hBase.memrchr_eq
   panics := hBase.panics
 
-/-- On the `37`-row `cliExternsPlaced mmpl W` (`cliExternsPlaced_memcpy_none`), `cliGhostExterns g`
+/-- On the `27`-row `cliExternsPlaced mmpl W` (`cliExternsPlaced_memcpy_none`), `cliGhostExterns g`
 resolves `memcpyName` strictly to `g.memcpy`. -/
 theorem cliGhostExterns_memcpy_placed (mmpl : Obj.MultiPlacement) (W : CliHooks)
     (g : CliGhostHooks) :
@@ -326,7 +320,7 @@ theorem cliGhostExterns_memcpy_placed (mmpl : Obj.MultiPlacement) (W : CliHooks)
   | some f =>
     exact cliGhostExterns_memcpy_some g (cliExternsPlaced mmpl W) hg
 
-/-- On the `37`-row `cliExternsPlaced mmpl W` (`cliExternsPlaced_memset_none`), `cliGhostExterns g`
+/-- On the `27`-row `cliExternsPlaced mmpl W` (`cliExternsPlaced_memset_none`), `cliGhostExterns g`
 resolves `memsetName` strictly to `g.memset`. -/
 theorem cliGhostExterns_memset_placed (mmpl : Obj.MultiPlacement) (W : CliHooks)
     (g : CliGhostHooks) :
@@ -337,27 +331,6 @@ theorem cliGhostExterns_memset_placed (mmpl : Obj.MultiPlacement) (W : CliHooks)
       (cliExternsPlaced_memset_none mmpl W)
   | some f =>
     exact cliGhostExterns_memset_some g (cliExternsPlaced mmpl W) hg
-
-/-- Canonical `37`-row `BaseHelperRowsSat` witness for `cliGhostExterns g (cliExternsPlaced mmpl W)`
-given `GhostMemcpyRow` and `GhostMemsetRow` on the overlaid extern map. -/
-theorem cliExternsPlaced_baseHelperRowsSat (mmpl : Obj.MultiPlacement) (W : CliHooks)
-    (g : CliGhostHooks)
-    (hMc : GhostMemcpyRow (cliGhostExterns g (cliExternsPlaced mmpl W)))
-    (hMs : GhostMemsetRow (cliGhostExterns g (cliExternsPlaced mmpl W))) :
-    BaseHelperRowsSat mmpl W (cliGhostExterns g (cliExternsPlaced mmpl W)) where
-  memcpy_sat := hMc
-  memset_sat := hMs
-  memmove_eq := cliGhostExterns_other g (cliExternsPlaced mmpl W)
-    (by decide) (by decide) (by decide) (by decide) (by decide) (by decide)
-  bcmp_eq := cliGhostExterns_other g (cliExternsPlaced mmpl W)
-    (by decide) (by decide) (by decide) (by decide) (by decide) (by decide)
-  utf8_eq := cliGhostExterns_other g (cliExternsPlaced mmpl W)
-    (by decide) (by decide) (by decide) (by decide) (by decide) (by decide)
-  memrchr_eq := cliGhostExterns_other g (cliExternsPlaced mmpl W)
-    (by decide) (by decide) (by decide) (by decide) (by decide) (by decide)
-  panics := cliGhostExterns_panics g
-    (LibsignalBinary.Proofs.SignalSession.Cli.AllocGhostLinkTransfer.cliExternsPlaced_baseHelperRows
-      mmpl W).panics
 
 theorem GhostMemcpyRow.of_eq {ext₁ ext₂ : LibsignalHooks}
     (heq : ext₂ memcpyName = ext₁ memcpyName) (h : GhostMemcpyRow ext₁) :
@@ -382,29 +355,6 @@ theorem GhostMemsetRow.cliGhostExterns {baseExt : LibsignalHooks} (g : CliGhostH
     (hNone : g.memset = none) (h : GhostMemsetRow baseExt) :
     GhostMemsetRow (cliGhostExterns g baseExt) :=
   h.of_eq (cliGhostExterns_memset_none g baseExt hNone)
-
-theorem cliGhostExterns_memmove_eq_of_sat (mmpl : Obj.MultiPlacement) (W : CliHooks)
-    {baseExt : LibsignalHooks} (g : CliGhostHooks) (hBase : BaseHelperRowsSat mmpl W baseExt) :
-    cliGhostExterns g baseExt memmoveName = cliExternsPlaced mmpl W memmoveName :=
-  (cliGhostExterns_other g baseExt (sym := memmoveName)
-    (by decide) (by decide) (by decide) (by decide) (by decide) (by decide)).trans hBase.memmove_eq
-
-/-- `none`-slot pass-through only (`g.memcpy = none`, `g.memset = none`); not usable on the K or Narrow routes. -/
-theorem BaseHelperRowsSat.cliGhostExterns {mmpl : Obj.MultiPlacement} {W : CliHooks}
-    {baseExt : LibsignalHooks} (g : CliGhostHooks)
-    (hMcNone : g.memcpy = none) (hMsNone : g.memset = none)
-    (hBase : BaseHelperRowsSat mmpl W baseExt) :
-    BaseHelperRowsSat mmpl W (cliGhostExterns g baseExt) where
-  memcpy_sat := hBase.memcpy_sat.cliGhostExterns g hMcNone
-  memset_sat := hBase.memset_sat.cliGhostExterns g hMsNone
-  memmove_eq := cliGhostExterns_memmove_eq_of_sat mmpl W g hBase
-  bcmp_eq := (cliGhostExterns_other g baseExt (sym := "bcmp")
-    (by decide) (by decide) (by decide) (by decide) (by decide) (by decide)).trans hBase.bcmp_eq
-  utf8_eq := (cliGhostExterns_other g baseExt (sym := lsFromUtf8Sym)
-    (by decide) (by decide) (by decide) (by decide) (by decide) (by decide)).trans hBase.utf8_eq
-  memrchr_eq := (cliGhostExterns_other g baseExt (sym := lsMemrchrSym)
-    (by decide) (by decide) (by decide) (by decide) (by decide) (by decide)).trans hBase.memrchr_eq
-  panics := cliGhostExterns_panics g hBase.panics
 
 /-! ## 3. Generic & Contract-Specific `HookSat` Dischargers (`GhostMemcpyRow` & `GhostMemsetRow`) -/
 
@@ -773,10 +723,6 @@ theorem allocContractsXCliPlaced_of_ghost_sat [LibsignalPlacement]
     (fun stk => hMc.sessionMemcpy_budget_sat stk)
     hMc.memcpyRegion_budget_sat
     hMc.sessionMemcpyRegion_budget_sat
-    (fun stk => hookSat_of_eq hBase.memmove_eq
-      (cliExternsPlaced_memmove_budget_sat mmpl W stk))
-    (fun stk => hookSat_of_eq hBase.memmove_eq
-      (cliExternsPlaced_sessionMemmove_budget_sat mmpl W stk))
     (fun stk _ => hMs.libcMemset_budget_sat stk)
     (fun stk _ => hMs.sessionMemset_budget_sat stk)
     hMs.memsetRegion_budget_sat
@@ -800,10 +746,6 @@ theorem allocContractsFsPlaced_of_ghost_sat [LibsignalPlacement]
     hMc.memcpyRegion_budget_sat
     hMc.sessionMemcpyRegion_budget_sat
     hMc.sessionMemcpyRegionRO_budget_sat
-    (fun stk => hookSat_of_eq hBase.memmove_eq
-      (cliExternsPlaced_memmove_budget_sat mmpl W stk))
-    (fun stk => hookSat_of_eq hBase.memmove_eq
-      (cliExternsPlaced_sessionMemmove_budget_sat mmpl W stk))
     (fun stk _ => hMs.libcMemset_budget_sat stk)
     (fun stk _ => hMs.sessionMemset_budget_sat stk)
     hMs.memsetRegion_budget_sat
@@ -811,16 +753,13 @@ theorem allocContractsFsPlaced_of_ghost_sat [LibsignalPlacement]
     ?_
   intro sym hmem f hf
   simp only [List.mem_cons, List.not_mem_nil, or_false] at hmem
-  rcases hmem with rfl | rfl | rfl | rfl | rfl | rfl | rfl
+  rcases hmem with rfl | rfl | rfl | rfl | rfl | rfl
   · rw [cliGhostExterns_alloc] at hf; cases hf; exact hG.alloc_fs
   · rw [cliGhostExterns_dealloc] at hf; cases hf; exact hG.dealloc_fs
   · rw [cliGhostExterns_realloc] at hf; cases hf; exact hG.realloc_fs
   · rw [cliGhostExterns_shim, hG.shim_eq] at hf; cases hf; exact hookNoop_fs
   · rcases hMc with ⟨f_mc, hrow_mc, _, _, hfs_mc, _, _, _⟩
     rw [hrow_mc] at hf; cases hf; exact hfs_mc
-  · rw [hBase.memmove_eq,
-        cliExternsPlaced_row mmpl W (memmove_row_placed mmpl W)] at hf
-    cases hf; exact hookMemmove_fs
   · rcases hMs with ⟨f_ms, hrow_ms, _, _, hfs_ms, _⟩
     rw [hrow_ms] at hf; cases hf; exact hfs_ms
 
@@ -836,8 +775,6 @@ theorem stage2ContractsMinPlaced_of_ghost_sat [LibsignalPlacement]
     ⟨g.realloc, cliGhostExterns_realloc g baseExt, hG.realloc⟩
     (shim_budget_sat_of_eq baseExt hG.shim_eq)
     (hBase.memcpy_sat.sessionMemcpy_budget_sat extHookStack)
-    (hookSat_of_eq hBase.memmove_eq
-      (cliExternsPlaced_sessionMemmove_budget_sat mmpl W extHookStack))
 
 theorem codecHooksPlaced_of_ghost_sat [LibsignalPlacement]
     (mmpl : Obj.MultiPlacement) (W : CliHooks) (baseExt : LibsignalHooks)

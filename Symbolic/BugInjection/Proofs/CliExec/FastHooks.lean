@@ -1217,11 +1217,11 @@ def fastHookTable (W : CliHooks) : List (String × (FastState → Option FastSta
    ("__rustc::__rust_alloc", fastAlloc), ("__rustc::__rust_dealloc", fastHookNoop),
    ("__rustc::__rust_realloc", fastRealloc), ("__rustc::__rust_alloc_zeroed", fastAllocZeroed),
    ("memset", fastMemset), ("memmove", fastMemcpy), ("memcpy", fastMemcpy),
-   ("bcmp", fastCliBcmp W.bcmp), ("strlen", fastStrlen),
+   ("bcmp", fastCliBcmp cliDefaultBcmp), ("strlen", fastStrlen),
    (readFileName, fastReadFile), (writeFileName, fastWriteFile),
    (readStdinName, fastReadStdin), (writeStdoutName, fastWriteStdout),
    ("core::slice::memchr::memrchr", fastMemrchr),
-   ("core::str::converts::from_utf8", fastFromUtf8 W.utf8Err),
+   ("core::str::converts::from_utf8", fastFromUtf8 cliDefaultUtf8Err),
    ("core::fmt::write", fastFmtWrite), ("alloc::fmt::format::format_inner", fastFormatInner),
    ("<std::time::SystemTime>::duration_since", fastDurationSince),
    ("<std::time::SystemTime as core::ops::arith::Add<core::time::Duration>>::add", fastTimeAdd),
@@ -1252,10 +1252,10 @@ theorem fastHookTable_rel (W : CliHooks) :
     .cons ⟨rfl, @fastHookNoop_post⟩ <| .cons ⟨rfl, @fastRealloc_post⟩ <|
     .cons ⟨rfl, @fastAllocZeroed_post⟩ <| .cons ⟨rfl, @fastMemset_post⟩ <|
     .cons ⟨rfl, @fastMemcpy_post⟩ <| .cons ⟨rfl, @fastMemcpy_post⟩ <|
-    .cons ⟨rfl, @fastCliBcmp_post W.bcmp⟩ <| .cons ⟨rfl, @fastStrlen_post⟩ <|
+    .cons ⟨rfl, @fastCliBcmp_post cliDefaultBcmp⟩ <| .cons ⟨rfl, @fastStrlen_post⟩ <|
     .cons ⟨rfl, @fastReadFile_post⟩ <| .cons ⟨rfl, @fastWriteFile_post⟩ <|
     .cons ⟨rfl, @fastReadStdin_post⟩ <| .cons ⟨rfl, @fastWriteStdout_post⟩ <|
-    .cons ⟨rfl, @fastMemrchr_post⟩ <| .cons ⟨rfl, @fastFromUtf8_post W.utf8Err⟩ <|
+    .cons ⟨rfl, @fastMemrchr_post⟩ <| .cons ⟨rfl, @fastFromUtf8_post cliDefaultUtf8Err⟩ <|
     .cons ⟨rfl, @fastFmtWrite_post⟩ <|
     .cons ⟨rfl, @fastFormatInner_post⟩ <| .cons ⟨rfl, @fastDurationSince_post⟩ <|
     .cons ⟨rfl, @fastTimeAdd_post⟩ <| .cons ⟨rfl, @fastBlackBox_post⟩ <|

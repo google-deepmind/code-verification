@@ -204,7 +204,7 @@ private theorem toSkeletonRunHooks [LibsignalPlacement] {M : AllocCostModel}
   { alloc := hh.alloc, allocFs := hh.allocFs, panics := hh.panics, memcpyRO := hh.memcpyRO,
     bcmp := hh.bcmp, fs := hh.fs, utf8 := hh.utf8, memrchr := hh.memrchr,
     codecHooks := hh.codecHooks, allocZeroed := hh.allocZeroed, stringClone := hh.stringClone,
-    formatInner := hh.formatInner }
+    formatInner := hh.formatInner, blackBox := hh.blackBox }
 
 /-- Upgrades `SessionOnlyKitPlacedOkSE` from `cliPollSessBudgetEnv` (`hKits.sessOk`) to SeqFree
 `cliPollSessSeqFreeBudgetEnv` with no `hRead` / `hDeser` premises. -/

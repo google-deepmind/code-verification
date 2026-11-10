@@ -139,6 +139,10 @@ theorem hookMemmove_sessionMemmoveAcp_ok (hookStack : Nat := 4096) :
     HookOk hookMemmove (sessionMemmoveAcpSpec hookStack) :=
   VecDequeGrowBudgetAux.hookMemmove_sessionMemmoveAcp_ok hookStack
 
+export LibsignalBinary.Proofs.SpqrV1.Alloc.VecDequeGrowBudgetAux (
+  sessionMemmoveBoundedAcpSpec hookMemmove_sessionMemmoveBoundedAcp_ok
+)
+
 abbrev finishGrow8ZeroCellsAcpSpecG := VecDequeGrowBudgetAux.finishGrow8ZeroCellsAcpSpecG
 abbrev finishGrow8NeCellsAcpSpecG := VecDequeGrowBudgetAux.finishGrow8NeCellsAcpSpecG
 abbrev growOneChainEpochBsAcpSpecWithStack :=
@@ -416,9 +420,21 @@ private theorem grow_one_chain_epoch_call_acp_placed_ok_of_bs [LibsignalPlacemen
     exact ⟨⟨hq.2.1.1, hq.2.1.2, hq.1⟩, hq.2.2⟩
   · exact Or.inr hfail
 
-private def sessionMemmoveFrontToEndCallAcpSpec (hookStack : Nat) :
-    Spec (BitVec 64 × List (BitVec 8) × Nat × BitVec 64) where
-  pre := fun (base, bs_front, uninitLen, gsp) s0 =>
+private theorem live_noWrap {M : AllocCostModel} (A : RustCliAllocBudget M)
+    (p : BitVec 64) (n al : Nat) :
+    A.live p n al ⊢ ⌜p.toNat + n < 2 ^ 64⌝ ∗ A.live p n al := by
+  refine Entails.trans (A.block_valid p n al) ?_
+  apply Entails.pure_left
+  rintro ⟨_, _, hnw, _⟩
+  exact Entails.pure_right hnw (Entails.refl _)
+
+private structure NoWrapFact (p : BitVec 64) (sz : Nat) : Prop where
+  out : p.toNat + sz < 2 ^ 64
+
+private def sessionMemmoveFrontToEndCallAcpSpec
+    (base : BitVec 64) (bs_front : List (BitVec 8)) (uninitLen : Nat) (gsp : BitVec 64)
+    (hookStack : Nat) : Spec Unit where
+  pre := fun () s0 =>
     ⌜s0.readReg64 .x0 = base + BitVec.ofNat 64 uninitLen ∧
       s0.readReg64 .x1 = base ∧
       (s0.readReg64 .x2).toNat = bs_front.length ∧
@@ -426,7 +442,7 @@ private def sessionMemmoveFrontToEndCallAcpSpec (hookStack : Nat) :
       (base ↦ₛ bs_front) ∗
       memRegion (base + BitVec.ofNat 64 bs_front.length) uninitLen ∗
       stackAt gsp hookStack
-  post := fun (base, bs_front, uninitLen, gsp) s0 sf =>
+  post := fun () s0 sf =>
     ⌜sf.readReg64 .x0 = base + BitVec.ofNat 64 uninitLen ∧
       AllocCallPreserved s0 sf ∧ VmPreserved s0 sf⌝ ∗
       memRegion base uninitLen ∗
@@ -434,10 +450,14 @@ private def sessionMemmoveFrontToEndCallAcpSpec (hookStack : Nat) :
       stackAt gsp hookStack
 
 private theorem session_memmove_front_to_end_call_acp_ok {prog : Program} {addr : BitVec 64}
-    {hookStack : Nat} (hmm : subroutine_ok prog addr (sessionMemmoveAcpSpec hookStack)) :
-    subroutine_ok prog addr (sessionMemmoveFrontToEndCallAcpSpec hookStack) := by
+    {hookStack : Nat} (hmm : subroutine_ok prog addr (sessionMemmoveBoundedAcpSpec hookStack))
+    (base : BitVec 64) (bs_front : List (BitVec 8)) (uninitLen : Nat) (gsp : BitVec 64)
+    (hnw : base.toNat + bs_front.length + uninitLen ≤ 2 ^ 64)
+    (hlt63 : bs_front.length + uninitLen < 2 ^ 63) :
+    subroutine_ok prog addr
+      (sessionMemmoveFrontToEndCallAcpSpec base bs_front uninitLen gsp hookStack) := by
   have hfe := session_memmove_front_to_end_acp_ok hmm
-  refine subroutine_ok_outcome_intro fun ⟨base, bs_front, uninitLen, gsp⟩ R s0 hpc hrun hpre hsp => ?_
+  refine subroutine_ok_outcome_intro fun () R s0 hpc hrun hpre hsp => ?_
   simp only [sessionMemmoveFrontToEndCallAcpSpec, sepConj_assoc, satisfies_pure_sepConj] at hpre
   rcases hpre with ⟨⟨hx0, hx1, hx2, hgsp, huninit⟩, hmem⟩
   subst hgsp
@@ -446,7 +466,7 @@ private theorem session_memmove_front_to_end_call_acp_ok {prog : Program} {addr 
         (base, bs_front, uninitLen) s0 ∗ R := by
     simp only [VecDequeGrowBudgetAux.sessionMemmoveFrontToEndAcpSpec,
       sepConj_assoc, satisfies_pure_sepConj]
-    exact ⟨⟨hx0, hx1, hx2, huninit⟩, hmem⟩
+    exact ⟨⟨hx0, hx1, hx2, huninit, hnw, hlt63⟩, hmem⟩
   exact hfe.mono_outcome (base, bs_front, uninitLen) R s0 hpc hrun hpre' hsp fun _ hout => hout
 
 private def growOneChainEpochFullCallAcpSpecG (M : AllocCostModel) (A : RustCliAllocBudget M)
@@ -490,6 +510,75 @@ private theorem grow_one_chain_epoch_full_call_acp_placed_ok_of_bs [LibsignalPla
       memRegion_zero, sepConj_emp, sepConj_assoc, satisfies_pure_sepConj]
     exact ⟨⟨hx0, hgsp, Nat.le_refl _, hptr, hmax, hfits⟩, hmem⟩
   exact hg.mono_outcome (v, cap, ptr, bs, gsp, st) R s0 hpc hrun hpre' hsp fun _ hout => hout
+
+private def growOneChainEpochFullNwCallAcpSpecG (M : AllocCostModel) (A : RustCliAllocBudget M)
+    (lim : BudgetLimits) :
+    Spec (BitVec 64 × BitVec 64 × BitVec 64 × List (BitVec 8) × BitVec 64 × M.σ) :=
+  { growOneChainEpochFullCallAcpSpecG M A lim with
+    post := fun (v, cap, _ptr, bs, gsp, st) s0 sf =>
+      ∃∗ p' : BitVec 64,
+        ⌜p' ≠ 0#64 ∧ p'.toNat % 8 = 0 ∧ AllocCallPreserved s0 sf ∧
+          NoWrapFact p' (max (2 * cap.toNat) 4 * 112)⌝ ∗
+        (v ↦₆₄ BitVec.ofNat 64 (max (2 * cap.toNat) 4)) ∗ ((v + 8#64) ↦₆₄ p') ∗
+        A.live p' (max (2 * cap.toNat) 4 * 112) 8 ∗ (p' ↦ₛ bs) ∗
+        memRegion (p' + BitVec.ofNat 64 bs.length) (max (2 * cap.toNat) 4 * 112 - bs.length) ∗
+        A.pool lim (M.stepEvents (growOneStrideEvents cap 112 8) st) sf ∗
+        stackAt gsp growOneStack }
+
+private theorem grow_one_chain_epoch_full_nw_call_acp_placed_ok_of_bs [LibsignalPlacement]
+    {M : AllocCostModel} {A : RustCliAllocBudget M} {lim : BudgetLimits}
+    {P : Program} {addr : BitVec 64}
+    (hbs : subroutine_ok P addr
+      (withLsCodeLoaded lsmpl (growOneChainEpochBsAcpSpec M A lim))) :
+    subroutine_ok P addr
+      (withLsCodeLoaded lsmpl (growOneChainEpochFullNwCallAcpSpecG M A lim)) := by
+  have hf := grow_one_chain_epoch_full_call_acp_placed_ok_of_bs hbs
+  refine subroutine_ok_outcome_intro fun x R s0 hpc hrun hpre hsp => ?_
+  refine hf.mono_outcome x R s0 hpc hrun hpre hsp fun sf hout => ?_
+  rcases hout with ⟨hret, hcc, hq⟩ | hfail
+  · refine Or.inl ⟨hret, hcc, ?_⟩
+    rcases x with ⟨v, cap, ptr, bs, gsp, st⟩
+    simp only [growOneChainEpochFullCallAcpSpecG,
+      growOneChainEpochFullNwCallAcpSpecG,
+      sepExists_sepConj_left, satisfies_sepExists] at hq ⊢
+    rcases hq with ⟨p', hq⟩
+    refine ⟨p', ?_⟩
+    have hent :
+        (⌜p' ≠ 0#64 ∧ p'.toNat % 8 = 0 ∧ AllocCallPreserved s0 sf⌝ ∗
+          (v ↦₆₄ BitVec.ofNat 64 (max (2 * cap.toNat) 4)) ∗ ((v + 8#64) ↦₆₄ p') ∗
+          A.live p' (max (2 * cap.toNat) 4 * 112) 8 ∗ (p' ↦ₛ bs) ∗
+          memRegion (p' + BitVec.ofNat 64 bs.length) (max (2 * cap.toNat) 4 * 112 - bs.length) ∗
+          A.pool lim (M.stepEvents (growOneStrideEvents cap 112 8) st) sf ∗
+          stackAt gsp growOneStack) ⊢
+        (⌜p' ≠ 0#64 ∧ p'.toNat % 8 = 0 ∧ AllocCallPreserved s0 sf ∧
+            NoWrapFact p' (max (2 * cap.toNat) 4 * 112)⌝ ∗
+          (v ↦₆₄ BitVec.ofNat 64 (max (2 * cap.toNat) 4)) ∗ ((v + 8#64) ↦₆₄ p') ∗
+          A.live p' (max (2 * cap.toNat) 4 * 112) 8 ∗ (p' ↦ₛ bs) ∗
+          memRegion (p' + BitVec.ofNat 64 bs.length) (max (2 * cap.toNat) 4 * 112 - bs.length) ∗
+          A.pool lim (M.stepEvents (growOneStrideEvents cap 112 8) st) sf ∗
+          stackAt gsp growOneStack) := by
+      apply Entails.pure_left
+      rintro ⟨hp1, hp2, hp3⟩
+      refine Entails.trans
+        (sepConj_mono_right (sepConj_mono_right (sepConj_mono_left
+          (live_noWrap A p' (max (2 * cap.toNat) 4 * 112) 8)))) ?_
+      rw [show ((v ↦₆₄ BitVec.ofNat 64 (max (2 * cap.toNat) 4)) ∗ ((v + 8#64) ↦₆₄ p') ∗
+          (⌜p'.toNat + max (2 * cap.toNat) 4 * 112 < 2 ^ 64⌝ ∗
+            A.live p' (max (2 * cap.toNat) 4 * 112) 8) ∗ (p' ↦ₛ bs) ∗
+          memRegion (p' + BitVec.ofNat 64 bs.length) (max (2 * cap.toNat) 4 * 112 - bs.length) ∗
+          A.pool lim (M.stepEvents (growOneStrideEvents cap 112 8) st) sf ∗
+          stackAt gsp growOneStack) =
+        ⌜p'.toNat + max (2 * cap.toNat) 4 * 112 < 2 ^ 64⌝ ∗
+          ((v ↦₆₄ BitVec.ofNat 64 (max (2 * cap.toNat) 4)) ∗ ((v + 8#64) ↦₆₄ p') ∗
+          A.live p' (max (2 * cap.toNat) 4 * 112) 8 ∗ (p' ↦ₛ bs) ∗
+          memRegion (p' + BitVec.ofNat 64 bs.length) (max (2 * cap.toNat) 4 * 112 - bs.length) ∗
+          A.pool lim (M.stepEvents (growOneStrideEvents cap 112 8) st) sf ∗
+          stackAt gsp growOneStack) by sep_ac_rfl]
+      apply Entails.pure_left
+      intro hnw
+      exact Entails.pure_right ⟨hp1, hp2, hp3, ⟨hnw⟩⟩ (Entails.refl _)
+    exact Satisfies.mono (sepConj_mono_left hent) hq
+  · exact Or.inr hfail
 
 /-- Block 353 meets `withLsCodeLoaded lsmpl (vecDequeGrowNonwrapBsSpec M A lim)`. -/
 theorem vec_deque_grow_nonwrap_bs_placed_ok_of_grow [LibsignalPlacement] {M : AllocCostModel}
@@ -684,6 +773,99 @@ theorem vec_deque_grow_wrap_memcpy_bs_placed_ok [LibsignalPlacement] {M : AllocC
     (grow_one_chain_epoch_bs_acp_placed_ok h_panic hshim halloc hrealloc)
     (spqr_hook_ok_of_mem hmc)
 
+private theorem wrap_mm_sub_head (cap head : BitVec 64) : cap - (cap - head) = head := by bv_arith
+
+private theorem wrap_mm_sub_newHead {cap head : BitVec 64}
+    (hhead_lt : head.toNat < cap.toNat)
+    (hmax : max (2 * cap.toNat) 4 * 112 + 8 ≤ 2 ^ 63) :
+    BitVec.ofNat 64 (max (2 * cap.toNat) 4) - (cap - head) =
+      BitVec.ofNat 64 (max (2 * cap.toNat) 4 - (cap.toNat - head.toNat)) := by
+  have hnc : (BitVec.ofNat 64 (max (2 * cap.toNat) 4)).toNat = max (2 * cap.toNat) 4 := by
+    rw [BitVec.toNat_ofNat, Nat.mod_eq_of_lt (by omega)]
+  have hch : (cap - head).toNat = cap.toNat - head.toNat :=
+    BitVec.toNat_sub_of_le (by rw [BitVec.le_def]; omega)
+  have hle_nc : cap - head ≤ BitVec.ofNat 64 (max (2 * cap.toNat) 4) := by
+    rw [BitVec.le_def, hch, hnc]; omega
+  apply BitVec.eq_of_toNat_eq
+  rw [BitVec.toNat_sub_of_le hle_nc, hnc, hch,
+      BitVec.toNat_ofNat, Nat.mod_eq_of_lt (by omega)]
+
+private theorem wrap_mm_shift_front {cap head : BitVec 64}
+    (hhead_lt : head.toNat < cap.toNat)
+    (hmax : max (2 * cap.toNat) 4 * 112 + 8 ≤ 2 ^ 63) :
+    ((cap - head) <<< 7 - (cap - head) <<< 4).toNat = (cap.toNat - head.toNat) * 112 := by
+  have hch : (cap - head).toNat = cap.toNat - head.toNat :=
+    BitVec.toNat_sub_of_le (by rw [BitVec.le_def]; omega)
+  rw [← hch]
+  exact shift_128_sub_16_toNat (by omega)
+
+private theorem wrap_mm_madd_newHead (v0 cap head : BitVec 64)
+    (hhead_lt : head.toNat < cap.toNat)
+    (hmax : max (2 * cap.toNat) 4 * 112 + 8 ≤ 2 ^ 63) :
+    v0 + BitVec.ofNat 64 (max (2 * cap.toNat) 4 - (cap.toNat - head.toNat)) * 112#64 =
+      v0 + BitVec.ofNat 64 (head.toNat * 112) +
+        BitVec.ofNat 64 ((max (2 * cap.toNat) 4 - cap.toNat) * 112) := by
+  have h1 := madd_112_eq v0
+    (BitVec.ofNat 64 (max (2 * cap.toNat) 4 - (cap.toNat - head.toNat))) (by
+      rw [BitVec.toNat_ofNat, Nat.mod_eq_of_lt (by omega)]; omega)
+  rw [h1, BitVec.toNat_ofNat, Nat.mod_eq_of_lt (by omega),
+      BitVec.add_assoc, ← BitVec.ofNat_add, ← Nat.add_mul]
+  congr 2; omega
+
+private theorem wrap_mm_reg_eq (v0 cap head : BitVec 64) (bs_back bs_front : List (BitVec 8))
+    (hhead_lt : head.toNat < cap.toNat)
+    (hbs_back : bs_back.length = head.toNat * 112)
+    (hbs_front : bs_front.length = (cap.toNat - head.toNat) * 112) :
+    memRegion (v0 + BitVec.ofNat 64 (bs_back ++ bs_front).length)
+      (max (2 * cap.toNat) 4 * 112 - (bs_back ++ bs_front).length) =
+    memRegion (v0 + BitVec.ofNat 64 (head.toNat * 112) + BitVec.ofNat 64 bs_front.length)
+      ((max (2 * cap.toNat) 4 - cap.toNat) * 112) := by
+  have hbs_len : (bs_back ++ bs_front).length = cap.toNat * 112 := by
+    rw [List.length_append, hbs_back, hbs_front]; omega
+  rw [hbs_len, hbs_front, ← Nat.sub_mul, BitVec.add_assoc, ← BitVec.ofNat_add, ← Nat.add_mul]
+  congr 3; omega
+
+private theorem wrap_mm_base_nw (w cap head : BitVec 64) (bs_front : List (BitVec 8))
+    (hhead_lt : head.toNat < cap.toNat)
+    (hbs_front : bs_front.length = (cap.toNat - head.toNat) * 112)
+    (hmax : max (2 * cap.toNat) 4 * 112 + 8 ≤ 2 ^ 63)
+    (hnw : NoWrapFact w (max (2 * cap.toNat) 4 * 112)) :
+    (w + BitVec.ofNat 64 (head.toNat * 112)).toNat + bs_front.length +
+      (max (2 * cap.toNat) 4 - cap.toNat) * 112 ≤ 2 ^ 64 := by
+  have hnw_buf := hnw.out
+  have hsplit_max :
+      head.toNat * 112 + (cap.toNat - head.toNat) * 112 +
+        (max (2 * cap.toNat) 4 - cap.toNat) * 112 = max (2 * cap.toNat) 4 * 112 := by
+    have h1 : head.toNat * 112 + (cap.toNat - head.toNat) * 112 = cap.toNat * 112 := by
+      rw [← Nat.add_mul]; exact congrArg (· * 112) (by omega)
+    rw [h1, ← Nat.add_mul]; exact congrArg (· * 112) (by omega)
+  have hmod1 : head.toNat * 112 < 2 ^ 64 := by omega
+  have hmod2 : w.toNat + head.toNat * 112 < 2 ^ 64 := by omega
+  have hw_add :
+      (w + BitVec.ofNat 64 (head.toNat * 112)).toNat = w.toNat + head.toNat * 112 := by
+    rw [BitVec.toNat_add, BitVec.toNat_ofNat, Nat.mod_eq_of_lt hmod1, Nat.mod_eq_of_lt hmod2]
+  rw [hw_add, hbs_front]; omega
+
+private theorem wrap_mm_len_lt63 (cap head : BitVec 64) (bs_front : List (BitVec 8))
+    (hhead_lt : head.toNat < cap.toNat)
+    (hbs_front : bs_front.length = (cap.toNat - head.toNat) * 112)
+    (hmax : max (2 * cap.toNat) 4 * 112 + 8 ≤ 2 ^ 63) :
+    bs_front.length + (max (2 * cap.toNat) 4 - cap.toNat) * 112 < 2 ^ 63 := by
+  have hsplit_max :
+      head.toNat * 112 + (cap.toNat - head.toNat) * 112 +
+        (max (2 * cap.toNat) 4 - cap.toNat) * 112 = max (2 * cap.toNat) 4 * 112 := by
+    have h1 : head.toNat * 112 + (cap.toNat - head.toNat) * 112 = cap.toNat * 112 := by
+      rw [← Nat.add_mul]; exact congrArg (· * 112) (by omega)
+    rw [h1, ← Nat.add_mul]; exact congrArg (· * 112) (by omega)
+  rw [hbs_front]; omega
+
+private theorem wrap_mm_off_nh (v0 cap head : BitVec 64) (hhead_lt : head.toNat < cap.toNat) :
+    v0 + BitVec.ofNat 64 (head.toNat * 112) +
+      BitVec.ofNat 64 ((max (2 * cap.toNat) 4 - cap.toNat) * 112) =
+    v0 + BitVec.ofNat 64 ((max (2 * cap.toNat) 4 - (cap.toNat - head.toNat)) * 112) := by
+  rw [BitVec.add_assoc, ← BitVec.ofNat_add, ← Nat.add_mul]
+  congr 2; omega
+
 /-- Block 353 meets `withLsCodeLoaded lsmpl (vecDequeGrowWrapMemmoveBsSpec M A lim)`. -/
 theorem vec_deque_grow_wrap_memmove_bs_placed_ok_of_grow [LibsignalPlacement] {M : AllocCostModel}
     {A : RustCliAllocBudget M} {lim : BudgetLimits}
@@ -691,11 +873,10 @@ theorem vec_deque_grow_wrap_memmove_bs_placed_ok_of_grow [LibsignalPlacement] {M
     (hgrow : subroutine_ok ((blkPC_356).rebase (blkPl_356).base H)
       (blkPl_356).base (withLsCodeLoaded lsmpl (growOneChainEpochBsAcpSpec M A lim)))
     (hmm : subroutine_ok ((blkPC_353).rebase (blkPl_353).base H)
-      (lsρ spqrMemmoveSym) (sessionMemmoveAcpSpec growOneStack)) :
+      (lsρ spqrMemmoveSym) (sessionMemmoveBoundedAcpSpec growOneStack)) :
     subroutine_ok ((blkPC_353).rebase (blkPl_353).base H)
       (blkPl_353).base
       (withLsCodeLoaded lsmpl (vecDequeGrowWrapMemmoveBsSpec M A lim)) := by
-  have hmm_fe := session_memmove_front_to_end_call_acp_ok hmm
   unfold withLsCodeLoaded vecDequeGrowWrapMemmoveBsSpec
   simp only [stackAt_vecDequeGrow, sepExists_sepConj_left, sepExists_sepConj_right]
   cells_unfold
@@ -715,73 +896,45 @@ theorem vec_deque_grow_wrap_memmove_bs_placed_ok_of_grow [LibsignalPlacement] {M
     rw [List.length_append, hbs_back, hbs_front]; omega
   have hule1 := vec_deque_wrap_ule_false (cap := cap) hhead_pos
   have hule2 := vec_deque_memmove_branch hhead_lt hbranch
-  have hsub_head : cap - (cap - head) = head := by bv_arith
-  have hnc : (BitVec.ofNat 64 (max (2 * cap.toNat) 4)).toNat = max (2 * cap.toNat) 4 := by
-    rw [BitVec.toNat_ofNat, Nat.mod_eq_of_lt (by omega)]
-  have hch : (cap - head).toNat = cap.toNat - head.toNat :=
-    BitVec.toNat_sub_of_le (by rw [BitVec.le_def]; omega)
-  have hle_nc : cap - head ≤ BitVec.ofNat 64 (max (2 * cap.toNat) 4) := by
-    rw [BitVec.le_def, hch, hnc]; omega
-  have hsub_newHead :
-      BitVec.ofNat 64 (max (2 * cap.toNat) 4) - (cap - head) =
-        BitVec.ofNat 64 (max (2 * cap.toNat) 4 - (cap.toNat - head.toNat)) := by
-    apply BitVec.eq_of_toNat_eq
-    rw [BitVec.toNat_sub_of_le hle_nc, hnc, hch,
-        BitVec.toNat_ofNat, Nat.mod_eq_of_lt (by omega)]
-  have hshift_front : ((cap - head) <<< 7 - (cap - head) <<< 4).toNat =
-      (cap.toNat - head.toNat) * 112 := by
-    rw [← hch]
-    exact shift_128_sub_16_toNat (by omega)
+  have hsub_head := wrap_mm_sub_head cap head
+  have hsub_newHead := wrap_mm_sub_newHead hhead_lt hmax
+  have hshift_front := wrap_mm_shift_front hhead_lt hmax
   apply sepWP_seq_lscl hcl (mid := lsmpl.base 356)
   wp_steps_sync_pool (lsmpl.base 356)
   simp only [State.setMem_setMem]
   refine SepWP.done (by wp_norm_lhs) (by wp_norm_lhs) ?_
   intro hcl_m
   have hgrow_call := lscall_blk_cl (callerProg := (blkPC_353).rebase (blkPl_353).base H)
-    (grow_one_chain_epoch_full_call_acp_placed_ok_of_bs hgrow) hcl_m
+    (grow_one_chain_epoch_full_nw_call_acp_placed_ok_of_bs hgrow) hcl_m
   wp_call hgrow_call (d, cap, ptr, bs_back ++ bs_front, s0.sp - 32#64, st)
   let v0 := w
+  have hnw_w : NoWrapFact w (max (2 * cap.toNat) 4 * 112) := by assumption
   have hacp_sm : AllocCallPreserved s0 sf :=
     acp_chain_acp ‹AllocCallPreserved _ sf›
       (by simp only [arm64_norm, wp_norm, allocCallPreserved_self])
   have hmadd_head : v0 + head * 112#64 = v0 + BitVec.ofNat 64 (head.toNat * 112) :=
     madd_112_eq v0 head (by omega)
-  have hmadd_newHead :
-      v0 + BitVec.ofNat 64 (max (2 * cap.toNat) 4 - (cap.toNat - head.toNat)) * 112#64 =
-        v0 + BitVec.ofNat 64 (head.toNat * 112) +
-          BitVec.ofNat 64 ((max (2 * cap.toNat) 4 - cap.toNat) * 112) := by
-    have h1 := madd_112_eq v0
-      (BitVec.ofNat 64 (max (2 * cap.toNat) 4 - (cap.toNat - head.toNat))) (by
-        rw [BitVec.toNat_ofNat, Nat.mod_eq_of_lt (by omega)]; omega)
-    rw [h1, BitVec.toNat_ofNat, Nat.mod_eq_of_lt (by omega),
-        BitVec.add_assoc, ← BitVec.ofNat_add, ← Nat.add_mul]
-    congr 2; omega
+  have hmadd_newHead := wrap_mm_madd_newHead v0 cap head hhead_lt hmax
   have hsplit_bs : (v0 ↦ₛ (bs_back ++ bs_front)) =
       (v0 ↦ₛ bs_back) ∗ ((v0 + BitVec.ofNat 64 (head.toNat * 112)) ↦ₛ bs_front) := by
     rw [pointsToBytes_append, hbs_back]
-  have hreg_eq :
-      memRegion (v0 + BitVec.ofNat 64 (bs_back ++ bs_front).length)
-        (max (2 * cap.toNat) 4 * 112 - (bs_back ++ bs_front).length) =
-      memRegion (v0 + BitVec.ofNat 64 (head.toNat * 112) + BitVec.ofNat 64 bs_front.length)
-        ((max (2 * cap.toNat) 4 - cap.toNat) * 112) := by
-    rw [hbs_len, hbs_front, ← Nat.sub_mul, BitVec.add_assoc, ← BitVec.ofNat_add, ← Nat.add_mul]
-    congr 3; omega
+  have hreg_eq := wrap_mm_reg_eq v0 cap head bs_back bs_front hhead_lt hbs_back hbs_front
   wp_conv_pre => rw [hsplit_bs, hreg_eq]
   wp_steps_sync_pool (lsρ spqrMemmoveSym)
   simp only [State.setMem_setMem]
-  wp_call hmm_fe (v0 + BitVec.ofNat 64 (head.toNat * 112), bs_front,
-    (max (2 * cap.toNat) 4 - cap.toNat) * 112, s0.sp - 32#64)
+  have hmm_fe := session_memmove_front_to_end_call_acp_ok hmm
+    (v0 + BitVec.ofNat 64 (head.toNat * 112)) bs_front
+    ((max (2 * cap.toNat) 4 - cap.toNat) * 112) (s0.sp - 32#64)
+    (wrap_mm_base_nw w cap head bs_front hhead_lt hbs_front hmax hnw_w)
+    (wrap_mm_len_lt63 cap head bs_front hhead_lt hbs_front hmax)
+  wp_call hmm_fe ()
+  clear hnw_w hmm_fe
   have hacp_sf1 : AllocCallPreserved s0 sf_1 :=
     acp_chain_acp ‹AllocCallPreserved _ sf_1› (by simp only [arm64_norm, wp_norm, hacp_sm])
   have htr_sf1 : sf_1.trace = s0.trace := hacp_sf1.2.1
   rcases hacp_sf1 with ⟨_, _, _, _, _, _, _⟩
   rw [← A.pool_of_vmPreserved ‹VmPreserved _ sf_1›]
-  have hoff_nh :
-      v0 + BitVec.ofNat 64 (head.toNat * 112) +
-        BitVec.ofNat 64 ((max (2 * cap.toNat) 4 - cap.toNat) * 112) =
-      v0 + BitVec.ofNat 64 ((max (2 * cap.toNat) 4 - (cap.toNat - head.toNat)) * 112) := by
-    rw [BitVec.add_assoc, ← BitVec.ofNat_add, ← Nat.add_mul]
-    congr 2; omega
+  have hoff_nh := wrap_mm_off_nh v0 cap head hhead_lt
   wp_conv_pre => rw [hoff_nh]
   wp_steps_sync_pool (s0.readReg64 (Reg.gpr 30#5))
   simp only [State.setMem_setMem]
@@ -794,7 +947,7 @@ theorem vec_deque_grow_wrap_memmove_bs_placed_ok [LibsignalPlacement] {M : Alloc
     (hshim : HookSat H spqrRustNoAllocShimSym rustAllocShimVmSpec)
     (halloc : HookSat H spqrRustAllocSym (rustCliAllocBudgetSpec M A lim false))
     (hrealloc : HookSat H spqrRustReallocSym (rustCliReallocBudgetSpec M A lim))
-    (hmm : HookSat H spqrMemmoveSym (sessionMemmoveAcpSpec growOneStack)) :
+    (hmm : HookSat H spqrMemmoveSym (sessionMemmoveBoundedAcpSpec growOneStack)) :
     subroutine_ok ((blkPC_353).rebase (blkPl_353).base H)
       (blkPl_353).base
       (withLsCodeLoaded lsmpl (vecDequeGrowWrapMemmoveBsSpec M A lim)) :=
@@ -989,7 +1142,7 @@ theorem vec_deque_grow_spec_placed_ok [LibsignalPlacement] {M : AllocCostModel}
     (halloc : HookSat H spqrRustAllocSym (rustCliAllocBudgetSpec M A lim false))
     (hrealloc : HookSat H spqrRustReallocSym (rustCliReallocBudgetSpec M A lim))
     (hmc : HookSat H spqrMemcpySym framelessMemcpyAcpSpec)
-    (hmm : HookSat H spqrMemmoveSym (sessionMemmoveAcpSpec growOneStack)) :
+    (hmm : HookSat H spqrMemmoveSym (sessionMemmoveBoundedAcpSpec growOneStack)) :
     subroutine_ok ((blkPC_353).rebase (blkPl_353).base H)
       (blkPl_353).base
       (withLsCodeLoaded lsmpl (vecDequeGrowSpec M A lim)) :=

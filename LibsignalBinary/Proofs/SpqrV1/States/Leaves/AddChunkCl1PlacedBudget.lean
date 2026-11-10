@@ -9,6 +9,7 @@ limitations under the License.
 
 module
 
+public import LibsignalBinary.Proofs.HookDischarge.Libc.Memmove -- proof-setup: allow-public-import
 public import LibsignalBinary.Proofs.SpqrV1.States.Leaves.AddChunkCl1PlacedBudgetAux
 import LibsignalBinary.Proofs.Common.SharedHelpers
 meta import LibsignalBinary.Proofs.Common.SharedHelpers -- shake: keep
@@ -68,10 +69,13 @@ open LibsignalBinary.Heap (
   rustCliAllocBudgetSpec rustCliReallocBudgetSpec
 )
 open LibsignalBinary.Heap.RustStdAllocBudgetBridge (rustAllocShimVmSpec)
+open LibsignalBinary.Proofs.HookDischarge.Libc.Memmove (sessionMemmoveBoundedSpec)
 open LibsignalBinary.Proofs.SpqrV1.Alloc.GrowOneBudget (
   growOnePtFullSpec growOnePtSpec
 )
-open LibsignalBinary.Proofs.SpqrV1.Alloc.VecDequeGrowBudgetAux (sessionMemmoveAcpSpec)
+open LibsignalBinary.Proofs.SpqrV1.Alloc.VecDequeGrowBudgetAux (
+  sessionMemmoveAcpSpec sessionMemmoveBoundedAcpSpec
+)
 open LibsignalBinary.Proofs.SpqrV1.Chain.NextKeyInternalBudget (
   allocCallPreserved_trans withAllocVmPreserved
 )
@@ -145,7 +149,7 @@ theorem addChunk_body_cl_placed_wpp [LibsignalPlacement]
     {M : AllocCostModel} {A : RustCliAllocBudget M} {lim : BudgetLimits}
     {ext : String → Option (State → State)}
     (hmemmove_sat : HookSat (Rust.withPanics ext) spqrMemmoveSym
-      (withAllocVmPreserved (sessionMemmoveSpec growOneStack)))
+      (withAllocVmPreserved (sessionMemmoveBoundedSpec growOneStack)))
     (hgrow_full : subroutine_ok ((blkPC_419).rebase (blkPl_419).base (Rust.withPanics ext))
       (lsmpl.base 357) (withLsCodeLoaded lsmpl (withAllocCallPreserved (growOnePtFullSpec M A lim))))
     (hgrow_empty : subroutine_ok ((blkPC_419).rebase (blkPl_419).base (Rust.withPanics ext))
@@ -330,7 +334,7 @@ theorem addChunk_loop_cl_placed_wpp [LibsignalPlacement]
     {M : AllocCostModel} {A : RustCliAllocBudget M} {lim : BudgetLimits}
     {ext : String → Option (State → State)}
     (hmemmove_sat : HookSat (Rust.withPanics ext) spqrMemmoveSym
-      (withAllocVmPreserved (sessionMemmoveSpec growOneStack)))
+      (withAllocVmPreserved (sessionMemmoveBoundedSpec growOneStack)))
     (hgrow_full : subroutine_ok ((blkPC_419).rebase (blkPl_419).base (Rust.withPanics ext))
       (lsmpl.base 357) (withLsCodeLoaded lsmpl (withAllocCallPreserved (growOnePtFullSpec M A lim))))
     (hgrow_empty : subroutine_ok ((blkPC_419).rebase (blkPl_419).base (Rust.withPanics ext))
@@ -566,7 +570,7 @@ theorem add_chunk_bsearch_cl_placed_ok_ext [LibsignalPlacement]
     {M : AllocCostModel} {A : RustCliAllocBudget M} {lim : BudgetLimits}
     {ext : String → Option (State → State)}
     (hmemmove_sat : HookSat (Rust.withPanics ext) spqrMemmoveSym
-      (withAllocVmPreserved (sessionMemmoveSpec growOneStack)))
+      (withAllocVmPreserved (sessionMemmoveBoundedSpec growOneStack)))
     (hgrow_full : subroutine_ok ((blkPC_419).rebase (blkPl_419).base (Rust.withPanics ext))
       (lsmpl.base 357) (withLsCodeLoaded lsmpl (withAllocCallPreserved (growOnePtFullSpec M A lim))))
     (hgrow_empty : subroutine_ok ((blkPC_419).rebase (blkPl_419).base (Rust.withPanics ext))
@@ -628,7 +632,7 @@ theorem add_chunk_cl_placed_ok_ext [LibsignalPlacement]
     {M : AllocCostModel} {A : RustCliAllocBudget M} {lim : BudgetLimits}
     {ext : String → Option (State → State)}
     (hmemmove_sat : HookSat (Rust.withPanics ext) spqrMemmoveSym
-      (withAllocVmPreserved (sessionMemmoveSpec growOneStack)))
+      (withAllocVmPreserved (sessionMemmoveBoundedSpec growOneStack)))
     (hgrow_full : subroutine_ok ((blkPC_419).rebase (blkPl_419).base (Rust.withPanics ext))
       (lsmpl.base 357) (withLsCodeLoaded lsmpl (withAllocCallPreserved (growOnePtFullSpec M A lim))))
     (hgrow_empty : subroutine_ok ((blkPC_419).rebase (blkPl_419).base (Rust.withPanics ext))
@@ -704,7 +708,7 @@ theorem add_chunk_cl_placed_ok_x_ext [LibsignalPlacement]
     {M : AllocCostModel} {A : RustCliAllocBudget M} {lim : BudgetLimits}
     {ext : String → Option (State → State)}
     (hmemmove_sat : HookSat (Rust.withPanics ext) spqrMemmoveSym
-      (withAllocVmPreserved (sessionMemmoveSpec growOneStack)))
+      (withAllocVmPreserved (sessionMemmoveBoundedSpec growOneStack)))
     (hgrow_full : subroutine_ok ((blkPC_419).rebase (blkPl_419).base (Rust.withPanics ext))
       (lsmpl.base 357) (withLsCodeLoaded lsmpl (withAllocCallPreserved (growOnePtFullSpec M A lim))))
     (hgrow_empty : subroutine_ok ((blkPC_419).rebase (blkPl_419).base (Rust.withPanics ext))
@@ -716,19 +720,20 @@ theorem add_chunk_cl_placed_ok_x_ext [LibsignalPlacement]
 
 /-! ## 3. Closed `[LibsignalPlacement]` `HookSat` Corollaries (`withLsCodeLoaded` & `withLsCodeRoLoaded`) -/
 
-/-- Bridge `HookSat H sym (sessionMemmoveAcpSpec stk)` to
-    `HookSat H sym (withAllocVmPreserved (sessionMemmoveSpec stk))`. -/
+/-- Bridge `HookSat H sym (sessionMemmoveBoundedAcpSpec stk)` to
+    `HookSat H sym (withAllocVmPreserved (sessionMemmoveBoundedSpec stk))`. -/
 theorem hookSat_memmove_withAllocVmPreserved_of_acp {H : String → Option (State → State)}
     {sym : String} {stk : Nat}
-    (h : HookSat H sym (sessionMemmoveAcpSpec stk)) :
-    HookSat H sym (withAllocVmPreserved (sessionMemmoveSpec stk)) := by
+    (h : HookSat H sym (sessionMemmoveBoundedAcpSpec stk)) :
+    HookSat H sym (withAllocVmPreserved (sessionMemmoveBoundedSpec stk)) := by
   rcases h with ⟨fn, hfn, hok⟩
   refine ⟨fn, hfn, fun x R s0 hrun hpre hsp => ?_⟩
   rcases hok x R s0 hrun hpre hsp with ⟨hkf, hsym, hout⟩
   refine ⟨hkf, hsym, ?_⟩
   rcases hout with ⟨hret, hcc, hpost⟩ | hfail
   · refine Or.inl ⟨hret, hcc, ?_⟩
-    dsimp only [sessionMemmoveAcpSpec, withAllocVmPreserved, sessionMemmoveSpec] at hpost ⊢
+    dsimp only [sessionMemmoveBoundedAcpSpec, sessionMemmoveAcpSpec,
+      withAllocVmPreserved, sessionMemmoveBoundedSpec, sessionMemmoveSpec] at hpost ⊢
     simp only [sepConj_assoc, satisfies_pure_sepConj] at hpost ⊢
     exact ⟨hpost.1.2, ⟨hpost.1.1, hpost.1.2.1.2.1⟩, hpost.2⟩
   · exact Or.inr hfail
@@ -744,7 +749,7 @@ theorem add_chunk_cl_placed_ok [LibsignalPlacement]
     (halloc : HookSat (Rust.withPanics ext) spqrRustAllocSym (rustCliAllocBudgetSpec M A lim false))
     (hrealloc : HookSat (Rust.withPanics ext) spqrRustReallocSym (rustCliReallocBudgetSpec M A lim))
     (hmemmove_sat : HookSat (Rust.withPanics ext) spqrMemmoveSym
-      (withAllocVmPreserved (sessionMemmoveSpec growOneStack))) :
+      (withAllocVmPreserved (sessionMemmoveBoundedSpec growOneStack))) :
     subroutine_ok ((blkPC_419).rebase (blkPl_419).base (Rust.withPanics ext))
       (blkPl_419).base (withLsCodeLoaded lsmpl (addChunkSpec M A lim)) :=
   add_chunk_cl_placed_ok_ext hmemmove_sat
@@ -763,7 +768,7 @@ theorem add_chunk_cl_placed_ok_x [LibsignalPlacement]
     (halloc : HookSat (Rust.withPanics ext) spqrRustAllocSym (rustCliAllocBudgetSpec M A lim false))
     (hrealloc : HookSat (Rust.withPanics ext) spqrRustReallocSym (rustCliReallocBudgetSpec M A lim))
     (hmemmove_sat : HookSat (Rust.withPanics ext) spqrMemmoveSym
-      (withAllocVmPreserved (sessionMemmoveSpec growOneStack))) :
+      (withAllocVmPreserved (sessionMemmoveBoundedSpec growOneStack))) :
     subroutine_ok ((blkPC_419).rebase (blkPl_419).base (Rust.withPanics ext))
       (blkPl_419).base (withLsCodeLoaded lsmpl (addChunkSpecX M A lim)) :=
   addChunkSpecX_cl_of_addChunkSpec_cl
@@ -779,7 +784,7 @@ theorem add_chunk_cro_placed_ok [LibsignalPlacement]
     (halloc : HookSat (Rust.withPanics ext) spqrRustAllocSym (rustCliAllocBudgetSpec M A lim false))
     (hrealloc : HookSat (Rust.withPanics ext) spqrRustReallocSym (rustCliReallocBudgetSpec M A lim))
     (hmemmove_sat : HookSat (Rust.withPanics ext) spqrMemmoveSym
-      (withAllocVmPreserved (sessionMemmoveSpec growOneStack))) :
+      (withAllocVmPreserved (sessionMemmoveBoundedSpec growOneStack))) :
     subroutine_ok ((blkPC_419).rebase (blkPl_419).base (Rust.withPanics ext))
       (blkPl_419).base (withLsCodeRoLoaded lsmpl (addChunkSpec M A lim)) :=
   subroutine_ok_withLsCodeRoLoaded_of_withLsCodeLoaded
@@ -795,7 +800,7 @@ theorem add_chunk_cro_placed_ok_x [LibsignalPlacement]
     (halloc : HookSat (Rust.withPanics ext) spqrRustAllocSym (rustCliAllocBudgetSpec M A lim false))
     (hrealloc : HookSat (Rust.withPanics ext) spqrRustReallocSym (rustCliReallocBudgetSpec M A lim))
     (hmemmove_sat : HookSat (Rust.withPanics ext) spqrMemmoveSym
-      (withAllocVmPreserved (sessionMemmoveSpec growOneStack))) :
+      (withAllocVmPreserved (sessionMemmoveBoundedSpec growOneStack))) :
     subroutine_ok ((blkPC_419).rebase (blkPl_419).base (Rust.withPanics ext))
       (blkPl_419).base (withLsCodeRoLoaded lsmpl (addChunkSpecX M A lim)) :=
   subroutine_ok_withLsCodeRoLoaded_of_withLsCodeLoaded

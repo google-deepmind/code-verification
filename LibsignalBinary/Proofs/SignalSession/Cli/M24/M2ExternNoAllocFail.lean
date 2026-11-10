@@ -1297,12 +1297,12 @@ noncomputable def cliM2HookTablePlaced (mmpl : Obj.MultiPlacement) (W : CliHooks
   ("memset", hookMemset),
   ("memmove", hookMemmove),
   ("memcpy", hookMemcpy),
-  ("bcmp", cliBcmpHook W.bcmp),
+  ("bcmp", cliBcmpHook CryptoVerification.SignalSession.cliDefaultBcmp),
   ("strlen", strlenHook),
   (lsWriteFileSym, writeFileHook),
   (lsWriteStdoutSym, writeStdoutHook),
   (lsMemrchrSym, memrchrHook),
-  (lsFromUtf8Sym, fromUtf8Hook W.utf8Err),
+  (lsFromUtf8Sym, fromUtf8Hook CryptoVerification.SignalSession.cliDefaultUtf8Err),
   (lsFmtWriteSym, fmtWriteHook0),
   (lsFormatInnerSym, formatInnerHook0),
   (lsDurationSinceSym, durationSinceExactHook),
@@ -1419,12 +1419,12 @@ private theorem tablePreserves_cliM2 (mmpl : Obj.MultiPlacement) (W : CliHooks) 
     · exact preservesNoAllocFailed_hookMemset
     · exact preservesNoAllocFailed_hookMemmove
     · exact preservesNoAllocFailed_hookMemcpy
-    · exact preservesNoAllocFailed_cliBcmpHook W.bcmp
+    · exact preservesNoAllocFailed_cliBcmpHook CryptoVerification.SignalSession.cliDefaultBcmp
     · exact preservesNoAllocFailed_strlenHook
     · exact preservesNoAllocFailed_writeFileHook
     · exact preservesNoAllocFailed_writeStdoutHook
     · exact preservesNoAllocFailed_memrchrHook
-    · exact preservesNoAllocFailed_fromUtf8Hook W.utf8Err
+    · exact preservesNoAllocFailed_fromUtf8Hook CryptoVerification.SignalSession.cliDefaultUtf8Err
     · exact preservesNoAllocFailed_fmtWriteHook0
     · exact preservesNoAllocFailed_formatInnerHook0
     · exact preservesNoAllocFailed_durationSinceExactHook
@@ -1514,27 +1514,16 @@ private theorem tablePreserves_cliF3 (mmpl : Obj.MultiPlacement) (W : CliHooks) 
   rcases hp with hpq | hcli
   · exact tablePreserves_cliM2Pqxdh mmpl W.C W.Q p hpq
   · simp only [List.mem_cons, List.not_mem_nil, or_false] at hcli
-    rcases hcli with rfl | rfl | rfl | rfl | rfl | rfl | rfl | rfl | rfl | rfl | rfl |
-      rfl | rfl | rfl | rfl | rfl | rfl | rfl | rfl
-    · exact preservesNoAllocFailed_hookMemmove
-    · exact preservesNoAllocFailed_cliBcmpHook W.bcmp
-    · exact preservesNoAllocFailed_strlenHook
+    rcases hcli with rfl | rfl | rfl | rfl | rfl | rfl | rfl | rfl | rfl
     · exact preservesNoAllocFailed_writeFileHook
     · exact preservesNoAllocFailed_writeStdoutHook
-    · exact preservesNoAllocFailed_memrchrHook
-    · exact preservesNoAllocFailed_fromUtf8Hook W.utf8Err
     · exact preservesNoAllocFailed_fmtWriteHook0
     · exact preservesNoAllocFailed_formatInnerHook0
-    · exact preservesNoAllocFailed_durationSinceExactHook
-    · exact preservesNoAllocFailed_timeAddHook
-    · exact preservesNoAllocFailed_blackBoxHook
     · exact preservesNoAllocFailed_compress256Hook W.C.F
     · exact preservesNoAllocFailed_aesEncHookMallocng mmpl W.C.E
     · exact preservesNoAllocFailed_aesDecHookMallocng mmpl W.C.D
     · exact preservesNoAllocFailed_pubFromSecretHook W.C.pubKey
     · exact preservesNoAllocFailed_diffieHellmanHook W.C.X
-    · exact preservesNoAllocFailed_zeroizeSecretHook
-    · exact preservesNoAllocFailed_zeroizeSecretHook
 
 theorem externPreservesNoAllocFailed_cliExternsPlaced
     (mmpl : Obj.MultiPlacement) (W : CliHooks) :

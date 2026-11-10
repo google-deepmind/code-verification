@@ -66,6 +66,7 @@ import LibsignalBinary.Proofs.Cli.E2E.Pqxdh.ResponderClosure.Kits.StageP2DefsBud
 import LibsignalBinary.Proofs.Cli.E2E.Pqxdh.ResponderClosure.Kits.StageP2DefsPlacedBudget
 import LibsignalBinary.Proofs.Cli.E2E.Pqxdh.ResponderClosure.Kits.StageP2Mid3PlacedBudget
 import LibsignalBinary.Proofs.Cli.E2E.Pqxdh.ResponderClosure.Kits.StageP2PurePlacedBudget
+import LibsignalBinary.Proofs.Cli.E2E.Pqxdh.ResponderClosure.Kits.StageP2PurePlacedBudgetSat
 import LibsignalBinary.Proofs.Cli.E2E.Pqxdh.ResponderClosure.Kits.StageP2Sub2
 import LibsignalBinary.Proofs.Cli.E2E.Pqxdh.ResponderClosure.Kits.StageP2Sub5AuxPlacedBudget
 import LibsignalBinary.Proofs.Cli.E2E.Pqxdh.ResponderClosure.Kits.StageP2Sub5DefsPlacedBudget
@@ -2434,7 +2435,7 @@ open CryptoVerification.SignalSession.Cli.RunProofs.Poll (
   stageP2PostP1At stageP3CoroFrameAt stageP3StackFrameAt x29_eq_sp0_sub_60 x29_eq_sp_add_c70
 )
 open CryptoVerification.SignalSession.Cli.Slots (
-  FilesOkPeer blackBox_row_placed cliGhostExterns_sat_of_cliExternsPlaced scopeIn scopeKit
+  FilesOkPeer cliGhostExterns_sat_of_cliExternsPlaced scopeIn scopeKit
 )
 open LibsignalBinary.Proofs.TripleRatchet.Alloc.DefsBudget (noAllocShimBudgetSpec)
 open LibsignalBinary.Heap (
@@ -2480,7 +2481,10 @@ open LibsignalBinary.Proofs.Cli.E2E.Pqxdh.ResponderClosure.Kits.StageP2DefsPlace
 )
 open LibsignalBinary.Proofs.Cli.E2E.Pqxdh.ResponderClosure.Kits.StageP2PurePlacedBudget (
   InitializeBobV1OptFieldsEnv initializeBobSession_err_owned_4k_placed_ok_on_stageP1
-  isSameAccount_4k_placed_ok_on_stageP1 stageP2PureCalleesPlaced4K_of_hooks
+  stageP2PureCalleesPlaced4K_of_hooks
+)
+open LibsignalBinary.Proofs.Cli.E2E.Pqxdh.ResponderClosure.Kits.StageP2PurePlacedBudgetSat (
+  isSameAccount_4k_placed_ok_on_stageP1_sat
 )
 open LibsignalBinary.Proofs.Cli.E2E.Pqxdh.ResponderClosure.Kits.StageP2Mid3PlacedBudget (
   P2Sub1To4Arm3Env P2Sub1To4Env P2Sub1To4OkEnv P2Sub4OkEnv
@@ -2894,10 +2898,9 @@ private theorem stageP2PathCOver_qpan_cli_regErr_full_placed_at_of_seams_aux_pri
       hh.codecHooks.alloc
       hh.codecHooks.dealloc
       (cliExternsPlaced_sessionMemcpy_budget_sat mmpl gh W hG allocHookStack)
-      (isSameAccount_4k_placed_ok_on_stageP1
-        ((cliGhostExterns_other gh _ (by decide) (by decide) (by decide)
-            (by decide) (by decide) (by decide)).trans
-          (cliExternsPlaced_row mmpl W (blackBox_row_placed mmpl W)))
+      (isSameAccount_4k_placed_ok_on_stageP1_sat
+        (LibsignalBinary.Proofs.SignalSession.Cli.Run.Slots.CliHookSatPlacedBudget.cliGhostExterns_blackBoxSat_budget_sat
+          gh (cliExternsPlaced mmpl W) hG.extraOk)
         (uuidTryParse_placed_vm_code_ok (cliGhostExterns gh (cliExternsPlaced mmpl W))))
   have hMemcpyVm :=
     LibsignalBinary.Proofs.SignalSession.Cli.Run.Slots.CliHookSatPlacedBudget.cliExternsPlaced_framelessMemcpy_budget_sat
@@ -3347,7 +3350,7 @@ open CryptoVerification.SignalSession.Cli.RunProofs.Poll (
   stageP2PostP1At stageP3CoroFrameAt stageP3StackFrameAt
 )
 open CryptoVerification.SignalSession.Cli.Slots (
-  FilesOkPeer blackBox_row_placed cliGhostExterns_sat_of_cliExternsPlaced scopeIn scopeKit
+  FilesOkPeer cliGhostExterns_sat_of_cliExternsPlaced scopeIn scopeKit
 )
 open LibsignalBinary.Heap (
   AllocCostModel AllocEvent BudgetLimits FitsEnv FreeOnlyEvs
@@ -3581,7 +3584,7 @@ private theorem stageP2Over_qpan_cli_memInv_placed_at_B_of_pathC_priv {Φ : Memo
     hfs hCode1 htr01 hsp1 hsp0 hsp_sub hpc1 hrun1 halign1 hregs1 herr hok
   have hh' : RunHooksPlaced A lim (cliGhostExterns gh (cliExternsPlaced mmpl W)) :=
     ⟨hh.alloc, hh.allocFs, hh.panics, hh.memcpyRO, hh.bcmp, hh.fs, hh.utf8, hh.memrchr,
-      hh.codecHooks, hh.allocZeroed, hh.stringClone, hh.formatInner⟩
+      hh.codecHooks, hh.allocZeroed, hh.stringClone, hh.formatInner, hh.blackBox⟩
   have hr_scope : scopeIn r :=
     hsub r (CryptoVerification.SignalSession.Cli.RunProofs.Poll.scope_of_loadRec_some hfPeer hload)
   exact hPathC S Scope y st_b g1 r s_old s0 s1 sp rngPtr v_a8 v_b8 v_d0 Q Qpan
@@ -3698,7 +3701,7 @@ private theorem stageP2Over_qpan_cli_regErr_placed_at_of_pathC_priv {Φ : Memory
     hfs hCode1 htr01 hsp1 hsp0 hsp_sub hpc1 hrun1 halign1 hregs1 herr
   have hh' : RunHooksPlaced A lim (cliGhostExterns gh (cliExternsPlaced mmpl W)) :=
     ⟨hh.alloc, hh.allocFs, hh.panics, hh.memcpyRO, hh.bcmp, hh.fs, hh.utf8, hh.memrchr,
-      hh.codecHooks, hh.allocZeroed, hh.stringClone, hh.formatInner⟩
+      hh.codecHooks, hh.allocZeroed, hh.stringClone, hh.formatInner, hh.blackBox⟩
   have hr_scope : scopeIn r :=
     hsub r (CryptoVerification.SignalSession.Cli.RunProofs.Poll.scope_of_loadRec_some hfPeer hload)
   exact hPathC S Scope y hRegErr st_b g1 r s_old s0 s1 sp rngPtr v_a8 v_b8 v_d0 Q Qpan
@@ -4005,8 +4008,7 @@ open LibsignalBinary.Proofs.SignalSession.Cli.Run.Proofs.DecryptPrekey.Poll.Clos
 open LibsignalBinary.Proofs.SignalSession.Cli.Run.Slots.CliHookSatPlacedBudget (
   CliGhostAllocHooks cliExternsPlaced_alloc_budget_sat cliExternsPlaced_dealloc_budget_sat
   cliExternsPlaced_noAllocShim_budget_sat cliExternsPlaced_realloc_budget_sat
-  cliExternsPlaced_sessionMemcpyRegion_budget_sat cliExternsPlaced_sessionMemmove_budget_sat
-  cliExternsPlaced_shim_budget_sat
+  cliExternsPlaced_sessionMemcpyRegion_budget_sat cliExternsPlaced_shim_budget_sat
 )
 open LibsignalBinary.Proofs.SignalSession.Cli.SpecsPlacedBudget (AllocContractsXCliPlaced)
 open LibsignalBinary.Proofs.SignalSession.Cli.SpqrV1PlacedSeamsBudget (SpqrV1PlacedSeams)
@@ -9525,7 +9527,8 @@ theorem w4r2_poll_d2c_customP3_seqFree_frozen_at [LibsignalFullPlacement]
       (PromEnv := PromoteOverArchiveEnv)
       (w4r2_stageP2PathCOver_archive_frozen_at_cliRunBudgets A lim ReadEnv X mmpl gh W
         hDropNz hG hSpqr hRead (fun _ _ _ h => h) (fun _ _ _ h => h) (fun _ _ _ h => h))
-      (LibsignalBinary.Proofs.SignalSession.Cli.Run.Proofs.DecryptPrekey.Over.Stage2OverInstPlacedBudget.cliPromoteMatchingMissGen_placed_ok A.repAlloc mmpl gh W)
+      (LibsignalBinary.Proofs.SignalSession.Cli.Run.Proofs.DecryptPrekey.Over.Stage2OverInstPlacedBudget.cliPromoteMatchingMissGen_placed_ok A.repAlloc mmpl gh W
+        (LibsignalBinary.Proofs.SignalSession.Cli.Run.Slots.CliHookSatPlacedBudget.cliGhostExterns_blackBoxSat_budget_sat gh (cliExternsPlaced mmpl W) hG.extraOk))
       (fun hh' =>
         LibsignalBinary.Proofs.SignalSession.Cli.Run.Proofs.DecryptPrekey.Over.Stage2OverInstPlacedBudget.cliPromoteOverGen_archive_placed_ok mmpl gh W hh'
           (cliGrowOneVecU8_lsProg51_withLsCl_ok_w4r2priv mmpl gh W hG) hRaw)
@@ -9549,7 +9552,8 @@ theorem w4r2_poll_d2c_customP3_seqFree_frozen_at [LibsignalFullPlacement]
           cliPollKpk_kitPlacedOk mmpl gh W cliRunBudgets F0 kpkId spkId kbk hDropNz hh_sk hRead)
         (fun F0 _ _ _ opkWord _ hh_sk =>
           cliPollPk_kitPlacedOk mmpl gh W cliRunBudgets F0 opkWord hDropNz hh_sk hRead))
-      (LibsignalBinary.Proofs.SignalSession.Cli.Run.Proofs.DecryptPrekey.Over.Stage2OverInstPlacedBudget.cliPromoteMatchingMissGen_placed_ok A.repAlloc mmpl gh W)
+      (LibsignalBinary.Proofs.SignalSession.Cli.Run.Proofs.DecryptPrekey.Over.Stage2OverInstPlacedBudget.cliPromoteMatchingMissGen_placed_ok A.repAlloc mmpl gh W
+        (LibsignalBinary.Proofs.SignalSession.Cli.Run.Slots.CliHookSatPlacedBudget.cliGhostExterns_blackBoxSat_budget_sat gh (cliExternsPlaced mmpl W) hG.extraOk))
       (fun hh' =>
         LibsignalBinary.Proofs.SignalSession.Cli.Run.Proofs.DecryptPrekey.Over.Stage2OverInstPlacedBudget.cliPromoteOverGen_archive_placed_ok mmpl gh W hh'
           (cliGrowOneVecU8_lsProg51_withLsCl_ok_w4r2priv mmpl gh W hG) hRaw)
@@ -9876,7 +9880,7 @@ open CryptoVerification.SignalSession.Cli.RunProofs.Poll (
   stageP2PostP1At stageP3CoroFrameAt stageP3StackFrameAt x29_eq_sp0_sub_60 x29_eq_sp_add_c70
 )
 open CryptoVerification.SignalSession.Cli.Slots (
-  FilesOkPeer blackBox_row_placed cliGhostExterns_sat_of_cliExternsPlaced scopeIn scopeKit
+  FilesOkPeer cliGhostExterns_sat_of_cliExternsPlaced scopeIn scopeKit
 )
 open LibsignalBinary.Proofs.TripleRatchet.Alloc.DefsBudget (noAllocShimBudgetSpec)
 open LibsignalBinary.Heap (
@@ -9922,7 +9926,10 @@ open LibsignalBinary.Proofs.Cli.E2E.Pqxdh.ResponderClosure.Kits.StageP2DefsPlace
 )
 open LibsignalBinary.Proofs.Cli.E2E.Pqxdh.ResponderClosure.Kits.StageP2PurePlacedBudget (
   InitializeBobV1OptFieldsEnv initializeBobSession_err_owned_4k_placed_ok_on_stageP1
-  isSameAccount_4k_placed_ok_on_stageP1 stageP2PureCalleesPlaced4K_of_hooks
+  stageP2PureCalleesPlaced4K_of_hooks
+)
+open LibsignalBinary.Proofs.Cli.E2E.Pqxdh.ResponderClosure.Kits.StageP2PurePlacedBudgetSat (
+  isSameAccount_4k_placed_ok_on_stageP1_sat
 )
 open LibsignalBinary.Proofs.Cli.E2E.Pqxdh.ResponderClosure.Kits.StageP2Mid3PlacedBudget (
   P2Sub1To4Arm3Env P2Sub1To4Env P2Sub1To4OkEnv P2Sub4OkEnv
@@ -10159,10 +10166,9 @@ private theorem stageP2PathCOver_qpan_cli_regErr_full_placed_at_of_init75_aux_pr
       hh.codecHooks.alloc
       hh.codecHooks.dealloc
       (cliExternsPlaced_sessionMemcpy_budget_sat mmpl gh W hG allocHookStack)
-      (isSameAccount_4k_placed_ok_on_stageP1
-        ((cliGhostExterns_other gh _ (by decide) (by decide) (by decide)
-            (by decide) (by decide) (by decide)).trans
-          (cliExternsPlaced_row mmpl W (blackBox_row_placed mmpl W)))
+      (isSameAccount_4k_placed_ok_on_stageP1_sat
+        (LibsignalBinary.Proofs.SignalSession.Cli.Run.Slots.CliHookSatPlacedBudget.cliGhostExterns_blackBoxSat_budget_sat
+          gh (cliExternsPlaced mmpl W) hG.extraOk)
         (uuidTryParse_placed_vm_code_ok (cliGhostExterns gh (cliExternsPlaced mmpl W))))
   have hMemcpyVm :=
     LibsignalBinary.Proofs.SignalSession.Cli.Run.Slots.CliHookSatPlacedBudget.cliExternsPlaced_framelessMemcpy_budget_sat
@@ -10612,7 +10618,7 @@ open CryptoVerification.SignalSession.Cli.RunProofs.Poll (
   stageP2PostP1At stageP3CoroFrameAt stageP3StackFrameAt
 )
 open CryptoVerification.SignalSession.Cli.Slots (
-  FilesOkPeer blackBox_row_placed cliGhostExterns_sat_of_cliExternsPlaced scopeIn scopeKit
+  FilesOkPeer cliGhostExterns_sat_of_cliExternsPlaced scopeIn scopeKit
 )
 open LibsignalBinary.Heap (
   AllocCostModel AllocEvent BudgetLimits FitsEnv FreeOnlyEvs
@@ -12499,7 +12505,8 @@ theorem w4r2_poll_d2c_customP3_seqFree_frozen_at_of_init75 [LibsignalFullPlaceme
     stageP2Over_qpan_cli_memInv_placed_at_B_of_pathC_priv
       (PromEnv := PromoteOverArchiveEnv)
       hP2Over_pathC
-      (LibsignalBinary.Proofs.SignalSession.Cli.Run.Proofs.DecryptPrekey.Over.Stage2OverInstPlacedBudget.cliPromoteMatchingMissGen_placed_ok A.repAlloc mmpl gh W)
+      (LibsignalBinary.Proofs.SignalSession.Cli.Run.Proofs.DecryptPrekey.Over.Stage2OverInstPlacedBudget.cliPromoteMatchingMissGen_placed_ok A.repAlloc mmpl gh W
+        (LibsignalBinary.Proofs.SignalSession.Cli.Run.Slots.CliHookSatPlacedBudget.cliGhostExterns_blackBoxSat_budget_sat gh (cliExternsPlaced mmpl W) hG.extraOk))
       (fun hh' =>
         LibsignalBinary.Proofs.SignalSession.Cli.Run.Proofs.DecryptPrekey.Over.Stage2OverInstPlacedBudget.cliPromoteOverGen_archive_placed_ok mmpl gh W hh'
           (cliGrowOneVecU8_lsProg51_withLsCl_ok_w4r2priv mmpl gh W hG) hRaw)
@@ -12523,7 +12530,8 @@ theorem w4r2_poll_d2c_customP3_seqFree_frozen_at_of_init75 [LibsignalFullPlaceme
           cliPollKpk_kitPlacedOk mmpl gh W cliRunBudgets F0 kpkId spkId kbk hDropNz hh_sk hRead)
         (fun F0 _ _ _ opkWord _ hh_sk =>
           cliPollPk_kitPlacedOk mmpl gh W cliRunBudgets F0 opkWord hDropNz hh_sk hRead))
-      (LibsignalBinary.Proofs.SignalSession.Cli.Run.Proofs.DecryptPrekey.Over.Stage2OverInstPlacedBudget.cliPromoteMatchingMissGen_placed_ok A.repAlloc mmpl gh W)
+      (LibsignalBinary.Proofs.SignalSession.Cli.Run.Proofs.DecryptPrekey.Over.Stage2OverInstPlacedBudget.cliPromoteMatchingMissGen_placed_ok A.repAlloc mmpl gh W
+        (LibsignalBinary.Proofs.SignalSession.Cli.Run.Slots.CliHookSatPlacedBudget.cliGhostExterns_blackBoxSat_budget_sat gh (cliExternsPlaced mmpl W) hG.extraOk))
       (fun hh' =>
         LibsignalBinary.Proofs.SignalSession.Cli.Run.Proofs.DecryptPrekey.Over.Stage2OverInstPlacedBudget.cliPromoteOverGen_archive_placed_ok mmpl gh W hh'
           (cliGrowOneVecU8_lsProg51_withLsCl_ok_w4r2priv mmpl gh W hG) hRaw)
@@ -17820,7 +17828,8 @@ theorem w4r2_poll_d2c_customP3_gvSeqFree_frozen_at [LibsignalFullPlacement]
       (PromEnv := PromoteOverArchiveEnv)
       (w4r2_stageP2PathCOver_archive_frozen_at_cliRunBudgets A lim ReadEnv X mmpl gh W
         hDropNz hG hSpqr hRead (fun _ _ _ h => h) (fun _ _ _ h => h) (fun _ _ _ h => h))
-      (LibsignalBinary.Proofs.SignalSession.Cli.Run.Proofs.DecryptPrekey.Over.Stage2OverInstPlacedBudget.cliPromoteMatchingMissGen_placed_ok A.repAlloc mmpl gh W)
+      (LibsignalBinary.Proofs.SignalSession.Cli.Run.Proofs.DecryptPrekey.Over.Stage2OverInstPlacedBudget.cliPromoteMatchingMissGen_placed_ok A.repAlloc mmpl gh W
+        (LibsignalBinary.Proofs.SignalSession.Cli.Run.Slots.CliHookSatPlacedBudget.cliGhostExterns_blackBoxSat_budget_sat gh (cliExternsPlaced mmpl W) hG.extraOk))
       (fun hh' =>
         LibsignalBinary.Proofs.SignalSession.Cli.Run.Proofs.DecryptPrekey.Over.Stage2OverInstPlacedBudget.cliPromoteOverGen_archive_placed_ok mmpl gh W hh'
           (cliGrowOneVecU8_lsProg51_withLsCl_ok_w4r2priv mmpl gh W hG) hRaw)
@@ -17844,7 +17853,8 @@ theorem w4r2_poll_d2c_customP3_gvSeqFree_frozen_at [LibsignalFullPlacement]
           cliPollKpk_kitPlacedOk mmpl gh W cliRunBudgets F0 kpkId spkId kbk hDropNz hh_sk hRead)
         (fun F0 _ _ _ opkWord _ hh_sk =>
           cliPollPk_kitPlacedOk mmpl gh W cliRunBudgets F0 opkWord hDropNz hh_sk hRead))
-      (LibsignalBinary.Proofs.SignalSession.Cli.Run.Proofs.DecryptPrekey.Over.Stage2OverInstPlacedBudget.cliPromoteMatchingMissGen_placed_ok A.repAlloc mmpl gh W)
+      (LibsignalBinary.Proofs.SignalSession.Cli.Run.Proofs.DecryptPrekey.Over.Stage2OverInstPlacedBudget.cliPromoteMatchingMissGen_placed_ok A.repAlloc mmpl gh W
+        (LibsignalBinary.Proofs.SignalSession.Cli.Run.Slots.CliHookSatPlacedBudget.cliGhostExterns_blackBoxSat_budget_sat gh (cliExternsPlaced mmpl W) hG.extraOk))
       (fun hh' =>
         LibsignalBinary.Proofs.SignalSession.Cli.Run.Proofs.DecryptPrekey.Over.Stage2OverInstPlacedBudget.cliPromoteOverGen_archive_placed_ok mmpl gh W hh'
           (cliGrowOneVecU8_lsProg51_withLsCl_ok_w4r2priv mmpl gh W hG) hRaw)
@@ -18044,7 +18054,8 @@ theorem w4r2_poll_d2c_customP3_gvSeqFree_frozen_at_of_init75 [LibsignalFullPlace
     stageP2Over_qpan_cli_memInv_placed_at_B_of_pathC_priv
       (PromEnv := PromoteOverArchiveEnv)
       hP2Over_pathC
-      (LibsignalBinary.Proofs.SignalSession.Cli.Run.Proofs.DecryptPrekey.Over.Stage2OverInstPlacedBudget.cliPromoteMatchingMissGen_placed_ok A.repAlloc mmpl gh W)
+      (LibsignalBinary.Proofs.SignalSession.Cli.Run.Proofs.DecryptPrekey.Over.Stage2OverInstPlacedBudget.cliPromoteMatchingMissGen_placed_ok A.repAlloc mmpl gh W
+        (LibsignalBinary.Proofs.SignalSession.Cli.Run.Slots.CliHookSatPlacedBudget.cliGhostExterns_blackBoxSat_budget_sat gh (cliExternsPlaced mmpl W) hG.extraOk))
       (fun hh' =>
         LibsignalBinary.Proofs.SignalSession.Cli.Run.Proofs.DecryptPrekey.Over.Stage2OverInstPlacedBudget.cliPromoteOverGen_archive_placed_ok mmpl gh W hh'
           (cliGrowOneVecU8_lsProg51_withLsCl_ok_w4r2priv mmpl gh W hG) hRaw)
@@ -18068,7 +18079,8 @@ theorem w4r2_poll_d2c_customP3_gvSeqFree_frozen_at_of_init75 [LibsignalFullPlace
           cliPollKpk_kitPlacedOk mmpl gh W cliRunBudgets F0 kpkId spkId kbk hDropNz hh_sk hRead)
         (fun F0 _ _ _ opkWord _ hh_sk =>
           cliPollPk_kitPlacedOk mmpl gh W cliRunBudgets F0 opkWord hDropNz hh_sk hRead))
-      (LibsignalBinary.Proofs.SignalSession.Cli.Run.Proofs.DecryptPrekey.Over.Stage2OverInstPlacedBudget.cliPromoteMatchingMissGen_placed_ok A.repAlloc mmpl gh W)
+      (LibsignalBinary.Proofs.SignalSession.Cli.Run.Proofs.DecryptPrekey.Over.Stage2OverInstPlacedBudget.cliPromoteMatchingMissGen_placed_ok A.repAlloc mmpl gh W
+        (LibsignalBinary.Proofs.SignalSession.Cli.Run.Slots.CliHookSatPlacedBudget.cliGhostExterns_blackBoxSat_budget_sat gh (cliExternsPlaced mmpl W) hG.extraOk))
       (fun hh' =>
         LibsignalBinary.Proofs.SignalSession.Cli.Run.Proofs.DecryptPrekey.Over.Stage2OverInstPlacedBudget.cliPromoteOverGen_archive_placed_ok mmpl gh W hh'
           (cliGrowOneVecU8_lsProg51_withLsCl_ok_w4r2priv mmpl gh W hG) hRaw)

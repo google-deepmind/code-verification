@@ -37,7 +37,7 @@ open CryptoVerification.LibsignalTripleRatchetRepr CryptoVerification.LibsignalT
 open CryptoVerification.SignalSession CryptoVerification.SignalSession.Cli
 open CryptoVerification.SignalSession.Cli.Main.Placed
 
-/-! ## `cliExternsPlaced` Row Lookups (`37` rows) and Block-`617` Stub Plumbing -/
+/-! ## `cliExternsPlaced` Row Lookups (`27` rows) and Block-`617` Stub Plumbing -/
 
 private def mainHookKeysPlaced : List String :=
   ["_RNvNtCsbvWyylYiyxg_4sha26sha51211compress512",
@@ -58,25 +58,15 @@ private def mainHookKeysPlaced : List String :=
    "_RNvNtNtCs1mK0QScfTrZ_14libcrux_ml_kem8mlkem76811incremental26decapsulate_compressed_key",
    "_RNvNtNtCs1mK0QScfTrZ_14libcrux_ml_kem8mlkem76811incremental17validate_pk_bytes",
    "_RNvCs65XVORQObL2_12libcrux_hmac4hmac",
-   "memmove",
-   "bcmp",
-   "strlen",
    lsWriteFileSym,
    lsWriteStdoutSym,
-   lsMemrchrSym,
-   lsFromUtf8Sym,
    lsFmtWriteSym,
    lsFormatInnerSym,
-   lsDurationSinceSym,
-   lsTimeAddSym,
-   lsBlackBoxSym,
    lsCompress256Sym,
    lsAesEncSym,
    lsAesDecSym,
    lsPubFromSecretSym,
-   lsDiffieHellmanSym,
-   lsStaticSecretDropSym,
-   lsSharedSecretDropSym]
+   lsDiffieHellmanSym]
 
 private theorem mainHookKeysPlaced_eq (mmpl : Obj.MultiPlacement) (W : CliHooks) :
     (cliHookTablePlaced mmpl W).map Prod.fst = mainHookKeysPlaced := rfl
@@ -131,10 +121,6 @@ theorem cliExternsPlaced_memset_none (mmpl : Obj.MultiPlacement) (W : CliHooks) 
   exact lookup_eq_none_of_not_mem_main _ memsetName
     (by rw [mainHookKeysPlaced_eq mmpl W]; decide)
 
-theorem cliExternsPlaced_memmove (mmpl : Obj.MultiPlacement) (W : CliHooks) :
-    cliExternsPlaced mmpl W memmoveName = some hookMemmove :=
-  main_cliExternsPlaced_row mmpl W (List.mem_append_right _ (List.mem_of_getElem? (i := 0) rfl))
-
 theorem cliExternsPlaced_memcpy_none (mmpl : Obj.MultiPlacement) (W : CliHooks) :
     cliExternsPlaced mmpl W memcpyName = none := by
   unfold cliExternsPlaced
@@ -171,7 +157,6 @@ theorem AllocContractsFsPlaced.of_hooks [LibsignalPlacement] {A : RustAlloc} {H 
     (hdealloc : H lsRustDeallocSymCli = some E2E.deallocHook)
     (hrealloc : H lsRustReallocSymCli = some E2E.reallocHook0)
     (hmemset : H memsetName = some hookMemset)
-    (hmemmove : H memmoveName = some hookMemmove)
     (hmemcpy : H memcpyName = some hookMemcpy) :
     AllocContractsFsPlaced A H where
   alloc := hook_stub_placed_ok halloc <|
@@ -193,10 +178,6 @@ theorem AllocContractsFsPlaced.of_hooks [LibsignalPlacement] {A : RustAlloc} {H 
     (hookOk_withStack hookMemcpy_region_ok stk).keepsFs hookMemcpy_fs
   session_memcpy_region stk _ _ := hook_stub_placed_ok hmemcpy <|
     (hookOk_withStack hookMemcpy_region_trace_ok stk).keepsFs hookMemcpy_fs
-  memmove stk _ _ := hook_stub_placed_ok hmemmove <|
-    (hookMemmove_ok stk).keepsFs hookMemmove_fs
-  session_memmove stk _ _ := hook_stub_placed_ok hmemmove <|
-    (hookMemmove_trace_ok stk).keepsFs hookMemmove_fs
   memset stk hle _ := hook_stub_placed_ok hmemset <|
     (hookMemset_ok stk (pos_of_extHookStack_le hle)).keepsFs hookMemset_fs
   session_memset stk hle _ := hook_stub_placed_ok hmemset <|
@@ -217,7 +198,6 @@ theorem AllocContractsXCliPlaced.of_hooks [LibsignalPlacement] {A : RustAlloc} {
     (hdealloc : H lsRustDeallocSymCli = some E2E.deallocHook)
     (hrealloc : H lsRustReallocSymCli = some E2E.reallocHook0)
     (hmemset : H memsetName = some hookMemset)
-    (hmemmove : H memmoveName = some hookMemmove)
     (hmemcpy : H memcpyName = some hookMemcpy) :
     AllocContractsXCliPlaced A H where
   alloc := hook_stub_placed_ok halloc <|
@@ -239,10 +219,6 @@ theorem AllocContractsXCliPlaced.of_hooks [LibsignalPlacement] {A : RustAlloc} {
     hookOk_withStack hookMemcpy_region_ok stk
   session_memcpy_region stk _ _ := hook_stub_placed_ok hmemcpy <|
     hookOk_withStack hookMemcpy_region_trace_ok stk
-  memmove stk _ _ := hook_stub_placed_ok hmemmove <|
-    hookMemmove_ok stk
-  session_memmove stk _ _ := hook_stub_placed_ok hmemmove <|
-    hookMemmove_trace_ok stk
   memset stk hle _ := hook_stub_placed_ok hmemset <|
     hookMemset_ok stk (pos_of_extHookStack_le hle)
   session_memset stk hle _ := hook_stub_placed_ok hmemset <|
@@ -281,8 +257,6 @@ theorem AllocContractsFsPlaced.toAllocContractsX [LibsignalPlacement] {A : RustA
   memcpy_region stk h1 h2 := subroutine_ok_withLsCodeRoLoaded_of_keepsFs (hA.memcpy_region stk h1 h2)
   session_memcpy_region stk h1 h2 :=
     subroutine_ok_withLsCodeRoLoaded_of_keepsFs (hA.session_memcpy_region stk h1 h2)
-  memmove stk h1 h2 := subroutine_ok_withLsCodeRoLoaded_of_keepsFs (hA.memmove stk h1 h2)
-  session_memmove stk h1 h2 := subroutine_ok_withLsCodeRoLoaded_of_keepsFs (hA.session_memmove stk h1 h2)
   memset stk h1 h2 := subroutine_ok_withLsCodeRoLoaded_of_keepsFs (hA.memset stk h1 h2)
   session_memset stk h1 h2 := subroutine_ok_withLsCodeRoLoaded_of_keepsFs (hA.session_memset stk h1 h2)
   memset_region stk h1 h2 := subroutine_ok_withLsCodeRoLoaded_of_keepsFs (hA.memset_region stk h1 h2)

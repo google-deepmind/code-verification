@@ -43,6 +43,28 @@ theorem _root_.Arm64.HookOk.keepsFs {α : Type} {h : State → State} {spec : Sp
   · exact Or.inr (Or.inr (Or.inl hex))
   · exact Or.inr (Or.inr (Or.inr hoom))
 
+/-- Drop `.keepsFs` from any `HookOk h spec.keepsFs`. -/
+theorem _root_.Arm64.HookOk.of_keepsFs {α : Type} {h : State → State} {spec : Spec α}
+    (hh : HookOk h spec.keepsFs) : HookOk h spec := by
+  intro x R s0 hrun hpre hsp
+  obtain ⟨hkf, hsym, hout⟩ := hh x R s0 hrun hpre hsp
+  refine ⟨hkf, hsym, ?_⟩
+  rcases hout with ⟨hret, hcc, hpost⟩ | hpan | hex | hoom
+  · refine Or.inl ⟨hret, hcc, ?_⟩
+    dsimp only [Arm64.Spec.keepsFs] at hpost
+    rw [sepConj_assoc, satisfies_pure_sepConj] at hpost
+    exact hpost.2
+  · exact Or.inr (Or.inl hpan)
+  · exact Or.inr (Or.inr (Or.inl hex))
+  · exact Or.inr (Or.inr (Or.inr hoom))
+
+/-- Drop `.keepsFs` from any `HookSat hooks name spec.keepsFs`. -/
+theorem _root_.Arm64.HookSat.of_keepsFs {α : Type} {hooks : String → Option (State → State)}
+    {name : String} {spec : Spec α} (hh : HookSat hooks name spec.keepsFs) :
+    HookSat hooks name spec := by
+  obtain ⟨f, hfn, hok⟩ := hh
+  exact ⟨f, hfn, hok.of_keepsFs⟩
+
 /-- `retHook f` keeps `fs` when `f` does (`setPC` does not touch `fs`). -/
 theorem retHook_fs {f : State → State} (hf : ∀ s, (f s).fs = s.fs) :
     ∀ s, (retHook f s).fs = s.fs := by

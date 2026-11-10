@@ -407,9 +407,6 @@ def cliWitnessHooks : CliHooks where
       encaps := fun _ _ => (List.Vector.replicate 1568 0#8, List.Vector.replicate 32 0#8)
       decaps := fun _ _ => List.Vector.replicate 32 0#8
       K := cliWitnessMlKem }
-  bcmp := cliWitnessBcmp
-  bcmp_ok := cliWitnessBcmp_ok
-  utf8Err := fun _ => (0#64, 0#16)
 
 private theorem toList_vector_replicate (n : Nat) (x : BitVec 8) :
     (List.Vector.replicate n x).toList = List.replicate n x := rfl

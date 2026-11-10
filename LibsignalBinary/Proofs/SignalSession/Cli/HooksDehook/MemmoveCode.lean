@@ -717,14 +717,10 @@ theorem hookOk_memmoveSpecK_map_frame_pureAbort (keep : BitVec 64 → Bool)
     HookOk f (memmoveSpecK keep target) :=
   MemcpyCode.hookOk_memcpySpecK_map_frame_pureAbort keep g F hh hpre hpost hpan hex hoom
 
-/-- Bounded (`MemmoveArithBound`) counterpart of `VecDequeGrowBudgetAux.sessionMemmoveAcpSpec`:
-    same `AllocCallPreserved ∧ VmPreserved` postcondition, gated by `MemmoveArithBound base buf`
-    in `.pre` so real `libc.a` `memmove` satisfies it (`VecDequeGrowBudget` / `AddChunkCl1PlacedBudget`
-    / `SpqrChainPlacedInstBudget:1389`). -/
-@[expose] def sessionMemmoveBoundedAcpSpec (hookStack : Nat := 4096) :
-    Spec (BitVec 64 × List (BitVec 8) × Nat × Nat × Nat) :=
-  { sessionMemmoveAcpSpec hookStack with
-    pre := (sessionMemmoveBoundedSpec hookStack).pre }
+/- Bounded (`MemmoveArithBound`) counterpart of `VecDequeGrowBudgetAux.sessionMemmoveAcpSpec`:
+   moved to `VecDequeGrowBudgetAux` and re-exported here so `MemmoveGhost`/`MemmoveGhostK`
+   callers continue to resolve unchanged (`S2`). -/
+export LibsignalBinary.Proofs.SpqrV1.Alloc.VecDequeGrowBudgetAux (sessionMemmoveBoundedAcpSpec)
 
 private theorem bounded_pre_entails_master (stk : Nat)
     (x : BitVec 64 × List (BitVec 8) × Nat × Nat × Nat) (s0 : State) :

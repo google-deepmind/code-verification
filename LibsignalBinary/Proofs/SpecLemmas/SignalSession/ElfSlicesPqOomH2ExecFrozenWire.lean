@@ -10,12 +10,14 @@ limitations under the License.
 module
 
 public import LibsignalBinary.Proofs.SignalSession.Cli.HooksDehook.Block617TransferG
+public import LibsignalBinary.Proofs.SignalSession.Cli.HooksDehook.ExtraGhostReplay -- proof-setup: allow-public-import
 public import LibsignalBinary.Proofs.SpecLemmas.SignalSession.ElfMemsetEntryGuard
 public import LibsignalBinary.Proofs.SpecLemmas.SignalSession.ElfSlicesPqOomH2KHooks
 public import LibsignalBinary.Proofs.SpecLemmas.SignalSession.ElfSlicesPqOomPlacedInst
 import LibsignalBinary.Specifications.LibsignalE2E.HooksMallocng
 import LibsignalBinary.Proofs.HookDischarge.CryptoMallocngBudgetBase
 import LibsignalBinary.Proofs.SignalSession.Cli.HooksDehook.NarrowF3R1Witness
+import LibsignalBinary.Proofs.SignalSession.Cli.Run.Slots.PureExtraGhosts
 import ProofLib.Hoare.MultiCodeROHook
 import ProofLib.MallocngBridge
 meta import ProofLib.ProgramReflection
@@ -82,6 +84,13 @@ open LibsignalBinary.Proofs.SignalSession.Cli.F3.L4B.F3HarnessPlaced
 open LibsignalBinary.Proofs.SignalSession.Cli.HooksDehook.Block617TransferG
   (Block617TransferFixedHypG block617TransferFixedG_of_replaysOn
    subroutineOutcome_running_pc_and_noFault withEntryGuard)
+open LibsignalBinary.Proofs.SignalSession.Cli.HooksDehook.ExtraGhostReplay
+  (ExtraListReplaysOn GhostRowReplayOn GhostSymActiveNamed GhostSymActiveWithExtra
+   GhostSymActiveWithExtra_iff_named_or_extra GhostSymActive_iff_named_or_extra
+   cliGhostExternsWithExtra_eq_some_of_active cliGhostExternsWithExtra_some_cases)
+open LibsignalBinary.Proofs.SignalSession.Cli.Run.Slots.ExtraGhostSpecs (ExtraGhostTable)
+open LibsignalBinary.Proofs.SignalSession.Cli.Run.Slots.PureExtraGhosts
+  (pureExtraGhosts pureExtraGhosts_preserves_execFrozen)
 open LibsignalBinary.Proofs.SignalSession.Cli.HooksDehook.MemcpyGhost (keepMemcpyBlk20)
 open LibsignalBinary.Proofs.SignalSession.Cli.HooksDehook.MemcpyLrTrapRet
   (Blk20TrapHook blk20_lr_trap_after_hook_ret)
@@ -744,55 +753,59 @@ theorem h2ef_hole2_ghFixed_preserves_execFrozen [LibsignalPlacement]
     (hAct : GhostSymActive (hole2_ghFixed mpl mmpl) sym f) :
     ∀ u : State, ExecFrozen u.mem → ExecFrozen (f u).mem := by
   intro u hfr
-  rcases hAct with
-    ⟨_, rfl⟩ | ⟨_, rfl⟩ | ⟨_, rfl⟩ | ⟨_, rfl⟩ | ⟨_, rfl⟩ |
-    ⟨_, hsc⟩ | ⟨_, _, hrf⟩ | ⟨_, _, hrs⟩ | ⟨_, hms⟩ | ⟨_, hmc⟩
-  · exact execFrozen_f3LinkedCallHook _ _ _ _ _ _ (execFrozen_f3AllocFallback mmpl false) u hfr
-  · exact execFrozen_f3LinkedCallHook _ _ _ _ _ _ (execFrozen_f3DeallocFallback mmpl) u hfr
-  · exact execFrozen_f3LinkedCallHook _ _ _ _ _ _ (execFrozen_f3ReallocFallback mmpl) u hfr
-  · exact execFrozen_f3LinkedCallHook _ _ _ _ _ _ (execFrozen_f3AllocFallback mmpl true) u hfr
-  · exact hfr
-  · dsimp only [hole2_ghFixed] at hsc
-    injection hsc with hfeq; subst hfeq
-    classical
-    unfold hole2_strCloneGhostHook
-    split
-    · split
-      · rename_i hReal
-        exact (Classical.choose_spec hReal.2.2.2.2).2.2.2.2
-      · exact execFrozen_keepFsTrace (execFrozen_f3StringCloneFallback mmpl u hfr)
+  rcases (GhostSymActive_iff_named_or_extra (hole2_ghFixed mpl mmpl) sym f).mp hAct with
+    hNamed | ⟨_, hLook⟩
+  · rcases hNamed with
+      ⟨_, rfl⟩ | ⟨_, rfl⟩ | ⟨_, rfl⟩ | ⟨_, rfl⟩ | ⟨_, rfl⟩ |
+      ⟨_, hsc⟩ | ⟨_, _, hrf⟩ | ⟨_, _, hrs⟩ | ⟨_, hms⟩ | ⟨_, hmc⟩
+    · exact execFrozen_f3LinkedCallHook _ _ _ _ _ _ (execFrozen_f3AllocFallback mmpl false) u hfr
+    · exact execFrozen_f3LinkedCallHook _ _ _ _ _ _ (execFrozen_f3DeallocFallback mmpl) u hfr
+    · exact execFrozen_f3LinkedCallHook _ _ _ _ _ _ (execFrozen_f3ReallocFallback mmpl) u hfr
+    · exact execFrozen_f3LinkedCallHook _ _ _ _ _ _ (execFrozen_f3AllocFallback mmpl true) u hfr
     · exact hfr
-  · dsimp only [hole2_ghFixed, f3CliGhostHooksFixed] at hrf
-    injection hrf with hsubeq
-    have hfeq := (congrArg Subtype.val hsubeq).symm
-    subst hfeq
-    classical
-    dsimp only [f3ReadFileFixedGhostHookFineSub, f3ReadFileFixedGhostHookSub,
-      f3ReadFileFixedGhostHook, f3ReadFileLinkedHook]
-    split
-    · split
-      · rename_i hReal
-        exact (Classical.choose_spec hReal.2.2.2.2).2.2.2.2
-      · exact execFrozen_keepFsTrace (execFrozen_f3ReadFileFallback mmpl u hfr)
-    · exact hfr
-  · dsimp only [hole2_ghFixed, f3CliGhostHooksFixed] at hrs
-    injection hrs with hsubeq
-    have hfeq := (congrArg Subtype.val hsubeq).symm
-    subst hfeq
-    classical
-    dsimp only [f3ReadStdinGhostHookFineSub, f3ReadStdinGhostHookSub, f3ReadStdinGhostHook]
-    split
-    · split
-      · rename_i hReal
-        exact (Classical.choose_spec hReal.2.2.2).2.2.2.2.2
-      · exact execFrozen_keepFilesTrace (execFrozen_f3ReadStdinFallback mmpl u hfr)
-    · exact hfr
-  · dsimp only [hole2_ghFixed, f3CliGhostHooksFixed] at hms
-    injection hms with hfeq; subst hfeq
-    exact f3EmptyMemsetGhostHookNarrow_execFrozen mmpl u hfr
-  · dsimp only [hole2_ghFixed, f3CliGhostHooksFixed] at hmc
-    injection hmc with hfeq; subst hfeq
-    exact f3EmptyMemcpyGhostHookNarrow_execFrozen mmpl u hfr
+    · dsimp only [hole2_ghFixed] at hsc
+      injection hsc with hfeq; subst hfeq
+      classical
+      unfold hole2_strCloneGhostHook
+      split
+      · split
+        · rename_i hReal
+          exact (Classical.choose_spec hReal.2.2.2.2).2.2.2.2
+        · exact execFrozen_keepFsTrace (execFrozen_f3StringCloneFallback mmpl u hfr)
+      · exact hfr
+    · dsimp only [hole2_ghFixed, f3CliGhostHooksFixed] at hrf
+      injection hrf with hsubeq
+      have hfeq := (congrArg Subtype.val hsubeq).symm
+      subst hfeq
+      classical
+      dsimp only [f3ReadFileFixedGhostHookFineSub, f3ReadFileFixedGhostHookSub,
+        f3ReadFileFixedGhostHook, f3ReadFileLinkedHook]
+      split
+      · split
+        · rename_i hReal
+          exact (Classical.choose_spec hReal.2.2.2.2).2.2.2.2
+        · exact execFrozen_keepFsTrace (execFrozen_f3ReadFileFallback mmpl u hfr)
+      · exact hfr
+    · dsimp only [hole2_ghFixed, f3CliGhostHooksFixed] at hrs
+      injection hrs with hsubeq
+      have hfeq := (congrArg Subtype.val hsubeq).symm
+      subst hfeq
+      classical
+      dsimp only [f3ReadStdinGhostHookFineSub, f3ReadStdinGhostHookSub, f3ReadStdinGhostHook]
+      split
+      · split
+        · rename_i hReal
+          exact (Classical.choose_spec hReal.2.2.2).2.2.2.2.2
+        · exact execFrozen_keepFilesTrace (execFrozen_f3ReadStdinFallback mmpl u hfr)
+      · exact hfr
+    · dsimp only [hole2_ghFixed, f3CliGhostHooksFixed] at hms
+      injection hms with hfeq; subst hfeq
+      exact f3EmptyMemsetGhostHookNarrow_execFrozen mmpl u hfr
+    · dsimp only [hole2_ghFixed, f3CliGhostHooksFixed] at hmc
+      injection hmc with hfeq; subst hfeq
+      exact f3EmptyMemcpyGhostHookNarrow_execFrozen mmpl u hfr
+  · change pureExtraGhosts.lookup sym = some f at hLook
+    exact pureExtraGhosts_preserves_execFrozen hLook u hfr
 
 private theorem findSome?_table_exists (tbl : List (String × Nat))
     {ext : String → Option (State → State)} (off : Nat) {f : State → State}
@@ -831,91 +844,8 @@ private theorem cliGhostExterns_some_cases
     {ghFixed : CliGhostHooks} {baseExt : String → Option (State → State)}
     {sym : String} {f : State → State}
     (h : cliGhostExterns ghFixed baseExt sym = some f) :
-    GhostSymActive ghFixed sym f ∨ baseExt sym = some f := by
-  unfold cliGhostExterns at h
-  cases hc1 : (sym == lsRustAllocSymCli) with
-  | true =>
-    simp only [hc1, ↓reduceIte] at h; injection h with h
-    exact Or.inl (Or.inl ⟨beq_iff_eq.mp hc1, h.symm⟩)
-  | false =>
-    simp only [hc1, Bool.false_eq_true, ↓reduceIte] at h
-    cases hc2 : (sym == lsRustDeallocSymCli) with
-    | true =>
-      simp only [hc2, ↓reduceIte] at h; injection h with h
-      exact Or.inl (Or.inr (Or.inl ⟨beq_iff_eq.mp hc2, h.symm⟩))
-    | false =>
-      simp only [hc2, Bool.false_eq_true, ↓reduceIte] at h
-      cases hc3 : (sym == lsRustReallocSymCli) with
-      | true =>
-        simp only [hc3, ↓reduceIte] at h; injection h with h
-        exact Or.inl (Or.inr (Or.inr (Or.inl ⟨beq_iff_eq.mp hc3, h.symm⟩)))
-      | false =>
-        simp only [hc3, Bool.false_eq_true, ↓reduceIte] at h
-        cases hc4 : (sym == lsRustAllocZeroedSymCli) with
-        | true =>
-          simp only [hc4, ↓reduceIte] at h; injection h with h
-          exact Or.inl (Or.inr (Or.inr (Or.inr (Or.inl ⟨beq_iff_eq.mp hc4, h.symm⟩))))
-        | false =>
-          simp only [hc4, Bool.false_eq_true, ↓reduceIte] at h
-          cases hc5 : (sym == lsRustNoAllocShimSymCli) with
-          | true =>
-            simp only [hc5, ↓reduceIte] at h; injection h with h
-            exact Or.inl (Or.inr (Or.inr (Or.inr (Or.inr (Or.inl ⟨beq_iff_eq.mp hc5, h.symm⟩)))))
-          | false =>
-            simp only [hc5, Bool.false_eq_true, ↓reduceIte] at h
-            cases hc6 : (sym == lsStringCloneSym) with
-            | true =>
-              simp only [hc6, ↓reduceIte] at h
-              cases hsc : ghFixed.stringClone with
-              | none => rw [hsc] at h; exact Or.inr h
-              | some g =>
-                rw [hsc] at h; injection h with h; subst h
-                exact Or.inl (Or.inr (Or.inr (Or.inr (Or.inr (Or.inr (Or.inl ⟨beq_iff_eq.mp hc6, hsc⟩))))))
-            | false =>
-              simp only [hc6, Bool.false_eq_true, ↓reduceIte] at h
-              cases hc7 : (sym == lsReadFileSym) with
-              | true =>
-                simp only [hc7, ↓reduceIte] at h
-                cases hrf : ghFixed.readFile with
-                | none => rw [hrf] at h; exact Or.inr h
-                | some gh =>
-                  rcases gh with ⟨g, hg⟩
-                  rw [hrf] at h; injection h with h; subst h
-                  exact Or.inl (Or.inr (Or.inr (Or.inr (Or.inr (Or.inr (Or.inr (Or.inl ⟨beq_iff_eq.mp hc7, hg, hrf⟩)))))))
-              | false =>
-                simp only [hc7, Bool.false_eq_true, ↓reduceIte] at h
-                cases hc8 : (sym == lsReadStdinSym) with
-                | true =>
-                  simp only [hc8, ↓reduceIte] at h
-                  cases hrs : ghFixed.readStdin with
-                  | none => rw [hrs] at h; exact Or.inr h
-                  | some gh =>
-                    rcases gh with ⟨g, hg⟩
-                    rw [hrs] at h; injection h with h; subst h
-                    exact Or.inl (Or.inr (Or.inr (Or.inr (Or.inr (Or.inr (Or.inr (Or.inr (Or.inl ⟨beq_iff_eq.mp hc8, hg, hrs⟩))))))))
-                | false =>
-                  simp only [hc8, Bool.false_eq_true, ↓reduceIte] at h
-                  cases hc9 : (sym == CryptoVerification.SignalSession.lsMemsetSym) with
-                  | true =>
-                    simp only [hc9, ↓reduceIte] at h
-                    cases hms : ghFixed.memset with
-                    | none => rw [hms] at h; exact Or.inr h
-                    | some g =>
-                      rw [hms] at h; injection h with h; subst h
-                      exact Or.inl (Or.inr (Or.inr (Or.inr (Or.inr (Or.inr (Or.inr (Or.inr (Or.inr (Or.inl ⟨beq_iff_eq.mp hc9, hms⟩)))))))))
-                  | false =>
-                    simp only [hc9, Bool.false_eq_true, ↓reduceIte] at h
-                    cases hc10 : (sym == CryptoVerification.SignalSession.lsMemcpySym) with
-                    | true =>
-                      simp only [hc10, ↓reduceIte] at h
-                      cases hmc : ghFixed.memcpy with
-                      | none => rw [hmc] at h; exact Or.inr h
-                      | some g =>
-                        rw [hmc] at h; injection h with h; subst h
-                        exact Or.inl (Or.inr (Or.inr (Or.inr (Or.inr (Or.inr (Or.inr (Or.inr (Or.inr (Or.inr ⟨beq_iff_eq.mp hc10, hmc⟩)))))))))
-                    | false =>
-                      simp only [hc10, Bool.false_eq_true, ↓reduceIte] at h
-                      exact Or.inr h
+    GhostSymActive ghFixed sym f ∨ baseExt sym = some f :=
+  cliGhostExternsWithExtra_some_cases ghFixed ghFixed.extra baseExt h
 
 /-- Every extern hook `f` in `P_ghost` (`hole2_ghFixed mpl mmpl` overlaid on
     `cliExternsPlaced mmpl W`) at any block `idx` preserves `ExecFrozen` unconditionally. -/
@@ -1837,59 +1767,8 @@ theorem h2ef_cliGhostExterns_of_ghostSymActive_base
     (gh : CliGhostHooks) (baseExt : String → Option (State → State))
     {sym : String} {f : State → State}
     (hAct : GhostSymActive gh sym f) :
-    cliGhostExterns gh baseExt sym = some f := by
-  rcases hAct with
-    ⟨rfl, rfl⟩ | ⟨rfl, rfl⟩ | ⟨rfl, rfl⟩ | ⟨rfl, rfl⟩ | ⟨rfl, rfl⟩ |
-    ⟨rfl, hsc⟩ | ⟨rfl, _, hrf⟩ | ⟨rfl, _, hrs⟩ | ⟨rfl, hms⟩ | ⟨rfl, hmc⟩
-  · have h1 : (lsRustAllocSymCli == lsRustAllocSymCli) = true := by decide
-    unfold cliGhostExterns; simp only [h1, ↓reduceIte]
-  · have h1 : (lsRustDeallocSymCli == lsRustAllocSymCli) = false := by decide
-    have h2 : (lsRustDeallocSymCli == lsRustDeallocSymCli) = true := by decide
-    unfold cliGhostExterns; simp only [h1, h2, Bool.false_eq_true, ↓reduceIte]
-  · have h1 : (lsRustReallocSymCli == lsRustAllocSymCli) = false := by decide
-    have h2 : (lsRustReallocSymCli == lsRustDeallocSymCli) = false := by decide
-    have h3 : (lsRustReallocSymCli == lsRustReallocSymCli) = true := by decide
-    unfold cliGhostExterns; simp only [h1, h2, h3, Bool.false_eq_true, ↓reduceIte]
-  · have h1 : (lsRustAllocZeroedSymCli == lsRustAllocSymCli) = false := by decide
-    have h2 : (lsRustAllocZeroedSymCli == lsRustDeallocSymCli) = false := by decide
-    have h3 : (lsRustAllocZeroedSymCli == lsRustReallocSymCli) = false := by decide
-    have h4 : (lsRustAllocZeroedSymCli == lsRustAllocZeroedSymCli) = true := by decide
-    unfold cliGhostExterns; simp only [h1, h2, h3, h4, Bool.false_eq_true, ↓reduceIte]
-  · have h1 : (lsRustNoAllocShimSymCli == lsRustAllocSymCli) = false := by decide
-    have h2 : (lsRustNoAllocShimSymCli == lsRustDeallocSymCli) = false := by decide
-    have h3 : (lsRustNoAllocShimSymCli == lsRustReallocSymCli) = false := by decide
-    have h4 : (lsRustNoAllocShimSymCli == lsRustAllocZeroedSymCli) = false := by decide
-    have h5 : (lsRustNoAllocShimSymCli == lsRustNoAllocShimSymCli) = true := by decide
-    unfold cliGhostExterns; simp only [h1, h2, h3, h4, h5, Bool.false_eq_true, ↓reduceIte]
-  · have h1 : (lsStringCloneSym == lsRustAllocSymCli) = false := by decide
-    have h2 : (lsStringCloneSym == lsRustDeallocSymCli) = false := by decide
-    have h3 : (lsStringCloneSym == lsRustReallocSymCli) = false := by decide
-    have h4 : (lsStringCloneSym == lsRustAllocZeroedSymCli) = false := by decide
-    have h5 : (lsStringCloneSym == lsRustNoAllocShimSymCli) = false := by decide
-    have h6 : (lsStringCloneSym == lsStringCloneSym) = true := by decide
-    unfold cliGhostExterns
-    simp only [h1, h2, h3, h4, h5, h6, Bool.false_eq_true, ↓reduceIte, hsc]
-  · have h1 : (lsReadFileSym == lsRustAllocSymCli) = false := by decide
-    have h2 : (lsReadFileSym == lsRustDeallocSymCli) = false := by decide
-    have h3 : (lsReadFileSym == lsRustReallocSymCli) = false := by decide
-    have h4 : (lsReadFileSym == lsRustAllocZeroedSymCli) = false := by decide
-    have h5 : (lsReadFileSym == lsRustNoAllocShimSymCli) = false := by decide
-    have h6 : (lsReadFileSym == lsStringCloneSym) = false := by decide
-    have h7 : (lsReadFileSym == lsReadFileSym) = true := by decide
-    unfold cliGhostExterns
-    simp only [h1, h2, h3, h4, h5, h6, h7, Bool.false_eq_true, ↓reduceIte, hrf]
-  · have h1 : (lsReadStdinSym == lsRustAllocSymCli) = false := by decide
-    have h2 : (lsReadStdinSym == lsRustDeallocSymCli) = false := by decide
-    have h3 : (lsReadStdinSym == lsRustReallocSymCli) = false := by decide
-    have h4 : (lsReadStdinSym == lsRustAllocZeroedSymCli) = false := by decide
-    have h5 : (lsReadStdinSym == lsRustNoAllocShimSymCli) = false := by decide
-    have h6 : (lsReadStdinSym == lsStringCloneSym) = false := by decide
-    have h7 : (lsReadStdinSym == lsReadFileSym) = false := by decide
-    have h8 : (lsReadStdinSym == lsReadStdinSym) = true := by decide
-    unfold cliGhostExterns
-    simp only [h1, h2, h3, h4, h5, h6, h7, h8, Bool.false_eq_true, ↓reduceIte, hrs]
-  · exact CryptoVerification.SignalSession.Cli.RunGlue.cliGhostExterns_memset_some gh baseExt hms
-  · exact CryptoVerification.SignalSession.Cli.RunGlue.cliGhostExterns_memcpy_some gh baseExt hmc
+    cliGhostExterns gh baseExt sym = some f :=
+  cliGhostExternsWithExtra_eq_some_of_active gh gh.extra baseExt hAct
 
 /-- Active ghost symbols resolve to `some f` in `cliGhostExterns gh (fun _ => none)`. -/
 theorem h2ef_cliGhostExterns_of_ghostSymActive
@@ -1898,10 +1777,10 @@ theorem h2ef_cliGhostExterns_of_ghostSymActive
     cliGhostExterns gh (fun _ => none) sym = some f :=
   h2ef_cliGhostExterns_of_ghostSymActive_base gh (fun _ => none) hAct
 
-/-- Unconditional `ExecFrozen` preservation for all 8 active ghost hooks of `h2k_ghFixedK`. -/
+/-- Unconditional `ExecFrozen` preservation for all 10 named ghost slots of `h2k_ghFixedK`. -/
 theorem h2ef_h2k_ghFixedK_preserves_execFrozen [LibsignalPlacement]
     (mpl mmpl : MultiPlacement) {sym : String} {f : State → State}
-    (hAct : GhostSymActive (h2k_ghFixedK mpl mmpl) sym f) :
+    (hAct : GhostSymActiveNamed (h2k_ghFixedK mpl mmpl) sym f) :
     ∀ u : State, ExecFrozen u.mem → ExecFrozen (f u).mem := by
   intro u hfr
   rcases hAct with
@@ -1959,6 +1838,23 @@ theorem h2ef_h2k_ghFixedK_preserves_execFrozen [LibsignalPlacement]
     injection hmc with hfeq; subst hfeq
     exact f3EmptyMemcpyGhostHookNarrow_execFrozen mmpl u hfr
 
+/-- 11-way `ExecFrozen` preservation across `GhostSymActiveWithExtra (h2k_ghFixedK mpl mmpl) extra`
+    under `ExtraListReplaysOn`. -/
+theorem h2ef_h2k_ghFixedK_withExtra_preserves_execFrozen [LibsignalPlacement]
+    (mpl mmpl : MultiPlacement) {InvS : State → Prop}
+    {guardOf : String → State → Prop} {extra : ExtraGhostTable}
+    (hExtraReplays : ExtraListReplaysOn mpl mmpl InvS guardOf (h2k_ghFixedK mpl mmpl) extra)
+    {sym : String} {f : State → State}
+    (hAct : GhostSymActiveWithExtra (h2k_ghFixedK mpl mmpl) extra sym f)
+    (u : State) (hrun : u.status = .Running)
+    (hnoex : ∀ msg, (f u).status ≠ .Exception msg)
+    (hfr : ExecFrozen u.mem) :
+    ExecFrozen (f u).mem := by
+  rcases (GhostSymActiveWithExtra_iff_named_or_extra _ _ _ _).mp hAct with
+    hActNamed | ⟨hDom, hLook⟩
+  · exact h2ef_h2k_ghFixedK_preserves_execFrozen mpl mmpl hActNamed u hfr
+  · exact ((hExtraReplays sym f hDom hLook).preserves_execFrozen u hrun hnoex hfr).1
+
 /-- Block-`617` `P_ghost.CodeLoaded` at `h2k_ghFixedK` from `LibsignalFrozen mpl m`. -/
 theorem h2ef_pGhost617K_codeLoaded_of_libsignalFrozen [LibsignalPlacement]
     (mpl mmpl : MultiPlacement) (W : CliHooks) (m : Memory)
@@ -1976,470 +1872,5 @@ theorem h2ef_pGhost617K_codeLoaded_of_libsignalFrozen [LibsignalPlacement]
   exact Arm64.Program.CodeLoaded.intro hc.aligned hc.no_wrap fun i hi =>
     ⟨hc.byte_eq i hi, hc.perm_eq i hi, hc.isLazyFree_eq i hi⟩
 
-private theorem steps_codeOnly_transfer_pGhost617KG_aux [LibsignalPlacement]
-    (mpl mmpl : MultiPlacement) (W : CliHooks)
-    (hGhostReplay : ∀ (sym : String) (f : State → State),
-      sym ∈ (libsignalSessionLib.blockLib 617).text.externs →
-      sym ≠ lsStringCloneSym →
-      GhostSymActive (h2k_ghFixedK mpl mmpl) sym f →
-      ∀ u : State,
-        u.pc = libsignalSessionLib.resolve mpl sym →
-        u.status = .Running →
-        (∀ msg, (f u).status ≠ .Exception msg) →
-        u.mem.KeepsFrozen (f u).mem →
-        ExecFrozen u.mem →
-        (sym ≠ lsRustNoAllocShimSymCli → sym ≠ lsMemsetSym → sym ≠ lsMemcpySym →
-          hole2_keepSub (u.readReg64 .lr) = false) →
-        (sym = lsMemsetSym → keepMemsetBlk21 mmpl (u.readReg64 .lr) = false) →
-        (sym = lsMemcpySym → keepMemcpyBlk20 mmpl (u.readReg64 .lr) = false) →
-        F3CodeInv mpl mmpl u.mem →
-        (sym = lsReadFileSym → FdsGe3Closed u.fs) →
-        Steps (cliProgExtPlacedAt mpl (cliExternsPlaced mmpl) 617 W) u (f u))
-    (hNoExLr : ∀ {sym : String} {f : State → State} {a : State},
-      cliGhostExterns (h2k_ghFixedK mpl mmpl) (fun _ => none) sym = some f →
-      sym ≠ lsRustNoAllocShimSymCli →
-      (∀ msg, (f a).status ≠ .Exception msg) →
-      sym ≠ lsMemsetSym →
-      sym ≠ lsMemcpySym →
-      hole2_keepSub (a.readReg64 .lr) = false)
-    (hNoExFds : ∀ {baseExt : String → Option (State → State)} {f : State → State} {a : State},
-      cliGhostExterns (h2k_ghFixedK mpl mmpl) baseExt lsReadFileSym = some f →
-      (∀ msg, (f a).status ≠ .Exception msg) →
-      FdsGe3Closed a.fs)
-    (hTrap21 : ∀ {sym : String} {f : State → State},
-      cliGhostExterns (h2k_ghFixedK mpl mmpl) (fun _ => none) sym = some f →
-      sym ≠ lsRustNoAllocShimSymCli →
-      ∀ L : BitVec 64, keepMemsetBlk21 mmpl L = true → Blk21TrapHook L f)
-    (hTrap20 : ∀ {sym : String} {f : State → State},
-      cliGhostExterns (h2k_ghFixedK mpl mmpl) (fun _ => none) sym = some f →
-      sym ≠ lsRustNoAllocShimSymCli →
-      ∀ L : BitVec 64, keepMemcpyBlk20 mmpl L = true → Blk20TrapHook L f)
-    (hBlk21Ext : ∀ pc, keepMemsetBlk21 mmpl pc = true →
-      (cliProgExtPlacedAt mpl
-        (fun W' => cliGhostExterns (h2k_ghFixedK mpl mmpl) (cliExternsPlaced mmpl W'))
-        617 W).externAt? pc = none ∨
-        ∃ f, (cliProgExtPlacedAt mpl
-          (fun W' => cliGhostExterns (h2k_ghFixedK mpl mmpl) (cliExternsPlaced mmpl W'))
-          617 W).externAt? pc = some f ∧
-          ∀ L : BitVec 64, keepMemsetBlk21 mmpl L = true → Blk21TrapHook L f)
-    (hBlk20Ext : ∀ pc, keepMemcpyBlk20 mmpl pc = true →
-      (cliProgExtPlacedAt mpl
-        (fun W' => cliGhostExterns (h2k_ghFixedK mpl mmpl) (cliExternsPlaced mmpl W'))
-        617 W).externAt? pc = none ∨
-        ∃ f, (cliProgExtPlacedAt mpl
-          (fun W' => cliGhostExterns (h2k_ghFixedK mpl mmpl) (cliExternsPlaced mmpl W'))
-          617 W).externAt? pc = some f ∧
-          ∀ L : BitVec 64, keepMemcpyBlk20 mmpl L = true → Blk20TrapHook L f)
-    {u sf : State}
-    (hsteps : Steps
-      (cliProgExtPlacedAt mpl
-        (fun W' => cliGhostExterns (h2k_ghFixedK mpl mmpl) (cliExternsPlaced mmpl W')) 617 W)
-      u sf)
-    (hrun_sf21 : sf.status = .Running → keepMemsetBlk21 mmpl sf.pc = false)
-    (hrun_sf20 : sf.status = .Running → keepMemcpyBlk20 mmpl sf.pc = false)
-    (hnoex : ∀ msg, sf.status ≠ .Exception msg)
-    (hnhalt : sf.status ≠ .Halted)
-    (hfr_u : ExecFrozen u.mem)
-    (hinv_u : F3CodeInv mpl mmpl u.mem) :
-    Steps (cliProgExtPlacedAt mpl (cliExternsPlaced mmpl) 617 W) u sf ∧
-      ExecFrozen sf.mem ∧ F3CodeInv mpl mmpl sf.mem := by
-  let P_real := cliProgExtPlacedAt mpl (cliExternsPlaced mmpl) 617 W
-  have hmng20 : (20 : Nat) < mallocngLib.blocks.length := by decide
-  have hmng21 : (21 : Nat) < mallocngLib.blocks.length := by decide
-  induction hsteps with
-  | refl s => exact ⟨Steps.refl s, hfr_u, hinv_u⟩
-  | @step a b c h1 hrest ih =>
-    cases h1 with
-    | halt_unmapped _ _ _ =>
-      exact False.elim (hnhalt (steps_preserves_halted hrest rfl))
-    | extern_fault _ _ _ =>
-      exact False.elim (hnoex _ (steps_preserves_exception hrest rfl))
-    | @exec inst hrun hfm =>
-      unfold Program.fetchMem at hfm
-      cases heg :
-          (cliProgExtPlacedAt mpl
-            (fun W' => cliGhostExterns (h2k_ghFixedK mpl mmpl) (cliExternsPlaced mmpl W'))
-            617 W).externAt? a.pc with
-      | some _ => simp [heg] at hfm
-      | none =>
-        have her : P_real.externAt? a.pc = none :=
-          blockProgram_cliGhostExterns_no_new_hooks libsignalSessionLib mpl 617
-            (h2k_ghFixedK mpl mmpl) (cliExternsPlaced mmpl W) a.pc heg
-        have hfm_real : P_real.fetchMem a.mem a.pc = some inst := by
-          unfold Program.fetchMem
-          simpa [heg, her] using hfm
-        by_cases hsvc0 : inst.isSvc0 = true
-        · have hinst : inst = .system false 0#16 := by
-            cases inst <;> simp [Instr.isSvc0] at hsvc0
-            rcases hsvc0 with ⟨rfl, rfl⟩; rfl
-          subst hinst
-          have hsvc_g : (cliProgExtPlacedAt mpl
-              (fun W' => cliGhostExterns (h2k_ghFixedK mpl mmpl) (cliExternsPlaced mmpl W'))
-              617 W).svc = Syscall.standard := rfl
-          have hsvc_r : P_real.svc = Syscall.standard := rfl
-          have hev_g : (cliProgExtPlacedAt mpl
-              (fun W' => cliGhostExterns (h2k_ghFixedK mpl mmpl) (cliExternsPlaced mmpl W'))
-              617 W).evalInst (.system false 0#16) a = Syscall.standard a := by
-            simp [Program.evalInst, execInstWithSvc, hsvc_g]
-          have hev_r : P_real.evalInst (.system false 0#16) a = Syscall.standard a := by
-            simp [Program.evalInst, execInstWithSvc, hsvc_r]
-          have hstep1_r : Step P_real a (Syscall.standard a) := hev_r ▸ Step.exec hrun hfm_real
-          obtain ⟨_, hfr_b⟩ := standard_stripS (keep := fun _ => false) hfr_u
-          rw [hev_g] at hrest ih
-          have hinv_b : F3CodeInv mpl mmpl (Syscall.standard a).mem :=
-            hinv_u.of_keepsFrozen hstep1_r.keepsFrozen
-          obtain ⟨hrest_r, hfr_c, hinv_c⟩ := ih hrun_sf21 hrun_sf20 hnoex hnhalt hfr_b hinv_b
-          exact ⟨Steps.step hstep1_r hrest_r, hfr_c, hinv_c⟩
-        · have hnsvc0 : inst.isSvc0 = false := Bool.eq_false_iff.mpr hsvc0
-          have hev_g : (cliProgExtPlacedAt mpl
-              (fun W' => cliGhostExterns (h2k_ghFixedK mpl mmpl) (cliExternsPlaced mmpl W'))
-              617 W).evalInst inst a = execInst inst a :=
-            evalInst_eq_execInst_of_not_isSvc0 _ hnsvc0 a
-          have hev_r : P_real.evalInst inst a = execInst inst a :=
-            evalInst_eq_execInst_of_not_isSvc0 P_real hnsvc0 a
-          have hstep1_r : Step P_real a (execInst inst a) := hev_r ▸ Step.exec hrun hfm_real
-          obtain ⟨hfr_b, _⟩ := execInst_preserves_execFrozen_and_fs hnsvc0 hfr_u
-          rw [hev_g] at hrest ih
-          have hinv_b : F3CodeInv mpl mmpl (execInst inst a).mem :=
-            hinv_u.of_keepsFrozen hstep1_r.keepsFrozen
-          obtain ⟨hrest_r, hfr_c, hinv_c⟩ := ih hrun_sf21 hrun_sf20 hnoex hnhalt hfr_b hinv_b
-          exact ⟨Steps.step hstep1_r hrest_r, hfr_c, hinv_c⟩
-    | @extern f hrun heg hkf hsym =>
-      have hnoex_fa : ∀ msg, (f a).status ≠ .Exception msg := fun msg hex =>
-        hnoex msg (steps_preserves_exception hrest hex)
-      have hinv_b : F3CodeInv mpl mmpl (f a).mem := hinv_u.of_keepsFrozen hkf
-      rcases blockProgram_cliGhostExterns_externAt?_mem_cases
-          (h2k_ghFixedK mpl mmpl) (cliExternsPlaced mmpl W) heg with
-        her | ⟨sym, hsym_ext, hAct, hpc_eq⟩
-      · obtain ⟨sym, hsym_real⟩ := blockProgram_externAt?_some_exists her
-        have hstep1_r : Step P_real a (f a) := Step.extern hrun her hkf hsym
-        have hfr_b : ExecFrozen (f a).mem :=
-          cliExternsPlaced_preserves_execFrozen mmpl W hsym_real a hfr_u
-        obtain ⟨hrest_r, hfr_c, hinv_c⟩ := ih hrun_sf21 hrun_sf20 hnoex hnhalt hfr_b hinv_b
-        exact ⟨Steps.step hstep1_r hrest_r, hfr_c, hinv_c⟩
-      · have hne_sc : sym ≠ lsStringCloneSym := fun heq =>
-          h2ef_strClone_not_mem_ext617 (heq ▸ hsym_ext)
-        have hext0 : cliGhostExterns (h2k_ghFixedK mpl mmpl) (fun _ => none) sym = some f :=
-          h2ef_cliGhostExterns_of_ghostSymActive (h2k_ghFixedK mpl mmpl) hAct
-        have hlr_sub : sym ≠ lsRustNoAllocShimSymCli → sym ≠ lsMemsetSym → sym ≠ lsMemcpySym →
-            hole2_keepSub (a.readReg64 .lr) = false :=
-          fun hnoShim hnoMs hnoMc => hNoExLr hext0 hnoShim hnoex_fa hnoMs hnoMc
-        have hlr_blk21 : sym = lsMemsetSym → keepMemsetBlk21 mmpl (a.readReg64 .lr) = false :=
-          fun hms => blk21_lr_trap_after_hook_ret
-            (hTrap21 hext0 (by subst hms; decide)) hBlk21Ext
-            (hinv_b.mngBlockCodeLoaded 21 hmng21 _ _ Syscall.standard)
-            hrest hrun hrun_sf21 hnoex hnhalt
-        have hlr_blk20 : sym = lsMemcpySym → keepMemcpyBlk20 mmpl (a.readReg64 .lr) = false :=
-          fun hmc => blk20_lr_trap_after_hook_ret
-            (hTrap20 hext0 (by subst hmc; decide)) hBlk20Ext
-            (hinv_b.mngBlockCodeLoaded 20 hmng20 _ _ Syscall.standard)
-            hrest hrun hrun_sf20 hnoex hnhalt
-        have hread_fds : sym = lsReadFileSym → FdsGe3Closed a.fs :=
-          fun hrd => hNoExFds (hrd ▸ hext0) hnoex_fa
-        have hfr_b : ExecFrozen (f a).mem :=
-          h2ef_h2k_ghFixedK_preserves_execFrozen mpl mmpl hAct a hfr_u
-        have hst_r : Steps P_real a (f a) :=
-          hGhostReplay sym f hsym_ext hne_sc hAct a hpc_eq hrun hnoex_fa hkf hfr_u
-            hlr_sub hlr_blk21 hlr_blk20 hinv_u hread_fds
-        obtain ⟨hrest_r, hfr_c, hinv_c⟩ := ih hrun_sf21 hrun_sf20 hnoex hnhalt hfr_b hinv_b
-        exact ⟨hst_r.trans hrest_r, hfr_c, hinv_c⟩
-
-/-- Code-only trajectory `Block617TransferFixedHypG` reduction at `h2k_ghFixedK` (`C3e-8G`), deriving
-`hlr_sub` (`sym ∉ {shim, ms, mc}`), `FdsGe3Closed`, and `hlr_blk{21,20}` via `blk{21,20}_lr_trap_after_hook_ret` and `F3MemsetMemcpyEntryLrFalse`. -/
-theorem h2ef_block617TransferFixedG_of_traj_codeOnly [LibsignalPlacement]
-    (mpl mmpl : MultiPlacement)
-    {libcAddr brkStart : BitVec 64} {stk : Nat}
-    (hF3Frozen : ∀ m : Memory, F3CodeOk mpl mmpl m → LibsignalFrozen mpl m)
-    (hGhostCL : ∀ (W : CliHooks) (m : Memory), LibsignalFrozen mpl m →
-      (cliProgExtPlacedAt mpl
-        (fun W' => cliGhostExterns (h2k_ghFixedK mpl mmpl) (cliExternsPlaced mmpl W'))
-        617 W).CodeLoaded m)
-    (hRealNone : ∀ (W : CliHooks) (sym : String) (f : State → State),
-      sym ∈ (libsignalSessionLib.blockLib 617).text.externs →
-      GhostSymActive (h2k_ghFixedK mpl mmpl) sym f →
-      (cliProgExtPlacedAt mpl (cliExternsPlaced mmpl) 617 W).externAt?
-        (libsignalSessionLib.resolve mpl sym) = none)
-    (hGhostReplay : ∀ (W : CliHooks) (sym : String) (f : State → State),
-      sym ∈ (libsignalSessionLib.blockLib 617).text.externs →
-      sym ≠ lsStringCloneSym →
-      GhostSymActive (h2k_ghFixedK mpl mmpl) sym f →
-      ∀ u : State,
-        u.pc = libsignalSessionLib.resolve mpl sym →
-        u.status = .Running →
-        (∀ msg, (f u).status ≠ .Exception msg) →
-        u.mem.KeepsFrozen (f u).mem →
-        ExecFrozen u.mem →
-        (sym ≠ lsRustNoAllocShimSymCli → sym ≠ lsMemsetSym → sym ≠ lsMemcpySym →
-          hole2_keepSub (u.readReg64 .lr) = false) →
-        (sym = lsMemsetSym → keepMemsetBlk21 mmpl (u.readReg64 .lr) = false) →
-        (sym = lsMemcpySym → keepMemcpyBlk20 mmpl (u.readReg64 .lr) = false) →
-        F3CodeInv mpl mmpl u.mem →
-        (sym = lsReadFileSym → FdsGe3Closed u.fs) →
-        Steps (cliProgExtPlacedAt mpl (cliExternsPlaced mmpl) 617 W) u (f u))
-    (hNoExLr : ∀ {sym : String} {f : State → State} {a : State},
-      cliGhostExterns (h2k_ghFixedK mpl mmpl) (fun _ => none) sym = some f →
-      sym ≠ lsRustNoAllocShimSymCli →
-      (∀ msg, (f a).status ≠ .Exception msg) →
-      sym ≠ lsMemsetSym →
-      sym ≠ lsMemcpySym →
-      hole2_keepSub (a.readReg64 .lr) = false)
-    (hNoExFds : ∀ {baseExt : String → Option (State → State)} {f : State → State} {a : State},
-      cliGhostExterns (h2k_ghFixedK mpl mmpl) baseExt lsReadFileSym = some f →
-      (∀ msg, (f a).status ≠ .Exception msg) →
-      FdsGe3Closed a.fs)
-    (hTrap21 : ∀ {sym : String} {f : State → State},
-      cliGhostExterns (h2k_ghFixedK mpl mmpl) (fun _ => none) sym = some f →
-      sym ≠ lsRustNoAllocShimSymCli →
-      ∀ L : BitVec 64, keepMemsetBlk21 mmpl L = true → Blk21TrapHook L f)
-    (hTrap20 : ∀ {sym : String} {f : State → State},
-      cliGhostExterns (h2k_ghFixedK mpl mmpl) (fun _ => none) sym = some f →
-      sym ≠ lsRustNoAllocShimSymCli →
-      ∀ L : BitVec 64, keepMemcpyBlk20 mmpl L = true → Blk20TrapHook L f)
-    (hBlk21Ext : ∀ (W : CliHooks) (pc : BitVec 64), keepMemsetBlk21 mmpl pc = true →
-      (cliProgExtPlacedAt mpl
-        (fun W' => cliGhostExterns (h2k_ghFixedK mpl mmpl) (cliExternsPlaced mmpl W'))
-        617 W).externAt? pc = none ∨
-        ∃ f, (cliProgExtPlacedAt mpl
-          (fun W' => cliGhostExterns (h2k_ghFixedK mpl mmpl) (cliExternsPlaced mmpl W'))
-          617 W).externAt? pc = some f ∧
-          ∀ L : BitVec 64, keepMemsetBlk21 mmpl L = true → Blk21TrapHook L f)
-    (hBlk20Ext : ∀ (W : CliHooks) (pc : BitVec 64), keepMemcpyBlk20 mmpl pc = true →
-      (cliProgExtPlacedAt mpl
-        (fun W' => cliGhostExterns (h2k_ghFixedK mpl mmpl) (cliExternsPlaced mmpl W'))
-        617 W).externAt? pc = none ∨
-        ∃ f, (cliProgExtPlacedAt mpl
-          (fun W' => cliGhostExterns (h2k_ghFixedK mpl mmpl) (cliExternsPlaced mmpl W'))
-          617 W).externAt? pc = some f ∧
-          ∀ L : BitVec 64, keepMemcpyBlk20 mmpl L = true → Blk20TrapHook L f) :
-    Block617TransferFixedHypG mpl mmpl
-      (fun W => cliGhostExterns (h2k_ghFixedK mpl mmpl) (cliExternsPlaced mmpl W))
-      (cliExternsPlaced mmpl)
-      (F3MemsetMemcpyEntryLrFalse mmpl)
-      (LibsignalFrozen mpl) (F3CodeOk mpl mmpl) libcAddr brkStart stk := by
-  have _ := hRealNone
-  intro W Run hGhostOk γ tp
-  apply subroutine_ok_of_steps_outcome
-  intro g R s0 hpc hrun hm hsp _
-  have hm_unfold := hm
-  dsimp only [withEntryGuard, b2MainSpecTightNeedLocksFineAt] at hm_unfold
-  rw [sepConj_assoc, satisfies_pure_sepConj] at hm_unfold
-  obtain ⟨hGuard0, hm_real⟩ := hm_unfold
-  rw [sepConj_assoc, satisfies_pure_sepConj] at hm_real
-  obtain ⟨⟨hReal0, hCase, hInpOk, hEntry, hStk⟩, hm_frame⟩ := hm_real
-  have hGhost0 : LibsignalFrozen mpl s0.mem := hF3Frozen s0.mem hReal0
-  have hm_ghost : s0.mem ⊨ (b2MainSpecTightNeedLocksFineAt libcAddr (LibsignalFrozen mpl)
-      (fineHookRustCliAllocBudget γ mmpl tp brkStart)
-      cliBudgetLimits fineCostModel.init stk (cliStaticsPlacedAt mpl) Run cliProcessInputs).pre g s0 ∗ R := by
-    dsimp only [b2MainSpecTightNeedLocksFineAt]
-    rw [sepConj_assoc, satisfies_pure_sepConj]
-    exact ⟨⟨hGhost0, hCase, hInpOk, hEntry, hStk⟩, hm_frame⟩
-  have hCL : (cliProgExtPlacedAt mpl
-      (fun W' => cliGhostExterns (h2k_ghFixedK mpl mmpl) (cliExternsPlaced mmpl W'))
-      617 W).CodeLoaded s0.mem := hGhostCL W s0.mem hGhost0
-  obtain ⟨sf, hsteps, hout⟩ :=
-    subroutine_ok_elim_steps_outcome (hGhostOk γ tp) g R s0 hpc hrun hm_ghost hsp hCL
-  obtain ⟨hret_pc, hnoex, hnhalt⟩ := subroutineOutcome_running_pc_and_noFault hout
-  have hrun_sf21 : sf.status = .Running → keepMemsetBlk21 mmpl sf.pc = false :=
-    fun hrs => hret_pc hrs ▸ hGuard0.1
-  have hrun_sf20 : sf.status = .Running → keepMemcpyBlk20 mmpl sf.pc = false :=
-    fun hrs => hret_pc hrs ▸ hGuard0.2
-  obtain ⟨hsteps_real, _, _⟩ :=
-    steps_codeOnly_transfer_pGhost617KG_aux mpl mmpl W (hGhostReplay W)
-      hNoExLr hNoExFds hTrap21 hTrap20 (hBlk21Ext W) (hBlk20Ext W)
-      hsteps hrun_sf21 hrun_sf20 hnoex hnhalt hReal0.2 hReal0.1
-  exact ⟨sf, hsteps_real, hout⟩
-
-/-- Code-only `Steps → h2ef_StepsAll` `Block617TransferFixedHypG` reduction at `h2k_ghFixedK`. -/
-theorem h2ef_block617TransferFixedG_of_steps_to_stepsAll_codeOnly [LibsignalPlacement]
-    (mpl mmpl : MultiPlacement)
-    {libcAddr brkStart : BitVec 64} {stk : Nat}
-    (hF3Frozen : ∀ m : Memory, F3CodeOk mpl mmpl m → LibsignalFrozen mpl m)
-    (hRealNone : ∀ (W : CliHooks) (sym : String) (f : State → State),
-      sym ∈ (libsignalSessionLib.blockLib 617).text.externs →
-      GhostSymActive (h2k_ghFixedK mpl mmpl) sym f →
-      (cliProgExtPlacedAt mpl (cliExternsPlaced mmpl) 617 W).externAt?
-        (libsignalSessionLib.resolve mpl sym) = none)
-    (hGhostReplay : ∀ (W : CliHooks) (sym : String) (f : State → State),
-      sym ∈ (libsignalSessionLib.blockLib 617).text.externs →
-      sym ≠ lsStringCloneSym →
-      GhostSymActive (h2k_ghFixedK mpl mmpl) sym f →
-      ∀ u : State,
-        u.pc = libsignalSessionLib.resolve mpl sym →
-        u.status = .Running →
-        (∀ msg, (f u).status ≠ .Exception msg) →
-        u.mem.KeepsFrozen (f u).mem →
-        ExecFrozen u.mem →
-        (sym ≠ lsRustNoAllocShimSymCli → sym ≠ lsMemsetSym → sym ≠ lsMemcpySym →
-          hole2_keepSub (u.readReg64 .lr) = false) →
-        (sym = lsMemsetSym → keepMemsetBlk21 mmpl (u.readReg64 .lr) = false) →
-        (sym = lsMemcpySym → keepMemcpyBlk20 mmpl (u.readReg64 .lr) = false) →
-        F3CodeInv mpl mmpl u.mem →
-        (sym = lsReadFileSym → FdsGe3Closed u.fs) →
-        Steps (cliProgExtPlacedAt mpl (cliExternsPlaced mmpl) 617 W) u (f u))
-    (hNoExLr : ∀ {sym : String} {f : State → State} {a : State},
-      cliGhostExterns (h2k_ghFixedK mpl mmpl) (fun _ => none) sym = some f →
-      sym ≠ lsRustNoAllocShimSymCli →
-      (∀ msg, (f a).status ≠ .Exception msg) →
-      sym ≠ lsMemsetSym →
-      sym ≠ lsMemcpySym →
-      hole2_keepSub (a.readReg64 .lr) = false)
-    (hNoExFds : ∀ {baseExt : String → Option (State → State)} {f : State → State} {a : State},
-      cliGhostExterns (h2k_ghFixedK mpl mmpl) baseExt lsReadFileSym = some f →
-      (∀ msg, (f a).status ≠ .Exception msg) →
-      FdsGe3Closed a.fs)
-    (hTrap21 : ∀ {sym : String} {f : State → State},
-      cliGhostExterns (h2k_ghFixedK mpl mmpl) (fun _ => none) sym = some f →
-      sym ≠ lsRustNoAllocShimSymCli →
-      ∀ L : BitVec 64, keepMemsetBlk21 mmpl L = true → Blk21TrapHook L f)
-    (hTrap20 : ∀ {sym : String} {f : State → State},
-      cliGhostExterns (h2k_ghFixedK mpl mmpl) (fun _ => none) sym = some f →
-      sym ≠ lsRustNoAllocShimSymCli →
-      ∀ L : BitVec 64, keepMemcpyBlk20 mmpl L = true → Blk20TrapHook L f)
-    (hBlk21Ext : ∀ (W : CliHooks) (pc : BitVec 64), keepMemsetBlk21 mmpl pc = true →
-      (cliProgExtPlacedAt mpl
-        (fun W' => cliGhostExterns (h2k_ghFixedK mpl mmpl) (cliExternsPlaced mmpl W'))
-        617 W).externAt? pc = none ∨
-        ∃ f, (cliProgExtPlacedAt mpl
-          (fun W' => cliGhostExterns (h2k_ghFixedK mpl mmpl) (cliExternsPlaced mmpl W'))
-          617 W).externAt? pc = some f ∧
-          ∀ L : BitVec 64, keepMemsetBlk21 mmpl L = true → Blk21TrapHook L f)
-    (hBlk20Ext : ∀ (W : CliHooks) (pc : BitVec 64), keepMemcpyBlk20 mmpl pc = true →
-      (cliProgExtPlacedAt mpl
-        (fun W' => cliGhostExterns (h2k_ghFixedK mpl mmpl) (cliExternsPlaced mmpl W'))
-        617 W).externAt? pc = none ∨
-        ∃ f, (cliProgExtPlacedAt mpl
-          (fun W' => cliGhostExterns (h2k_ghFixedK mpl mmpl) (cliExternsPlaced mmpl W'))
-          617 W).externAt? pc = some f ∧
-          ∀ L : BitVec 64, keepMemcpyBlk20 mmpl L = true → Blk20TrapHook L f) :
-    Block617TransferFixedHypG mpl mmpl
-      (fun W => cliGhostExterns (h2k_ghFixedK mpl mmpl) (cliExternsPlaced mmpl W))
-      (cliExternsPlaced mmpl)
-      (F3MemsetMemcpyEntryLrFalse mmpl)
-      (LibsignalFrozen mpl) (F3CodeOk mpl mmpl) libcAddr brkStart stk :=
-  h2ef_block617TransferFixedG_of_traj_codeOnly mpl mmpl hF3Frozen
-    (h2ef_pGhost617K_codeLoaded_of_libsignalFrozen mpl mmpl)
-    hRealNone hGhostReplay hNoExLr hNoExFds hTrap21 hTrap20 hBlk21Ext hBlk20Ext
-
-/-- `Block617TransferFixedHypG` reduction at `h2k_ghFixedK` via
-`Block617TransferG.block617TransferFixedG_of_replaysOn` with `keep := fun _ => false` and `PredFs := fun _ => True`. -/
-theorem h2ef_block617TransferFixedG_replaysOn_false_codeOnly [LibsignalPlacement]
-    (mpl mmpl : MultiPlacement)
-    {libcAddr brkStart : BitVec 64} {stk : Nat}
-    (hF3Frozen : ∀ m : Memory, F3CodeOk mpl mmpl m → LibsignalFrozen mpl m)
-    (hRealNone : ∀ (W : CliHooks) (sym : String) (f : State → State),
-      sym ∈ (libsignalSessionLib.blockLib 617).text.externs →
-      GhostSymActive (h2k_ghFixedK mpl mmpl) sym f →
-      (cliProgExtPlacedAt mpl (cliExternsPlaced mmpl) 617 W).externAt?
-        (libsignalSessionLib.resolve mpl sym) = none)
-    (hGhostReplay : ∀ (W : CliHooks) (sym : String) (f : State → State),
-      sym ∈ (libsignalSessionLib.blockLib 617).text.externs →
-      sym ≠ lsStringCloneSym →
-      GhostSymActive (h2k_ghFixedK mpl mmpl) sym f →
-      ∀ u : State,
-        u.pc = libsignalSessionLib.resolve mpl sym →
-        u.status = .Running →
-        (∀ msg, (f u).status ≠ .Exception msg) →
-        u.mem.KeepsFrozen (f u).mem →
-        ExecFrozen u.mem →
-        (sym ≠ lsRustNoAllocShimSymCli → sym ≠ lsMemsetSym → sym ≠ lsMemcpySym →
-          hole2_keepSub (u.readReg64 .lr) = false) →
-        (sym = lsMemsetSym → keepMemsetBlk21 mmpl (u.readReg64 .lr) = false) →
-        (sym = lsMemcpySym → keepMemcpyBlk20 mmpl (u.readReg64 .lr) = false) →
-        F3CodeInv mpl mmpl u.mem →
-        (sym = lsReadFileSym → FdsGe3Closed u.fs) →
-        Steps (cliProgExtPlacedAt mpl (cliExternsPlaced mmpl) 617 W) u (f u))
-    (hNoExLr : ∀ {sym : String} {f : State → State} {a : State},
-      cliGhostExterns (h2k_ghFixedK mpl mmpl) (fun _ => none) sym = some f →
-      sym ≠ lsRustNoAllocShimSymCli →
-      (∀ msg, (f a).status ≠ .Exception msg) →
-      sym ≠ lsMemsetSym →
-      sym ≠ lsMemcpySym →
-      hole2_keepSub (a.readReg64 .lr) = false)
-    (hNoExFds : ∀ {baseExt : String → Option (State → State)} {f : State → State} {a : State},
-      cliGhostExterns (h2k_ghFixedK mpl mmpl) baseExt lsReadFileSym = some f →
-      (∀ msg, (f a).status ≠ .Exception msg) →
-      FdsGe3Closed a.fs)
-    (hTrap21 : ∀ {sym : String} {f : State → State},
-      cliGhostExterns (h2k_ghFixedK mpl mmpl) (fun _ => none) sym = some f →
-      sym ≠ lsRustNoAllocShimSymCli →
-      ∀ L : BitVec 64, keepMemsetBlk21 mmpl L = true → Blk21TrapHook L f)
-    (hTrap20 : ∀ {sym : String} {f : State → State},
-      cliGhostExterns (h2k_ghFixedK mpl mmpl) (fun _ => none) sym = some f →
-      sym ≠ lsRustNoAllocShimSymCli →
-      ∀ L : BitVec 64, keepMemcpyBlk20 mmpl L = true → Blk20TrapHook L f)
-    (hBlk21Ext : ∀ (W : CliHooks) (pc : BitVec 64), keepMemsetBlk21 mmpl pc = true →
-      (cliProgExtPlacedAt mpl
-        (fun W' => cliGhostExterns (h2k_ghFixedK mpl mmpl) (cliExternsPlaced mmpl W'))
-        617 W).externAt? pc = none ∨
-        ∃ f, (cliProgExtPlacedAt mpl
-          (fun W' => cliGhostExterns (h2k_ghFixedK mpl mmpl) (cliExternsPlaced mmpl W'))
-          617 W).externAt? pc = some f ∧
-          ∀ L : BitVec 64, keepMemsetBlk21 mmpl L = true → Blk21TrapHook L f)
-    (hBlk20Ext : ∀ (W : CliHooks) (pc : BitVec 64), keepMemcpyBlk20 mmpl pc = true →
-      (cliProgExtPlacedAt mpl
-        (fun W' => cliGhostExterns (h2k_ghFixedK mpl mmpl) (cliExternsPlaced mmpl W'))
-        617 W).externAt? pc = none ∨
-        ∃ f, (cliProgExtPlacedAt mpl
-          (fun W' => cliGhostExterns (h2k_ghFixedK mpl mmpl) (cliExternsPlaced mmpl W'))
-          617 W).externAt? pc = some f ∧
-          ∀ L : BitVec 64, keepMemcpyBlk20 mmpl L = true → Blk20TrapHook L f) :
-    Block617TransferFixedHypG mpl mmpl
-      (fun W => cliGhostExterns (h2k_ghFixedK mpl mmpl) (cliExternsPlaced mmpl W))
-      (cliExternsPlaced mmpl)
-      (F3MemsetMemcpyEntryLrFalse mmpl)
-      (LibsignalFrozen mpl) (F3CodeOk mpl mmpl) libcAddr brkStart stk := by
-  have hmng20 : (20 : Nat) < mallocngLib.blocks.length := by decide
-  have hmng21 : (21 : Nat) < mallocngLib.blocks.length := by decide
-  refine block617TransferFixedG_of_replaysOn
-    (fun _ => false) (F3CodeInv mpl mmpl) (fun _ => True)
-    (fun W pc heg =>
-      blockProgram_cliGhostExterns_no_new_hooks libsignalSessionLib mpl 617
-        (h2k_ghFixedK mpl mmpl) (cliExternsPlaced mmpl W) pc heg)
-    hF3Frozen (h2ef_pGhost617K_codeLoaded_of_libsignalFrozen mpl mmpl)
-    (fun _ h => h.2) (fun _ h => h.1) (fun _ _ h hkf => h.of_keepsFrozen hkf)
-    (fun _ => trivial) ?_
-  intro W _i s0 sf
-  dsimp only
-  intro hGuard0 _hReal0 _hpc0 _hfs0 _htr0 _hsteps hret_pc hnoex hnhalt
-  have hrun_sf21 : sf.status = .Running → keepMemsetBlk21 mmpl sf.pc = false :=
-    fun hrs => hret_pc hrs ▸ hGuard0.1
-  have hrun_sf20 : sf.status = .Running → keepMemcpyBlk20 mmpl sf.pc = false :=
-    fun hrs => hret_pc hrs ▸ hGuard0.2
-  refine ⟨?_, fun _ _ _ _ _ _ _ _ _ => trivial, fun _ _ _ _ _ => rfl⟩
-  intro pc f heg
-  rcases blockProgram_cliGhostExterns_externAt?_mem_cases
-      (h2k_ghFixedK mpl mmpl) (cliExternsPlaced mmpl W) heg with
-    her | ⟨sym, hsym_ext, hAct, hpc_eq⟩
-  · obtain ⟨sym, hsym⟩ := blockProgram_externAt?_some_exists her
-    refine Or.inl ⟨her, fun u _ _ _ _ _ hkf hfr ⟨hinv, _⟩ => ?_⟩
-    exact ⟨cliExternsPlaced_preserves_execFrozen mmpl W hsym u hfr,
-      hinv.of_keepsFrozen hkf, trivial⟩
-  · refine Or.inr ⟨hpc_eq ▸ hRealNone W sym f hsym_ext hAct,
-      fun u _ hrest hpc hrun hnoex_fu hkf hfr _ ⟨hinv, _⟩ => ?_⟩
-    have hne_sc : sym ≠ lsStringCloneSym := fun heq =>
-      h2ef_strClone_not_mem_ext617 (heq ▸ hsym_ext)
-    have hext0 : cliGhostExterns (h2k_ghFixedK mpl mmpl) (fun _ => none) sym = some f :=
-      h2ef_cliGhostExterns_of_ghostSymActive (h2k_ghFixedK mpl mmpl) hAct
-    have hinv_fu : F3CodeInv mpl mmpl (f u).mem := hinv.of_keepsFrozen hkf
-    have hlr_sub : sym ≠ lsRustNoAllocShimSymCli → sym ≠ lsMemsetSym → sym ≠ lsMemcpySym →
-        hole2_keepSub (u.readReg64 .lr) = false :=
-      fun hnoShim hnoMs hnoMc => hNoExLr hext0 hnoShim hnoex_fu hnoMs hnoMc
-    have hlr_blk21 : sym = lsMemsetSym → keepMemsetBlk21 mmpl (u.readReg64 .lr) = false :=
-      fun hms => blk21_lr_trap_after_hook_ret
-        (hTrap21 hext0 (by subst hms; decide)) (hBlk21Ext W)
-        (hinv_fu.mngBlockCodeLoaded 21 hmng21 _ _ Syscall.standard)
-        hrest hrun hrun_sf21 hnoex hnhalt
-    have hlr_blk20 : sym = lsMemcpySym → keepMemcpyBlk20 mmpl (u.readReg64 .lr) = false :=
-      fun hmc => blk20_lr_trap_after_hook_ret
-        (hTrap20 hext0 (by subst hmc; decide)) (hBlk20Ext W)
-        (hinv_fu.mngBlockCodeLoaded 20 hmng20 _ _ Syscall.standard)
-        hrest hrun hrun_sf20 hnoex hnhalt
-    have hread_fds : sym = lsReadFileSym → FdsGe3Closed u.fs :=
-      fun hrd => hNoExFds (hrd ▸ hext0) hnoex_fu
-    have hst_r : Steps (cliProgExtPlacedAt mpl (cliExternsPlaced mmpl) 617 W) u (f u) :=
-      hGhostReplay W sym f hsym_ext hne_sc hAct u (hpc.trans hpc_eq) hrun hnoex_fu hkf hfr
-        hlr_sub hlr_blk21 hlr_blk20 hinv hread_fds
-    exact ⟨hst_r, h2ef_h2k_ghFixedK_preserves_execFrozen mpl mmpl hAct u hfr,
-      hinv_fu, trivial⟩
 
 end LibsignalBinary.Proofs.SpecLemmas.SignalSession.ElfSlicesPqOomH2ExecFrozenWire

@@ -35,7 +35,9 @@ public import LibsignalBinary.Proofs.TripleRatchet.Keys.CreateChainBudget
 public meta import LibsignalBinary.Proofs.Common.SharedHelpers -- shake: keep
 import LibsignalBinary.Proofs.Common.SharedHelpers
 import LibsignalBinary.Proofs.E2E.Pqxdh.Initiator.ModelBridge
+import LibsignalBinary.Proofs.E2E.Pqxdh.ResponderCore.CryptoCalleesPlacedBudgetBbSat
 import LibsignalBinary.Proofs.E2E.Pqxdh.ResponderCore.CryptoCalleesPlacedBudgetSat
+import LibsignalBinary.Proofs.E2E.Pqxdh.WireEntries.RecvWireSameAccountPlacedBudgetSat
 import Arm64.Trusted.Spec.Hoare
 import Arm64.Trusted.Spec.SepLogic
 
@@ -79,7 +81,7 @@ open CryptoVerification.LibsignalTripleRatchet (
   noAllocShimSpec publicKeySerializeStackX region_ok
 )
 open CryptoVerification.LibsignalTripleRatchetRepr (AddrGhost uuidTryParse)
-open CryptoVerification.SignalSession (CliHooks cliExternsPlaced)
+open CryptoVerification.SignalSession (CliHooks cliExternsPlaced lsDurationSinceSym)
 open CryptoVerification.SignalSession.Cli.KitInst (
   rodata_cliIdentity_kpSlot_placed rodata_cliIdentity_regIdSlot_placed
   rodata_cliIdentity_saveSlot_placed rodata_cliIdentity_trustSlot_placed
@@ -125,6 +127,9 @@ open LibsignalBinary.Proofs.E2E.Pqxdh.ResponderCore.CryptoBridgePlacedBudgetSat 
 open LibsignalBinary.Proofs.E2E.Pqxdh.ResponderCore.CryptoCalleesPlacedBudget (
   extract_placed_vm_ok_of_other_block pqxdhHkdfExpandMultiInfo_placed_ok pqxdhHkdfExtract_placed_ok
 )
+open LibsignalBinary.Proofs.E2E.Pqxdh.ResponderCore.CryptoCalleesPlacedBudgetBbSat (
+  calculateAgreement_placed_ok_unconditional_sat
+)
 open LibsignalBinary.Proofs.E2E.Pqxdh.ResponderCore.CryptoCalleesPlacedBudgetSat (
   extract_placed_vm_ok_of_other_block_sat pqxdhHkdfExpandMultiInfo_placed_ok_sat
   pqxdhHkdfExtract_placed_ok_sat
@@ -132,8 +137,8 @@ open LibsignalBinary.Proofs.E2E.Pqxdh.ResponderCore.CryptoCalleesPlacedBudgetSat
 open LibsignalBinary.Proofs.E2E.Pqxdh.WireEntries.RecvWireSameAccountBudget (
   isSameAccountDistinctSpec
 )
-open LibsignalBinary.Proofs.E2E.Pqxdh.WireEntries.RecvWireSameAccountPlacedBudget (
-  isSameAccountEqDistinct_placed_ok_at
+open LibsignalBinary.Proofs.E2E.Pqxdh.WireEntries.RecvWireSameAccountPlacedBudgetSat (
+  isSameAccountEqDistinct_placed_ok_at_sat
 )
 open LibsignalBinary.Proofs.SignalSession.Cli.Dir.AddressText.PlacedBudget (AddrTextEnv)
 open LibsignalBinary.Proofs.SignalSession.Cli.Dir.Decimal.ExecPlacedBudget (DecimalEnv)
@@ -149,7 +154,7 @@ open LibsignalBinary.Proofs.SignalSession.Cli.Main.Proofs.CliSlotCalleesInstPlac
 )
 open LibsignalBinary.Proofs.SignalSession.Cli.Main.Proofs.CliSlotCalleesInstPlacedBudgetSeams (
   CliSlotAllocHooks CliSlotEnvs SpqrV1PlacedSeamsBudget cliDirPutStrNeedPlaced
-  cliGhostExterns_blackBox_eq decIdKitBudgetEnv decSessKitBudgetEnv dirPutStrPlacedOk_cli
+  decIdKitBudgetEnv decSessKitBudgetEnv dirPutStrPlacedOk_cli
   skeletonHooks_of_slotHooks w1IdKitBudgetEnv w1IdKitPlaced_okIE w1SessKitBudgetEnv
   w1SessKitPlaced_okSE w3DirPut_placed_ok
 )
@@ -179,26 +184,29 @@ open LibsignalBinary.Proofs.SignalSession.Cli.Run.Proofs.Ratchet.DecryptLemmas.S
 open LibsignalBinary.Proofs.SignalSession.Cli.Run.Proofs.Ratchet.EncryptLemmas.SlotOfInnerPlacedBudget (
   w1IdKitPlaced w1SessKitPlaced
 )
+open LibsignalBinary.Proofs.SignalSession.Cli.HooksDehook.WithLsRet (withLsRet)
 open LibsignalBinary.Proofs.SignalSession.Cli.Run.Slots.CliHookSatPlacedBudget (
   CliGhostAllocHooks cliExternsPlaced_sessionMemsetRegion_budget_sat
+  cliGhostExterns_blackBoxSat_budget_sat cliGhostExterns_durationSinceEpochAlloc_budget_sat
 )
 open LibsignalBinary.Proofs.TripleRatchet.Hkdf.CommonBudgetSat (HkdfPlacedHooksExactBudgetSat)
 open LibsignalBinary.Proofs.TripleRatchet.Hkdf.CommonSat (HkdfPlacedHooksExactSat)
 open LibsignalBinary.Proofs.SignalSession.Cli.Run.Slots.SetUnackEpochPlacedBudget (
-  setUnackPreKeyMsgExactStackEpochSpecPlaced setUnackPreKeyMsg_exact_stack_epoch_placed_ok_cli
+  durationSinceEpochAllocBudgetSpec setUnackPreKeyMsgExactStackEpochSpecPlaced
+  setUnackPreKeyMsg_exact_stack_epoch_placed_ok_cli_sat
 )
 open LibsignalBinary.Proofs.SignalSession.Cli.SpecsPlacedBudget (
   dirGetSpecPlaced sessDeserializeSpecPlaced
 )
 open LibsignalBinary.Proofs.SignalSession.Cli.Store.IdSavePollPlacedBudget (
-  CliIdSavePollEnv idSavePoll_placed_ok_of_deps
+  CliIdSavePollEnv idSavePoll_placed_ok_of_deps_16
 )
 open LibsignalBinary.Proofs.SignalSession.Cli.Store.IdSaveShimPlacedBudget (
   idSaveShim_placed_ok_of_deps
 )
 open LibsignalBinary.Proofs.SignalSession.Cli.Store.IdTrustPollPlacedBudget (
-  CliIdTrustPollEnv idTrustPoll_placed_ok_of_deps identityKey_decode_placed_ok
-  publicKeyEq_placed_ok_of_bb
+  CliIdTrustPollEnv idTrustPoll_placed_ok_of_deps_16 identityKey_decode_placed_ok
+  publicKeyEq_mem_placed_ok_of_bb_16_sat
 )
 open LibsignalBinary.Proofs.SignalSession.Cli.Store.IdTrustShimPlacedBudget (
   idTrustShim_placed_ok_of_deps
@@ -369,7 +377,7 @@ theorem w3Exist_placed_ok_of_putStr [LibsignalPlacement] {M : AllocCostModel}
       (readProg := lsProg_589 (cliGhostExterns g (cliExternsPlaced mmpl W))) (jRead := 589)
       (fun _ hp => hp.2) hh (hH.readFile cliRunBudgets.readFile) (by decide) (by decide)
   have hPutStr := dirPutStrPlacedOk_cli mmpl g W A lim hH
-  have hEq := publicKeyEq_placed_ok_of_bb (cliGhostExterns_blackBox_eq mmpl g W)
+  have hEq := publicKeyEq_mem_placed_ok_of_bb_16_sat hh.blackBox
   have hDec := identityKey_decode_placed_ok (A := A) (cliGhostExterns g (cliExternsPlaced mmpl W))
   exact
     { dirGet := hGet
@@ -383,7 +391,7 @@ theorem w3Exist_placed_ok_of_putStr [LibsignalPlacement] {M : AllocCostModel}
         have := stk_sub_ge_base hstk
         have := stk_sub_ge_dirGet hstk
         have : extHookStack ≤ 65536 := by decide
-        exact idTrustPoll_placed_ok_of_deps hh.alloc hGet hDec hEq (by omega)
+        exact idTrustPoll_placed_ok_of_deps_16 hh.alloc hGet hDec hEq (by omega)
           (by decide) (by decide) (by decide) (by decide) (by decide) (by decide)
       sessLoadShim := fun {stk} hstk => by
         have := stk_sub_ge_base hstk
@@ -406,7 +414,7 @@ theorem w3Exist_placed_ok_of_putStr [LibsignalPlacement] {M : AllocCostModel}
         have : cliDirPutStrNeedPlaced ≤ 65536 := by decide
         have : publicKeySerializeStackX ≤ 65536 := by decide
         have : extHookStack ≤ 65536 := by decide
-        exact idSavePoll_placed_ok_of_deps hh.alloc hGet hPutStr hDec hEq (by omega)
+        exact idSavePoll_placed_ok_of_deps_16 hh.alloc hGet hPutStr hDec hEq (by omega)
           (by decide) (by decide) (by decide) (by decide)
           (by decide) (by decide) (by decide) (by decide)
       sessStoreShim := fun {stk} hstk => by
@@ -427,14 +435,26 @@ def SetUnackEpochPlacedOk [LibsignalPlacement] {M : AllocCostModel}
   subroutine_ok (initProgPlaced mmpl g W) (lsmpl.base 33)
     (setUnackPreKeyMsgExactStackEpochSpecPlaced A lim)
 
+theorem setUnackEpochPlacedOk_cli_of_sat [LibsignalPlacement] {M : AllocCostModel}
+    (mmpl : Obj.MultiPlacement) (g : CliGhostHooks) (W : CliHooks)
+    (A : RustCliAllocBudget M) (lim : BudgetLimits)
+    {ReadEnv : FsFiles → List (BitVec 8) → List AllocEvent → Prop}
+    (hH : CliSlotAllocHooks mmpl g W A lim ReadEnv)
+    (hTime : HookSat (cliGhostExterns g (cliExternsPlaced mmpl W)) lsDurationSinceSym
+      (withLsRet durationSinceEpochAllocBudgetSpec)) :
+    SetUnackEpochPlacedOk mmpl g W A lim :=
+  setUnackPreKeyMsg_exact_stack_epoch_placed_ok_cli_sat mmpl g W hH.alloc.toCliGhostAllocHooks
+    hTime (by decide)
+
 theorem setUnackEpochPlacedOk_cli [LibsignalPlacement] {M : AllocCostModel}
     (mmpl : Obj.MultiPlacement) (g : CliGhostHooks) (W : CliHooks)
     (A : RustCliAllocBudget M) (lim : BudgetLimits)
     {ReadEnv : FsFiles → List (BitVec 8) → List AllocEvent → Prop}
     (hH : CliSlotAllocHooks mmpl g W A lim ReadEnv) :
     SetUnackEpochPlacedOk mmpl g W A lim :=
-  setUnackPreKeyMsg_exact_stack_epoch_placed_ok_cli mmpl g W hH.alloc.toCliGhostAllocHooks
-    (by decide)
+  setUnackEpochPlacedOk_cli_of_sat mmpl g W A lim hH
+    (cliGhostExterns_durationSinceEpochAlloc_budget_sat g (cliExternsPlaced mmpl W)
+      hH.alloc.toCliGhostAllocHooks.extraOk)
 
 /-- Budget-threaded (`VmPreserved`) Block-`618` `coinsFillSpecPlacedW3` contract obligation. -/
 def CoinsFillCliPlacedOk [LibsignalPlacement]
@@ -450,13 +470,16 @@ theorem coinsFillCliPlacedOk_cli [LibsignalPlacement]
     CoinsFillCliPlacedOk mmpl g W :=
   fun {_cStk} hstk hstk64 => signal_session_coins_fill_vm_placed_ok_at_init mmpl g W hG hstk hstk64
 
-theorem w3IsSameAccount_placed_ok [LibsignalPlacement]
+theorem w3IsSameAccount_placed_ok_of_bb_sat [LibsignalPlacement]
     (mmpl : Obj.MultiPlacement) (g : CliGhostHooks)
-    (A : CryptoVerification.RustHeap.RustAlloc) (W : CliHooks) :
+    (A : CryptoVerification.RustHeap.RustAlloc) (W : CliHooks)
+    (hBb : HookSat (cliGhostExterns g (cliExternsPlaced mmpl W))
+      CryptoVerification.lsBlackBoxU8Sym
+      LibsignalBinary.Proofs.ConsumeMessageKey.FindIndexProofs.CtEqSat.blackBoxSpecSat) :
     subroutine_ok (initProgPlaced mmpl g W) (lsmpl.base 17)
       (withLsCodeRoLoaded lsmpl (isSameAccountDistinctSpec A uuidTryParse)) := by
-  have hisa := isSameAccountEqDistinct_placed_ok_at A
-    (callerProg := initProgPlaced mmpl g W) (cliGhostExterns_blackBox_eq mmpl g W)
+  have hisa := isSameAccountEqDistinct_placed_ok_at_sat A
+    (callerProg := initProgPlaced mmpl g W) hBb
     (uuidTryParse_252_vm_placed_ok (cliGhostExterns g (cliExternsPlaced mmpl W))) (by decide)
   refine subroutine_ok_mono hisa (fun x R s0 hp => ?_) (fun _ _ _ _ hq => hq)
   obtain ⟨hc, hpre⟩ := extract_withLsCodeRoLoaded hp
@@ -465,6 +488,15 @@ theorem w3IsSameAccount_placed_ok [LibsignalPlacement]
       ((isSameAccountDistinctSpec A uuidTryParse).pre x s0 ∗ R) := by
     rw [satisfies_pure_sepConj]; exact ⟨hc.1, hpre⟩
   exact Eq.mp (congrArg (s0.mem ⊨ ·) (by sep_ac_rfl)) h1
+
+theorem w3IsSameAccount_placed_ok_sat [LibsignalPlacement]
+    (mmpl : Obj.MultiPlacement) (g : CliGhostHooks)
+    (A : CryptoVerification.RustHeap.RustAlloc) (W : CliHooks)
+    (hOk : LibsignalBinary.Proofs.SignalSession.Cli.Run.Slots.ExtraGhostSpecs.ExtraSpecOk g) :
+    subroutine_ok (initProgPlaced mmpl g W) (lsmpl.base 17)
+      (withLsCodeRoLoaded lsmpl (isSameAccountDistinctSpec A uuidTryParse)) :=
+  w3IsSameAccount_placed_ok_of_bb_sat mmpl g A W
+    (cliGhostExterns_blackBoxSat_budget_sat g (cliExternsPlaced mmpl W) hOk)
 
 /-- Block-`54` `extractBudgetSpec W.C.F` contract on Block `40` under `withLsCodeRoLoaded lsmpl` from `CliGhostAllocHooks`. -/
 theorem w3HkdfExtract40_cro_placed_ok [LibsignalPlacement]
@@ -526,7 +558,7 @@ theorem w3A4_placed_ok [LibsignalPlacement] {M : AllocCostModel}
       (cliExternsPlaced_sessionMemsetRegion_budget_sat mmpl g W hG)
   exact
     { verifySignature := hSpqr.verifySignature
-      isSameAccount := w3IsSameAccount_placed_ok mmpl g A.repAlloc W
+      isSameAccount := w3IsSameAccount_placed_ok_sat mmpl g A.repAlloc W hG.extraOk
       spqrInitialState := hSpqr.spqrInitialState_initProg
       pqxdhHkdfExtract := fun X => pqxdhHkdfExtract_placed_ok_sat
         (primitivesMatchCrypto_modelPrims X ⟨W.C, W.Q⟩)
@@ -569,20 +601,6 @@ private theorem transfer_tr_codeRoLoaded [LibsignalPlacement] {α : Type}
       (fun _ _ _ _ hq => hq)
   exact transfer_withLsCodeRoLoaded (callerProg := initProgPlaced mmpl g W) hcrl (by decide) hj hj_unmut
 
-private theorem hookSat_of_keepsFs {α : Type} {H : LibsignalHooks} {sym : String}
-    {spec : Spec α} (h : HookSat H sym spec.keepsFs) :
-    HookSat H sym spec := by
-  rcases h with ⟨fn, hfn, hok⟩
-  refine ⟨fn, hfn, fun x R s0 hrun hpre hsp => ?_⟩
-  rcases hok x R s0 hrun hpre hsp with ⟨hkf, hsym, hout⟩
-  refine ⟨hkf, hsym, ?_⟩
-  rcases hout with ⟨hret, hcc, hpost⟩ | hrest
-  · refine Or.inl ⟨hret, hcc, ?_⟩
-    dsimp only [Arm64.Spec.keepsFs] at hpost
-    rw [sepConj_assoc, satisfies_pure_sepConj] at hpost
-    exact hpost.2
-  · exact Or.inr hrest
-
 private theorem createChain40_cro_placed_ok [LibsignalPlacement]
     {M : AllocCostModel} {A : RustCliAllocBudget M} {lim : BudgetLimits}
     (mmpl : Obj.MultiPlacement) (g : CliGhostHooks) (W : CliHooks)
@@ -594,13 +612,10 @@ private theorem createChain40_cro_placed_ok [LibsignalPlacement]
         (createChainSpec M A lim W.C)) := by
   have : HkdfPlacedHooksExactSat W.C.F (cliGhostExterns g (cliExternsPlaced mmpl W)) := hh.hkdf
   have : HkdfPlacedHooksExactBudgetSat W.C.F (cliGhostExterns g (cliExternsPlaced mmpl W)) :=
-    HkdfPlacedHooksExactBudgetSat.of_exactSat (hookSat_of_keepsFs hh.memsetRegionKeepsFs)
-  have hct207 := ct_eq_ro_placed_vm_ok_of_block
-    (callerProg := (blkPC_207).rebase (blkPl_207).base (cliGhostExterns g (cliExternsPlaced mmpl W)))
-    hh.blackBox (by decide)
+    HkdfPlacedHooksExactBudgetSat.of_exactSat hh.memsetRegionKeepsFs.of_keepsFs
   have hag40 := keys_ls_subroutine_ok_of_block_cro
     (callerProg := (blkPC_40).rebase (blkPl_40).base (cliGhostExterns g (cliExternsPlaced mmpl W)))
-    (calculateAgreement_placed_ok hh.dh hh.sharedDrop hct207
+    (calculateAgreement_placed_ok_unconditional_sat hh.dh hh.sharedDrop hh.blackBox
       (hookSat_noAllocShimBudget_of_withVmPreserved hh.shim) hh.rawAlloc hh.staticDrop)
   have hext40 := extract_placed_vm_ok_of_other_block_sat W.C
     (callerProg := (blkPC_40).rebase (blkPl_40).base (cliGhostExterns g (cliExternsPlaced mmpl W)))

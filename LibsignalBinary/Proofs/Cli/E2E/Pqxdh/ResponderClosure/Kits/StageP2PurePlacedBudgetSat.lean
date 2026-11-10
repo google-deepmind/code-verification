@@ -13,14 +13,19 @@ public import LibsignalBinary.Proofs.Cli.E2E.Pqxdh.ResponderClosure.Kits.StageP2
 public import LibsignalBinary.Proofs.Cli.E2E.V1.BobTailV1PlacedBudgetSat -- proof-setup: allow-public-import
 public import LibsignalBinary.Proofs.E2E.Pqxdh.FullPlacementCorollariesBudgetSat -- proof-setup: allow-public-import
 public import LibsignalBinary.Proofs.E2E.Pqxdh.ResponderCore.CryptoCalleesPlacedBudgetSat -- proof-setup: allow-public-import
+public import LibsignalBinary.Proofs.E2E.Pqxdh.WireEntries.RecvWireSameAccountPlacedBudgetSat -- proof-setup: allow-public-import
 
 /-!
 # `HookSat` Sibling of `StageP2PurePlacedBudget` (`Kits/StageP2PurePlacedBudgetSat.lean`)
 
-Provides the 20 closed `[LibsignalFullPlacement]` `initialize_bob_session` (Block `75`)
-bridges on `stageP1ProgPlaced ext` from Section 6 of `StageP2PurePlacedBudget` re-typed over
-`PqxdhPlacedHookContractsSat` (replacing `HkdfPlacedHooks`'s `memset` equality with
-`HookSat ext lsMemsetSym sessionMemsetRegionBudgetSpec`).
+Provides:
+- `isSameAccount_placed_ok_on_stageP1_sat` and `isSameAccount_4k_placed_ok_on_stageP1_sat` on
+  `stageP1ProgPlaced ext` from `HookSat ext lsBlackBoxU8Sym blackBoxSpecSat` (replacing
+  `ext lsBlackBoxU8Sym = some blackBoxHook`);
+- the closed `[LibsignalFullPlacement]` `initialize_bob_session` (Block `75`)
+  bridges on `stageP1ProgPlaced ext` from Section 6 of `StageP2PurePlacedBudget` re-typed over
+  `PqxdhPlacedHookContractsSat` (replacing `HkdfPlacedHooks`'s `memset` equality with
+  `HookSat ext lsMemsetSym sessionMemsetRegionBudgetSpec`).
 -/
 
 set_option autoImplicit false
@@ -32,9 +37,11 @@ namespace LibsignalBinary.Proofs.Cli.E2E.Pqxdh.ResponderClosure.Kits.StageP2Pure
 open Arm64 ProofLib SepProp
 open CryptoGames.LibsignalSession (Crypto ShaCompress)
 open CryptoVerification
-  (LibsignalCodeLoaded LibsignalFrozen LibsignalFullPlacement
-   lsMemcpySym lsProg_75 lsmpl)
-open CryptoVerification.LibsignalTripleRatchet (withLsCodeRoLoaded)
+  (LibsignalCodeLoaded LibsignalFrozen LibsignalFullPlacement LibsignalPlacement
+   blkPC_252 blkPl_252 lsBlackBoxU8Sym lsMemcpySym lsProg_75 lsmpl withLsCodeLoaded)
+open CryptoVerification.RustHeap (RustAlloc)
+open CryptoVerification.LibsignalTripleRatchet (uuidTryParseCodeSpec withLsCodeRoLoaded)
+open CryptoVerification.LibsignalTripleRatchetRepr (uuidTryParse)
 open CryptoVerification.LibsignalPublicApi.StoreKit (LibsignalCodeRoLoaded)
 open CryptoVerification.E2E.Pqxdh.Initiator
   (AcceptKeysInput Bytes Primitives StructuralPrims)
@@ -45,8 +52,12 @@ open CryptoVerification.Cli.E2E.Pqxdh.ResponderClosure.Kits (stageP1ProgPlaced)
 open LibsignalBinary.Heap
   (AllocCostModel AllocEvent BudgetLimits FitsEnv RustCliAllocBudget SeqEnv)
 open LibsignalBinary.Heap.RustStdAllocBudgetBridge (allocMemcpyVmSpec)
+open LibsignalBinary.Heap.SpecBudget (withVmPreserved)
+open LibsignalBinary.Proofs.ConsumeMessageKey.FindIndexProofs.CtEqSat (blackBoxSpecSat)
 open LibsignalBinary.Proofs.TripleRatchet.Hooks.DefsBudget (sessionMemcpyRegionBudgetSpec)
 open LibsignalBinary.Proofs.TripleRatchet.Alloc.DefsBudget (framelessMemcpySpec)
+open LibsignalBinary.Proofs.E2E.Pqxdh.WireEntries.RecvWireSameAccountPlacedBudgetSat
+  (isSameAccountEqDistinct_placed_ok_at_sat)
 open LibsignalBinary.Proofs.E2E.Pqxdh.ResponderCore.AcceptPlacedABudget (AcceptOptFieldsEnv)
 open LibsignalBinary.Proofs.E2E.Pqxdh.ResponderCore.CryptoCalleesPlacedBudgetSat
   (PqxdhPlacedHookContractsSat)
@@ -66,13 +77,39 @@ open LibsignalBinary.Proofs.Cli.E2E.V1.BobTailV1PlacedBudget
 open LibsignalBinary.Proofs.Cli.E2E.V1.BobTailV1PlacedBudgetSat
   (initializeBobSession_ok_v1_full_placed_of_env_of_session_sat
    initializeBobSession_ok_v1_full_placed_of_env_std_sat)
+open LibsignalBinary.Proofs.Cli.E2E.Pqxdh.ResponderClosure.Kits.StageP2DefsBudget
+  (isSameAccountDistinctSpec isSameAccountDistinctSpecExt)
 open LibsignalBinary.Proofs.Cli.E2E.Pqxdh.ResponderClosure.Kits.StageP2DefsPlacedBudget
   (InitializeBobV1FrozenOkPlaced4KOfEnv InitializeBobV1FrozenOkPlacedOfEnv)
+open LibsignalBinary.Proofs.Cli.E2E.Pqxdh.ResponderClosure.Kits.StageP2Sub1PlacedBudget
+  (isSameAccountDistinctSpec_lscl_to_ext)
 open LibsignalBinary.Proofs.Cli.E2E.Pqxdh.ResponderClosure.Kits.StageP2Sub5DefsPlacedBudget
   (of_stageP2Defs_errOwned4K_frozen_placed)
 open LibsignalBinary.Proofs.Cli.E2E.Pqxdh.ResponderClosure.Kits.StageP2PurePlacedBudget
   (InitializeBobV1OptFieldsEnv ls_sepWPp_of_block
    p2_errOwned_frozen_to_defs4K_placed p2_initBobV1FrozenPlacedOfEnv_to_4K)
+
+/-- `<IdentityKey>::is_same_account` (`lsmpl.base 17`, `withVmPreserved`) on `stageP1ProgPlaced ext`
+from `HookSat ext lsBlackBoxU8Sym blackBoxSpecSat`. -/
+public theorem isSameAccount_placed_ok_on_stageP1_sat [LibsignalPlacement] {A : RustAlloc}
+    {ext : String → Option (State → State)}
+    (hBb : HookSat ext lsBlackBoxU8Sym blackBoxSpecSat)
+    (hUuid : subroutine_ok ((blkPC_252).rebase (blkPl_252).base ext) (blkPl_252).base
+      (withLsCodeLoaded lsmpl (withVmPreserved (uuidTryParseCodeSpec uuidTryParse)))) :
+    subroutine_ok (stageP1ProgPlaced ext) (lsmpl.base 17)
+      (withLsCodeLoaded lsmpl (isSameAccountDistinctSpec A uuidTryParse)) :=
+  isSameAccountEqDistinct_placed_ok_at_sat A hBb hUuid (by decide)
+
+/-- 4K/`Ext` `<IdentityKey>::is_same_account` (`lsmpl.base 17`, `withVmPreserved`) on
+`stageP1ProgPlaced ext` from `HookSat ext lsBlackBoxU8Sym blackBoxSpecSat`. -/
+public theorem isSameAccount_4k_placed_ok_on_stageP1_sat [LibsignalPlacement] {A : RustAlloc}
+    {ext : String → Option (State → State)}
+    (hBb : HookSat ext lsBlackBoxU8Sym blackBoxSpecSat)
+    (hUuid : subroutine_ok ((blkPC_252).rebase (blkPl_252).base ext) (blkPl_252).base
+      (withLsCodeLoaded lsmpl (withVmPreserved (uuidTryParseCodeSpec uuidTryParse)))) :
+    subroutine_ok (stageP1ProgPlaced ext) (lsmpl.base 17)
+      (withLsCodeLoaded lsmpl (isSameAccountDistinctSpecExt A uuidTryParse)) :=
+  isSameAccountDistinctSpec_lscl_to_ext (isSameAccount_placed_ok_on_stageP1_sat hBb hUuid)
 
 /-- Closed `[LibsignalFullPlacement]` rejecting run of `initialize_bob_session`
 (`lsmpl.base 75`, `withLsCodeRoLoaded lsmpl (initializeBobSessionErrFrozenPlacedSpec ...)`)

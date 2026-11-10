@@ -63,7 +63,7 @@ open LibsignalBinary.Heap.IfaceBudgetLemmas (
 )
 open LibsignalBinary.Heap.SpecBudget (withVmPreserved)
 open LibsignalBinary.Proofs.TripleRatchet.Hooks.DefsBudget (
-  sessionShimBudgetSpec sessionMemmoveBudgetSpec
+  sessionShimBudgetSpec
 )
 open LibsignalBinary.Proofs.TripleRatchet.Alloc.DefsBudget (
   FinishGrowEnv finishGrowEvents fitsEnv_finishGrow_iff reserveCap session2ShimBudgetSpecX
@@ -205,7 +205,6 @@ theorem allocContractsPlaced_of_stage2ContractsPlaced [LibsignalPlacement] {M : 
       rw [sepConj_assoc, sepConj_assoc, satisfies_pure_sepConj, satisfies_pure_sepConj] at hpost
       rw [sepConj_assoc, satisfies_pure_sepConj]
       exact ⟨⟨hpost.2.1, hpost.1⟩, hpost.2.2⟩
-  session_memmove := hC.memmove
 
 /-! ## Block `13` (`do_reserve_and_handle`) verification -/
 

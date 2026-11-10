@@ -16,9 +16,11 @@ public import ProofLib.Hoare.LibcHooks
 /-!
 # Session Image Extern Hooks (`LibsignalSession`)
 
-**Trusted in part.** `Computational/Theorems/Main.lean` unfolds `blackBoxHook` (installed in
-`cliHookTablePlaced`); `sessionExterns` and `logFilterAddr` belong to the non-ELF session-image
-harness. See `Computational/docs/TRUSTED_BASE.md`.
+**Checked by Lean.** No theorem of `Computational/Theorems/` unfolds a definition of this file, and
+Lean's kernel checks every proof in it: you do not need to read it to trust those theorems.
+`blackBoxHook` was a row of `cliHookTablePlaced` until the second stock `ld.lld` cutover (C2)
+de-hooked `subtle::black_box`, whose compiled code now runs; `sessionExterns` and `logFilterAddr`
+belong to the non-ELF session-image harness. See `Computational/docs/TRUSTED_BASE.md`.
 
 Extern hook table for the loaded session image:
 * `blackBoxHook` models `subtle::black_box::<u8>` as the identity on the low byte of `x0`.

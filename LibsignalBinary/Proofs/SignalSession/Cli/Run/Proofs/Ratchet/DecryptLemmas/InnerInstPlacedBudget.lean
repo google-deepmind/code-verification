@@ -66,7 +66,6 @@ open CryptoVerification.SignalSession (
   CliHooks cliExternsPlaced lsFmtWriteSym lsFormatInnerSym lsReadFileSym
 )
 open CryptoVerification.SignalSession.Cli (StoresGhost cliIdentityVtSym cliSessionVtSym)
-open CryptoVerification.SignalSession.Cli.KitInst (cliGhostExterns_blackBox)
 open CryptoVerification.SignalSession.Cli.RunGlue (
   CliGhostHooks CliGhostHooksFs cliGhostExterns
 )
@@ -114,7 +113,7 @@ open LibsignalBinary.Proofs.SessionRecordAt.Hooks2.DeserBudget.SessionDeserializ
   sessDeserEvents
 )
 open LibsignalBinary.Proofs.SignalSession.Cli.KitInst.IdentityKitOkPlacedBudget (
-  cliIdKitOkIE_placed cliIdentityKitDefaultBudgetEnv
+  cliIdKitOkIE_placed_sat cliIdentityKitDefaultBudgetEnv
 )
 open LibsignalBinary.Proofs.SignalSession.Cli.KitInst.SessionKitOkCliPlacedBudget (
   cliSessionKitDefaultBudgetEnv
@@ -192,7 +191,7 @@ theorem w2_inner_placed_ok_of_region_ofEnv [LibsignalPlacement]
   have hId : IdentityStoreKitPlacedOkI A lim (decIdKitPlaced A.repAlloc F0 peer B)
       (w2IdKitBudgetEnv A.repAlloc B ReadEnv F0 peer)
       (cliGhostExterns gh (cliExternsPlaced mmpl W)) :=
-    cliIdKitOkIE_placed
+    cliIdKitOkIE_placed_sat
       (readProg := lsProg_589 (cliGhostExterns gh (cliExternsPlaced mmpl W))) (jRead := 589)
       (vtSym := cliIdentityVtSym)
       hDropNz
@@ -202,7 +201,7 @@ theorem w2_inner_placed_ok_of_region_ofEnv [LibsignalPlacement]
         (ls_hook_ok_ultra_of_mem
           (prog := lsProg_589 (cliGhostExterns gh (cliExternsPlaced mmpl W))) (i := 589)
           hReadHook (by decide) (by decide) (by decide)))
-      (cliGhostExterns_blackBox mmpl gh W)
+      hh.blackBox
       (by decide) (Nat.le_refl _) (by decide) (Nat.le_refl _)
   have hq : (decSessKitPlaced A.repAlloc F0 peer B).Quiet ∧
       (decIdKitPlaced A.repAlloc F0 peer B).Quiet :=
@@ -370,7 +369,7 @@ theorem w2_inner_frozen_placed_ok_of_region_ofEnv [LibsignalPlacement]
   have hId : IdentityStoreKitPlacedOkI A lim (decIdKitPlaced A.repAlloc F0 peer B)
       (w2IdKitBudgetEnv A.repAlloc B ReadEnv F0 peer)
       (cliGhostExterns gh (cliExternsPlaced mmpl W)) :=
-    cliIdKitOkIE_placed
+    cliIdKitOkIE_placed_sat
       (readProg := lsProg_589 (cliGhostExterns gh (cliExternsPlaced mmpl W))) (jRead := 589)
       (vtSym := cliIdentityVtSym)
       hDropNz
@@ -380,7 +379,7 @@ theorem w2_inner_frozen_placed_ok_of_region_ofEnv [LibsignalPlacement]
         (ls_hook_ok_ultra_of_mem
           (prog := lsProg_589 (cliGhostExterns gh (cliExternsPlaced mmpl W))) (i := 589)
           hReadHook (by decide) (by decide) (by decide)))
-      (cliGhostExterns_blackBox mmpl gh W)
+      hh.blackBox
       (by decide) (Nat.le_refl _) (by decide) (Nat.le_refl _)
   have hq : (decSessKitPlaced A.repAlloc F0 peer B).Quiet ∧
       (decIdKitPlaced A.repAlloc F0 peer B).Quiet :=

@@ -178,7 +178,8 @@ theorem cliPollSess_seqFreeKitPlacedOkSE_of_kits [LibsignalPlacement] {M : Alloc
     { alloc := hh.alloc, allocFs := hh.allocFs, panics := hh.panics, memcpyRO := hh.memcpyRO,
       bcmp := hh.bcmp, fs := hh.fs, utf8 := hh.utf8, memrchr := hh.memrchr,
       codecHooks := hh.codecHooks, allocZeroed := hh.allocZeroed,
-      stringClone := hh.stringClone, formatInner := hh.formatInner }
+      stringClone := hh.stringClone, formatInner := hh.formatInner,
+      blackBox := hh.blackBox }
   have hAddr := cliAddrText_placed_ok_of_sessHooks hhS
   have hPut := cliDirPut_placed_ok_of_sessHooks hhS
   have hSer := cliSerializeCanonSeqFree_placed_ok mmpl gh W hh

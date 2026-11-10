@@ -21,6 +21,7 @@ public import LibsignalBinary.Proofs.SignalSession.Cli.Run.Proofs.DecryptPrekey.
 public import LibsignalBinary.Proofs.SignalSession.Cli.Run.Proofs.DecryptPrekey.Poll.StagesInst.Stage2V1Agree
 import Arm64.Trusted.Spec.Hoare
 import Arm64.Trusted.Spec.SepLogic
+import LibsignalBinary.Proofs.Cli.E2E.Pqxdh.ResponderClosure.Kits.StageP2PurePlacedBudgetSat
 import ProofLib.SepLogic.WPp
 import LibsignalBinary.Proofs.SignalSession.Cli.D3.Budget.D3BadKemP2TopPathAPlacedBudget
 import LibsignalBinary.Proofs.SignalSession.Cli.D3.Budget.D3BadKemP2TopPlacedBudget
@@ -75,7 +76,7 @@ open CryptoVerification.SignalSession.Cli
 open CryptoVerification.SignalSession.Cli.MainHops (cliIo cliWrOk coinsInstalledPlaced storesAt)
 open CryptoVerification.SignalSession.Cli.RunCompose (DecPkGhost RunSem decResAt dpPollNeed)
 open CryptoVerification.SignalSession.Cli.RunGlue
-  (CliGhostHooks cliExternsPlaced_row cliGhostExterns cliGhostExterns_other)
+  (CliGhostHooks cliGhostExterns)
 open CryptoVerification.SignalSession.Cli.RunProofs (dpFutDoneAt)
 open CryptoVerification.SignalSession.Cli.RunProofs.Poll
   (LsTokenInit PathAEntryWords StageP1PostRegs calleeSavedPreserved_of_closure cliKitStk
@@ -86,7 +87,7 @@ open CryptoVerification.SignalSession.Cli.RunProofs.Poll
    signalMessageRestVerAt sp550P2V1RemAt spMidGapsAt sp_frame_sub_add stageP2PostP1At)
 open CryptoVerification.SignalSession.Cli.RunSkeleton (RunBudgets)
 open CryptoVerification.SignalSession.Cli.Slots
-  (EncodeInjOn FilesOkPeer blackBox_row_placed loadRec scopeIn scopeKit)
+  (EncodeInjOn FilesOkPeer loadRec scopeIn scopeKit)
 open LibsignalBinary.Heap
   (AllocCostModel AllocEvent BudgetLimits FitsEnv FreeOnlyEvs RustCliAllocBudget SeqEnv)
 open LibsignalBinary.Heap.SpecBudget (withVmPreserved)
@@ -97,7 +98,7 @@ open LibsignalBinary.Proofs.Cli.E2E.Pqxdh.ResponderClosure.Kits.StageP2DefsPlace
 open LibsignalBinary.Proofs.Cli.E2E.Pqxdh.ResponderClosure.Kits.StageP2Mid3PlacedBudget
   (P2Sub1To3Arm1Env P2Sub1To3Arm2Env P2Sub1To4Arm3Env P2Sub1To4Env P2Sub1To4OkEnv P2Sub4OkEnv)
 open LibsignalBinary.Proofs.Cli.E2E.Pqxdh.ResponderClosure.Kits.StageP2PurePlacedBudget
-  (StageP2BaseCalleesPlaced4K.of_hooks isSameAccount_4k_placed_ok_on_stageP1)
+  (StageP2BaseCalleesPlaced4K.of_hooks)
 open LibsignalBinary.Proofs.Cli.E2E.Pqxdh.ResponderClosure.Kits.StageP2Sub5DefsPlacedBudget
   (isSameAccountDistinctSpecExt_to_at_placed)
 open LibsignalBinary.Proofs.Cli.E2E.Pqxdh.ResponderClosure.Kits.StageP2V1PlacedBudget
@@ -864,7 +865,7 @@ private theorem r20f_toSkeletonRunHooksPlaced [LibsignalPlacement] {M : AllocCos
   { alloc := hh.alloc, allocFs := hh.allocFs, panics := hh.panics, memcpyRO := hh.memcpyRO,
     bcmp := hh.bcmp, fs := hh.fs, utf8 := hh.utf8, memrchr := hh.memrchr,
     codecHooks := hh.codecHooks, allocZeroed := hh.allocZeroed, stringClone := hh.stringClone,
-    formatInner := hh.formatInner }
+    formatInner := hh.formatInner, blackBox := hh.blackBox }
 
 private def r20a6w_dummyExtras : UnreachedPqxdhPrimitives :=
   ⟨fun _ => [], fun _ _ _ => [], fun _ _ => [], fun _ _ => [], fun _ => ([], []),
@@ -944,10 +945,8 @@ private theorem r20a6w_baseCalleesPlaced4K [LibsignalPlacement]
     hh.codecHooks.alloc
     hh.codecHooks.dealloc
     (r20a6w_hookSat_sessionMemcpyBudget allocHookStack hh.codecHooks.memcpy)
-    (isSameAccount_4k_placed_ok_on_stageP1
-      ((cliGhostExterns_other gh _ (by decide) (by decide) (by decide)
-          (by decide) (by decide) (by decide)).trans
-        (cliExternsPlaced_row mmpl W (blackBox_row_placed mmpl W)))
+    (LibsignalBinary.Proofs.Cli.E2E.Pqxdh.ResponderClosure.Kits.StageP2PurePlacedBudgetSat.isSameAccount_4k_placed_ok_on_stageP1_sat
+      hh.blackBox
       (uuidTryParse_placed_vm_code_ok (cliGhostExterns gh (cliExternsPlaced mmpl W))))
 
 private theorem r20a6w_pureCalleesPlaced4K [LibsignalPlacement]
@@ -1597,7 +1596,7 @@ private theorem r20a6w_stageP2_badKem_reject_body [LibsignalFullPlacement]
     have hPromMissAt :=
       LibsignalBinary.Proofs.Cli.E2E.Pqxdh.ResponderClosure.Over.StageP2DefsPlacedBudget.promoteMatchingMissAt_placed_of_gen
         (LibsignalBinary.Proofs.SignalSession.Cli.D3.Budget.D3PollRejectAuxPlacedBudget.cliPromoteMatchingMissGen_placed_d3
-          A.repAlloc mmpl gh W)
+          A.repAlloc mmpl gh W hh.blackBox)
         y.fut g recG sess 4#8 (5#8 :: bytesToBv8 (mkBadKemHdr y.g.msg kp).ekAPk)
         (not_p2SessMatchesMsg_of_v4_badKem kp hv4 hnm)
         (by

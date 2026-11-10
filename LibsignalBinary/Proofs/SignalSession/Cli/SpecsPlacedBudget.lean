@@ -47,7 +47,7 @@ open CryptoVerification.E2E.Record.DeserializeGeneral (DeserializeGenGhost)
 open CryptoVerification.E2E.Record.Serialization (CanonRecord)
 open CryptoVerification.LibsignalPublicApi.StoreSession (StoreShimCall)
 open CryptoVerification.LibsignalPublicApiRepr (RecordGhost sessionRecordAt)
-open CryptoVerification.LibsignalTripleRatchet (extHookStack lsLogOff memcpyName memmoveName memsetName withStack)
+open CryptoVerification.LibsignalTripleRatchet (extHookStack lsLogOff memcpyName memsetName withStack)
 open CryptoVerification.LibsignalTripleRatchet.Getters (dropSpeStackX)
 open CryptoVerification.LibsignalTripleRatchetRepr (AddrGhost UuidParser protocolAddressAt speWord)
 open CryptoVerification.RecordCodecs (IdentityKeyPair KyberPreKeyRecord)
@@ -78,7 +78,7 @@ open LibsignalBinary.Proofs.SignalSession.Cli.Main.CalleesBudget
 open LibsignalBinary.Proofs.SignalSession.Cli.Main.TopBudget (mainFrame)
 open LibsignalBinary.Proofs.SpqrV1.Varint.EncodeVarintPlacedCommonBudget (doReserveSpecOf)
 open LibsignalBinary.Proofs.TripleRatchet.Hooks.DefsBudget
-  (sessionMemcpyBudgetSpec sessionMemcpyRegionBudgetSpec sessionMemmoveBudgetSpec
+  (sessionMemcpyBudgetSpec sessionMemcpyRegionBudgetSpec
    sessionMemsetBudgetSpec sessionMemsetRegionBudgetSpec sessionShimBudgetSpec)
 open LibsignalBinary.Proofs.TripleRatchet.Hooks2Budget
   (rustAllocSpecWithStack rustDeallocExternSpecWithStack rustReallocExternSpecWithStack)
@@ -914,12 +914,6 @@ structure AllocContractsXCliPlaced [LibsignalPlacement] {M : AllocCostModel}
   session_memcpy_region : ∀ (stk : Nat), extHookStack ≤ stk → stk ≤ 2 ^ 64 →
     subroutine_ok (lsProg_617 H) (lsρ memcpyName)
       (CryptoVerification.LibsignalPublicApi.StoreKit.withLsCodeRoLoaded lsmpl (withStack sessionMemcpyRegionBudgetSpec stk))
-  memmove : ∀ (stk : Nat), extHookStack ≤ stk → stk ≤ 2 ^ 64 →
-    subroutine_ok (lsProg_617 H) (lsρ memmoveName)
-      (CryptoVerification.LibsignalPublicApi.StoreKit.withLsCodeRoLoaded lsmpl (withVmPreserved (libcMemmoveSpec stk)))
-  session_memmove : ∀ (stk : Nat), extHookStack ≤ stk → stk ≤ 2 ^ 64 →
-    subroutine_ok (lsProg_617 H) (lsρ memmoveName)
-      (CryptoVerification.LibsignalPublicApi.StoreKit.withLsCodeRoLoaded lsmpl (sessionMemmoveBudgetSpec stk))
   memset : ∀ (stk : Nat), extHookStack ≤ stk → stk ≤ 2 ^ 64 →
     subroutine_ok (lsProg_617 H) (lsρ memsetName)
       (CryptoVerification.LibsignalPublicApi.StoreKit.withLsCodeRoLoaded lsmpl (withVmPreserved (libcMemsetSpec stk)))
@@ -933,7 +927,7 @@ structure AllocContractsXCliPlaced [LibsignalPlacement] {M : AllocCostModel}
     subroutine_ok (lsProg_617 H) (lsρ memsetName)
       (CryptoVerification.LibsignalPublicApi.StoreKit.withLsCodeRoLoaded lsmpl (withStack sessionMemsetRegionBudgetSpec stk))
 
-/-- Budget-threaded 15-field `.keepsFs` allocator and `libc` memory contract bundle on `lsProg_617 H`. -/
+/-- Budget-threaded 13-field `.keepsFs` allocator and `libc` memory contract bundle on `lsProg_617 H`. -/
 structure AllocContractsFsPlaced [LibsignalPlacement] {M : AllocCostModel}
     (A : RustCliAllocBudget M) (lim : BudgetLimits) (H : LibsignalHooks) : Prop where
   alloc : subroutine_ok (lsProg_617 H) (lsρ lsRustAllocSymCli)
@@ -957,12 +951,6 @@ structure AllocContractsFsPlaced [LibsignalPlacement] {M : AllocCostModel}
   session_memcpy_region : ∀ (stk : Nat), extHookStack ≤ stk → stk ≤ 2 ^ 64 →
     subroutine_ok (lsProg_617 H) (lsρ memcpyName)
       (CryptoVerification.LibsignalPublicApi.StoreKit.withLsCodeRoLoaded lsmpl (withStack sessionMemcpyRegionBudgetSpec stk).keepsFs)
-  memmove : ∀ (stk : Nat), extHookStack ≤ stk → stk ≤ 2 ^ 64 →
-    subroutine_ok (lsProg_617 H) (lsρ memmoveName)
-      (CryptoVerification.LibsignalPublicApi.StoreKit.withLsCodeRoLoaded lsmpl (withVmPreserved (libcMemmoveSpec stk)).keepsFs)
-  session_memmove : ∀ (stk : Nat), extHookStack ≤ stk → stk ≤ 2 ^ 64 →
-    subroutine_ok (lsProg_617 H) (lsρ memmoveName)
-      (CryptoVerification.LibsignalPublicApi.StoreKit.withLsCodeRoLoaded lsmpl (sessionMemmoveBudgetSpec stk).keepsFs)
   memset : ∀ (stk : Nat), extHookStack ≤ stk → stk ≤ 2 ^ 64 →
     subroutine_ok (lsProg_617 H) (lsρ memsetName)
       (CryptoVerification.LibsignalPublicApi.StoreKit.withLsCodeRoLoaded lsmpl (withVmPreserved (libcMemsetSpec stk)).keepsFs)

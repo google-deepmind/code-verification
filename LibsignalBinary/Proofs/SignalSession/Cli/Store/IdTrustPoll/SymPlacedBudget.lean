@@ -11,6 +11,7 @@ module
 
 public import LibsignalBinary.Proofs.Common.SharedHelpers
 public meta import LibsignalBinary.Proofs.Common.SharedHelpers -- shake: keep
+public import LibsignalBinary.Proofs.ConsumeMessageKey.FindIndexProofs.CtEqSat
 public import LibsignalBinary.Proofs.Placed.BudgetPoolSync
 public meta import LibsignalBinary.Proofs.Placed.BudgetPoolSync -- shake: keep
 public import LibsignalBinary.Proofs.RecordCodecs.DepsBudget
@@ -411,6 +412,60 @@ theorem pkEq_cells_placed_ok [LibsignalPlacement] {prog : Program} {M : AllocCos
   · dsimp only [withLsCodeRoLoaded, withVmPreserved, publicKeyEqSpec] at hq
     exact (not_satisfies_false_sepConj hq).elim
 
+theorem pkEq_cells_placed_ok_16 [LibsignalPlacement] {prog : Program} {M : AllocCostModel}
+    {A : RustCliAllocBudget M} {lim : BudgetLimits} {calleeStk : Nat}
+    (hEq : subroutine_ok prog (lsmpl.base 212)
+      (withLsCodeRoLoaded lsmpl
+        (withVmPreserved
+          LibsignalBinary.Proofs.ConsumeMessageKey.FindIndexProofs.CtEqSat.publicKeyEqMemSpec16)))
+    (hle : 80 ≤ calleeStk) (hhi : calleeStk ≤ 2 ^ 64) :
+    subroutine_ok prog (lsmpl.base 212)
+      (withLsCodeRoLoaded lsmpl (pkEqCellsSpecPlaced A lim calleeStk)) := by
+  apply subroutine_ok.of_codeLoaded
+  intro ⟨⟨p1, ik1, p2, ik2, fsp⟩, st⟩ R s0 hpc hrun hpre hsp hcl
+  rcases extract_withLsCodeRoLoaded hpre with ⟨hcrl, hpre⟩
+  simp only [pkEqCellsSpecPlaced, sepConj_assoc, satisfies_pure_sepConj] at hpre
+  rcases hpre with ⟨⟨hx0, hx1, hfsp⟩, hmem⟩
+  subst hfsp
+  rw [stackAt_sub_split s0.sp hle hhi] at hmem
+  let stkRem := memRegion (s0.sp - BitVec.ofNat 64 calleeStk) (calleeStk - 80)
+  have hpre0 : s0.mem ⊨
+      (withLsCodeRoLoaded lsmpl
+        (withVmPreserved
+          LibsignalBinary.Proofs.ConsumeMessageKey.FindIndexProofs.CtEqSat.publicKeyEqMemSpec16)).pre
+        (p1, ik1.publicKey, p2, ik2.publicKey, s0.sp) s0 ∗ (A.pool lim st s0 ∗ stkRem ∗ R) := by
+    refine satisfies_lscro_pre hcrl ?_
+    dsimp only [withVmPreserved,
+      LibsignalBinary.Proofs.ConsumeMessageKey.FindIndexProofs.CtEqSat.publicKeyEqMemSpec16]
+    rw [sepConj_assoc, satisfies_pure_sepConj]
+    refine ⟨⟨hx0, hx1, rfl⟩, ?_⟩
+    dsimp only [stackAt, stkRem] at hmem ⊢
+    convert hmem using 1; sep_ac_rfl
+  rcases hEq.no_fault_before_outcome (p1, ik1.publicKey, p2, ik2.publicKey, s0.sp)
+      (A.pool lim st s0 ∗ stkRem ∗ R) s0 hpc hrun hpre0 hsp hcl with
+    ⟨sf, hsteps, ⟨hret, hcc, hq⟩ | ⟨_hpan, hq⟩ | ⟨_code, _hex, hq⟩ | ⟨_hoom, hq⟩, -⟩
+  · refine reaches_outcome_steps hsteps (reaches_outcome.of_outcome (Or.inl ⟨hret, hcc, ?_⟩))
+    dsimp only [withLsCodeRoLoaded, withVmPreserved,
+      LibsignalBinary.Proofs.ConsumeMessageKey.FindIndexProofs.CtEqSat.publicKeyEqMemSpec16,
+      pkEqCellsSpecPlaced] at hq ⊢
+    simp only [sepConj_assoc, satisfies_pure_sepConj] at hq ⊢
+    rcases hq with ⟨hvm, ⟨hr0, htr⟩, hq⟩
+    rw [publicKey_beq_eq_decide] at hr0
+    rw [← A.pool_transport lim st s0 sf hvm] at hq
+    refine ⟨⟨hr0, htr⟩, ?_⟩
+    rw [stackAt_sub_split s0.sp hle hhi]
+    dsimp only [stackAt, stkRem] at hq ⊢
+    convert hq using 1; sep_ac_rfl
+  · dsimp only [withLsCodeRoLoaded, withVmPreserved,
+      LibsignalBinary.Proofs.ConsumeMessageKey.FindIndexProofs.CtEqSat.publicKeyEqMemSpec16] at hq
+    exact (not_satisfies_false_sepConj hq).elim
+  · dsimp only [withLsCodeRoLoaded, withVmPreserved,
+      LibsignalBinary.Proofs.ConsumeMessageKey.FindIndexProofs.CtEqSat.publicKeyEqMemSpec16] at hq
+    exact (not_satisfies_false_sepConj hq).elim
+  · dsimp only [withLsCodeRoLoaded, withVmPreserved,
+      LibsignalBinary.Proofs.ConsumeMessageKey.FindIndexProofs.CtEqSat.publicKeyEqMemSpec16] at hq
+    exact (not_satisfies_false_sepConj hq).elim
+
 /-! ## 2. Inner Spec & Outer Wrapper (`idTrustPoll_placed_of_inner`) -/
 
 def cliIdTrustPollInnerSpecPlaced [LibsignalPlacement] {M : AllocCostModel} (rd : ReadRule)
@@ -796,7 +851,7 @@ private theorem cliIdTrustPollExpandedSpecPlaced_eq [LibsignalPlacement] {M : Al
 set_option pp.deepTerms false in
 set_option pp.maxSteps 1000000 in
 set_option maxHeartbeats 3200000 in
-theorem idTrustPollInner_placed_ok [LibsignalPlacement] {M : AllocCostModel}
+private theorem idTrustPollInner_placed_ok_of_eqCells [LibsignalPlacement] {M : AllocCostModel}
     {A : RustCliAllocBudget M} {lim : BudgetLimits} {H : LibsignalHooks}
     {GetEnv : FsFiles → DirGhost → List (BitVec 8) → List AllocEvent → Prop}
     {TrustEnv : FsFiles → IdPollGhost → List AllocEvent → Prop}
@@ -806,8 +861,9 @@ theorem idTrustPollInner_placed_ok [LibsignalPlacement] {M : AllocCostModel}
       (dirGetSpecPlaced rd pathOk A lim GetEnv getStk))
     (hDec : subroutine_ok ((blkPC_566).rebase (blkPl_566).base H) (lsmpl.base 18)
       (withLsCodeRoLoaded lsmpl (withVmPreserved (identityKeyDecodeRawSpec A))))
-    (hEq : subroutine_ok ((blkPC_566).rebase (blkPl_566).base H) (lsmpl.base 212)
-      (withLsCodeRoLoaded lsmpl (withVmPreserved publicKeyEqSpec)))
+    (hEqCells : subroutine_ok ((blkPC_566).rebase (blkPl_566).base H) (lsmpl.base 212)
+      (withLsCodeRoLoaded lsmpl
+        (pkEqCellsSpecPlaced A lim (max (max getStk 0x60) (max 64 extHookStack)))))
     (hFitGet : ∀ F0 x st, FitsEnv M lim st (TrustEnv F0 x) →
       FitsEnv M lim st (GetEnv F0 x.peers x.call.call.addr.name.bytes))
     (hTrustGet : ∀ F0 x evs, GetEnv F0 x.peers x.call.call.addr.name.bytes evs →
@@ -830,9 +886,7 @@ theorem idTrustPollInner_placed_ok [LibsignalPlacement] {M : AllocCostModel}
     hDec (by omega) hhi
   have hDeallocCells := deallocVecBuf_placed_ok (prog := (blkPC_566).rebase (blkPl_566).base H)
     (i := 566) (calleeStk := calleeStk) hC (by omega) hhi
-  have hEqCells := pkEq_cells_placed_ok (A := A) (lim := lim) (calleeStk := calleeStk)
-    hEq (by omega) hhi
-  clear hGet hDec hEq hC
+  clear hGet hDec hC
   wpp_init xs s0
   obtain ⟨x, st⟩ := xs
   dsimp only at *
@@ -1095,6 +1149,66 @@ theorem idTrustPollInner_placed_ok [LibsignalPlacement] {M : AllocCostModel}
               hget_evs (FreeOnlyEvs.singleton 1 bCap.toNat)⟩
         wp_done
 
+theorem idTrustPollInner_placed_ok [LibsignalPlacement] {M : AllocCostModel}
+    {A : RustCliAllocBudget M} {lim : BudgetLimits} {H : LibsignalHooks}
+    {GetEnv : FsFiles → DirGhost → List (BitVec 8) → List AllocEvent → Prop}
+    {TrustEnv : FsFiles → IdPollGhost → List AllocEvent → Prop}
+    {rd : ReadRule} {pathOk : List (BitVec 8) → Prop} {getStk : Nat}
+    (hC : AllocContractsXCliPlaced A lim H)
+    (hGet : subroutine_ok ((blkPC_566).rebase (blkPl_566).base H) (lsmpl.base 589)
+      (dirGetSpecPlaced rd pathOk A lim GetEnv getStk))
+    (hDec : subroutine_ok ((blkPC_566).rebase (blkPl_566).base H) (lsmpl.base 18)
+      (withLsCodeRoLoaded lsmpl (withVmPreserved (identityKeyDecodeRawSpec A))))
+    (hEq : subroutine_ok ((blkPC_566).rebase (blkPl_566).base H) (lsmpl.base 212)
+      (withLsCodeRoLoaded lsmpl (withVmPreserved publicKeyEqSpec)))
+    (hFitGet : ∀ F0 x st, FitsEnv M lim st (TrustEnv F0 x) →
+      FitsEnv M lim st (GetEnv F0 x.peers x.call.call.addr.name.bytes))
+    (hTrustGet : ∀ F0 x evs, GetEnv F0 x.peers x.call.call.addr.name.bytes evs →
+      TrustEnv F0 x evs)
+    (hTrustGetFree : ∀ F0 x evs₁ evs₂,
+      GetEnv F0 x.peers x.call.call.addr.name.bytes evs₁ → FreeOnlyEvs evs₂ →
+      TrustEnv F0 x (evs₁ ++ evs₂))
+    (hhi : max (max getStk 0x60) (max 64 extHookStack) ≤ 2 ^ 64) :
+    subroutine_ok ((blkPC_566).rebase (blkPl_566).base H) (blkPl_566).base
+      (withLsCodeRoLoaded lsmpl
+        (cliIdTrustPollInnerSpecPlaced rd pathOk A lim TrustEnv
+          (max (max getStk 0x60) (max 64 extHookStack)))) :=
+  idTrustPollInner_placed_ok_of_eqCells hC hGet hDec
+    (pkEq_cells_placed_ok (A := A) (lim := lim)
+      (calleeStk := max (max getStk 0x60) (max 64 extHookStack)) hEq (by omega) hhi)
+    hFitGet hTrustGet hTrustGetFree hhi
+
+theorem idTrustPollInner_placed_ok_16 [LibsignalPlacement] {M : AllocCostModel}
+    {A : RustCliAllocBudget M} {lim : BudgetLimits} {H : LibsignalHooks}
+    {GetEnv : FsFiles → DirGhost → List (BitVec 8) → List AllocEvent → Prop}
+    {TrustEnv : FsFiles → IdPollGhost → List AllocEvent → Prop}
+    {rd : ReadRule} {pathOk : List (BitVec 8) → Prop} {getStk : Nat}
+    (hC : AllocContractsXCliPlaced A lim H)
+    (hGet : subroutine_ok ((blkPC_566).rebase (blkPl_566).base H) (lsmpl.base 589)
+      (dirGetSpecPlaced rd pathOk A lim GetEnv getStk))
+    (hDec : subroutine_ok ((blkPC_566).rebase (blkPl_566).base H) (lsmpl.base 18)
+      (withLsCodeRoLoaded lsmpl (withVmPreserved (identityKeyDecodeRawSpec A))))
+    (hEq : subroutine_ok ((blkPC_566).rebase (blkPl_566).base H) (lsmpl.base 212)
+      (withLsCodeRoLoaded lsmpl
+        (withVmPreserved
+          LibsignalBinary.Proofs.ConsumeMessageKey.FindIndexProofs.CtEqSat.publicKeyEqMemSpec16)))
+    (hFitGet : ∀ F0 x st, FitsEnv M lim st (TrustEnv F0 x) →
+      FitsEnv M lim st (GetEnv F0 x.peers x.call.call.addr.name.bytes))
+    (hTrustGet : ∀ F0 x evs, GetEnv F0 x.peers x.call.call.addr.name.bytes evs →
+      TrustEnv F0 x evs)
+    (hTrustGetFree : ∀ F0 x evs₁ evs₂,
+      GetEnv F0 x.peers x.call.call.addr.name.bytes evs₁ → FreeOnlyEvs evs₂ →
+      TrustEnv F0 x (evs₁ ++ evs₂))
+    (hhi : max (max getStk 0x60) (max 64 extHookStack) ≤ 2 ^ 64) :
+    subroutine_ok ((blkPC_566).rebase (blkPl_566).base H) (blkPl_566).base
+      (withLsCodeRoLoaded lsmpl
+        (cliIdTrustPollInnerSpecPlaced rd pathOk A lim TrustEnv
+          (max (max getStk 0x60) (max 64 extHookStack)))) :=
+  idTrustPollInner_placed_ok_of_eqCells hC hGet hDec
+    (pkEq_cells_placed_ok_16 (A := A) (lim := lim)
+      (calleeStk := max (max getStk 0x60) (max 64 extHookStack)) hEq (by omega) hhi)
+    hFitGet hTrustGet hTrustGetFree hhi
+
 theorem idTrustPollInner_env_placed_ok [LibsignalPlacement] {M : AllocCostModel}
     {A : RustCliAllocBudget M} {lim : BudgetLimits} {H : LibsignalHooks}
     {GetEnv : FsFiles → DirGhost → List (BitVec 8) → List AllocEvent → Prop}
@@ -1112,6 +1226,30 @@ theorem idTrustPollInner_env_placed_ok [LibsignalPlacement] {M : AllocCostModel}
         (cliIdTrustPollInnerSpecPlaced rd pathOk A lim (CliIdTrustPollEnv GetEnv)
           (max (max getStk 0x60) (max 64 extHookStack)))) :=
   idTrustPollInner_placed_ok hC hGet hDec hEq
+    (fun _ _ _ => CliIdTrustPollEnv.fits_get)
+    (fun _ _ _ => CliIdTrustPollEnv.of_get)
+    (fun _ _ _ _ => CliIdTrustPollEnv.of_get_freeOnly)
+    hhi
+
+theorem idTrustPollInner_env_placed_ok_16 [LibsignalPlacement] {M : AllocCostModel}
+    {A : RustCliAllocBudget M} {lim : BudgetLimits} {H : LibsignalHooks}
+    {GetEnv : FsFiles → DirGhost → List (BitVec 8) → List AllocEvent → Prop}
+    {rd : ReadRule} {pathOk : List (BitVec 8) → Prop} {getStk : Nat}
+    (hC : AllocContractsXCliPlaced A lim H)
+    (hGet : subroutine_ok ((blkPC_566).rebase (blkPl_566).base H) (lsmpl.base 589)
+      (dirGetSpecPlaced rd pathOk A lim GetEnv getStk))
+    (hDec : subroutine_ok ((blkPC_566).rebase (blkPl_566).base H) (lsmpl.base 18)
+      (withLsCodeRoLoaded lsmpl (withVmPreserved (identityKeyDecodeRawSpec A))))
+    (hEq : subroutine_ok ((blkPC_566).rebase (blkPl_566).base H) (lsmpl.base 212)
+      (withLsCodeRoLoaded lsmpl
+        (withVmPreserved
+          LibsignalBinary.Proofs.ConsumeMessageKey.FindIndexProofs.CtEqSat.publicKeyEqMemSpec16)))
+    (hhi : max (max getStk 0x60) (max 64 extHookStack) ≤ 2 ^ 64) :
+    subroutine_ok ((blkPC_566).rebase (blkPl_566).base H) (blkPl_566).base
+      (withLsCodeRoLoaded lsmpl
+        (cliIdTrustPollInnerSpecPlaced rd pathOk A lim (CliIdTrustPollEnv GetEnv)
+          (max (max getStk 0x60) (max 64 extHookStack)))) :=
+  idTrustPollInner_placed_ok_16 hC hGet hDec hEq
     (fun _ _ _ => CliIdTrustPollEnv.fits_get)
     (fun _ _ _ => CliIdTrustPollEnv.of_get)
     (fun _ _ _ _ => CliIdTrustPollEnv.of_get_freeOnly)

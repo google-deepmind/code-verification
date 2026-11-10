@@ -1015,13 +1015,6 @@ def succInitW0 : PEParams := ⟨succInitC0, succInitQ0⟩
 def succInitCliHooks : CliHooks where
   C := succInitC0
   Q := succInitQ0
-  bcmp a b := if a = b then 0#64 else 1#64
-  bcmp_ok a b _ := by
-    by_cases h : a = b
-    · simp [h]
-    · simp only [h, ↓reduceIte, iff_false]
-      decide
-  utf8Err _ := (0#64, 0#16)
 
 /-- Concrete Alice `PqParty` witness (`session = none`, `peerId = none`). -/
 def succInitParty0 : PqParty where

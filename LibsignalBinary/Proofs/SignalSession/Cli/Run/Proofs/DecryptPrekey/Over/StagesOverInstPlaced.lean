@@ -1009,7 +1009,7 @@ theorem stageP2Over_qpan_cli_placed_of_pathC [LibsignalPlacement]
     hfs hro1 htr01 hsp1 hsp0 hsp_sub hpc1 hrun1 halign1 hregs1 hpan herr hok
   have hr_scope : Slots.scopeIn r := hsub r (scope_of_loadRec_some hfPeer hload)
   exact hP2 X B S Scope y g1 r s_old s0 s1 sp rngPtr v_a8 v_b8 v_d0 Q Qpan
-    (cliPromoteMatchingMissGen_placed_ok mmpl gh W)
+    (cliPromoteMatchingMissGen_placed_ok mmpl gh W hh.blackBox)
     (cliPromoteOverGen_placed_ok mmpl gh W hh)
     hh hread hcoins hdecOk.toDecPkOk₀_emptyScope
     hsub hfPeer hcur hr_scope hnot htrust hg1
@@ -1577,7 +1577,7 @@ theorem stageP2Over_qpan_cli_frozen_placed_of_pathC [LibsignalPlacement]
     hfs hfr1 htr01 hsp1 hsp0 hsp_sub hpc1 hrun1 halign1 hregs1 hpan herr hok
   have hr_scope : Slots.scopeIn r := hsub r (scope_of_loadRec_some hfPeer hload)
   exact hP2 X B S Scope y g1 r s_old s0 s1 sp rngPtr v_a8 v_b8 v_d0 Q Qpan
-    (cliPromoteMatchingMissGen_placed_ok mmpl gh W)
+    (cliPromoteMatchingMissGen_placed_ok mmpl gh W hh.blackBox)
     (cliPromoteOverGen_placed_ok mmpl gh W hh)
     hh hread hcoins hdecOk.toDecPkOk₀_emptyScope
     hsub hfPeer hcur hr_scope hnot htrust hg1

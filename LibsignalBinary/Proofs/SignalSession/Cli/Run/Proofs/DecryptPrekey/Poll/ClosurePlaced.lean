@@ -61,33 +61,14 @@ open CryptoVerification.SignalSession.Cli.RunProofs
 open CryptoVerification.SignalSession.Cli.KitInst
 open CryptoVerification.SignalSession.Coins.Placed
 open LibsignalBinary.Proofs.SignalSession.Cli.AllocGhostLinkTransfer (
-  CliGhostHooks cliGhostExterns cliGhostExterns_other
+  CliGhostHooks cliGhostExterns
 )
 
-set_option linter.unusedSimpArgs false in
 private theorem withPanics_cliGhostExterns_eq (mmpl : Obj.MultiPlacement)
     (gh : CliGhostHooks) (W : CliHooks) :
     Rust.withPanics (cliGhostExterns gh (cliExternsPlaced mmpl W)) =
-      cliGhostExterns gh (cliExternsPlaced mmpl W) := by
-  funext n
-  by_cases hp : Rust.isPanicSymbol n = true
-  · have hother : cliGhostExterns gh (cliExternsPlaced mmpl W) n = cliExternsPlaced mmpl W n :=
-      cliGhostExterns_other gh (cliExternsPlaced mmpl W)
-        (fun h => by subst h; simp [Rust.isPanicSymbol, lsRustAllocSymCli, lsRustDeallocSymCli, lsRustReallocSymCli, lsRustAllocZeroedSymCli, lsRustNoAllocShimSymCli, lsStringCloneSym] at hp)
-        (fun h => by subst h; simp [Rust.isPanicSymbol, lsRustAllocSymCli, lsRustDeallocSymCli, lsRustReallocSymCli, lsRustAllocZeroedSymCli, lsRustNoAllocShimSymCli, lsStringCloneSym] at hp)
-        (fun h => by subst h; simp [Rust.isPanicSymbol, lsRustAllocSymCli, lsRustDeallocSymCli, lsRustReallocSymCli, lsRustAllocZeroedSymCli, lsRustNoAllocShimSymCli, lsStringCloneSym] at hp)
-        (fun h => by subst h; simp [Rust.isPanicSymbol, lsRustAllocSymCli, lsRustDeallocSymCli, lsRustReallocSymCli, lsRustAllocZeroedSymCli, lsRustNoAllocShimSymCli, lsStringCloneSym] at hp)
-        (fun h => by subst h; simp [Rust.isPanicSymbol, lsRustAllocSymCli, lsRustDeallocSymCli, lsRustReallocSymCli, lsRustAllocZeroedSymCli, lsRustNoAllocShimSymCli, lsStringCloneSym] at hp)
-        (fun h => by subst h; simp [Rust.isPanicSymbol, lsRustAllocSymCli, lsRustDeallocSymCli, lsRustReallocSymCli, lsRustAllocZeroedSymCli, lsRustNoAllocShimSymCli, lsStringCloneSym] at hp)
-        (fun h => by subst h; simp [Rust.isPanicSymbol, CryptoVerification.SignalSession.lsReadFileSym] at hp)
-        (fun h => by subst h; simp [Rust.isPanicSymbol, CryptoVerification.SignalSession.lsReadStdinSym] at hp)
-        (fun h => by subst h; simp [Rust.isPanicSymbol, CryptoVerification.SignalSession.lsMemsetSym] at hp)
-        (fun h => by subst h; simp [Rust.isPanicSymbol, CryptoVerification.SignalSession.lsMemcpySym] at hp)
-    unfold Rust.withPanics
-    rw [hother]
-    unfold cliExternsPlaced isCliPanicSymbolPlaced
-    simp [hp]
-  · simp [Rust.withPanics, hp]
+      cliGhostExterns gh (cliExternsPlaced mmpl W) :=
+  CryptoVerification.SignalSession.Cli.RunGlue.withPanics_cliGhostExterns mmpl gh W
 
 attribute [-arm64_norm]
   CryptoVerification.SpqrV1.Kdf.HkdfToSliceProof.sp_sub_688_eq_hsp

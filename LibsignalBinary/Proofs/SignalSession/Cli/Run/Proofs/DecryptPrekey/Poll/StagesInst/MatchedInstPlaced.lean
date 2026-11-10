@@ -21,6 +21,7 @@ import Arm64.Trusted.Spec.SepLogic
 import LibsignalBinary.Proofs.TripleRatchet.Alloc.PublicKeySerialize
 import LibsignalBinary.Proofs.SpqrV1.Kdf.HkdfToSliceExtract
 import LibsignalBinary.Proofs.Cli.E2E.Pqxdh.ResponderClosure.GenP3.DropSs3Ext
+import LibsignalBinary.Proofs.Cli.E2E.Pqxdh.ResponderClosure.Matched.M2TopPlacedSat
 
 /-!
 # Relocatable `[LibsignalPlacement]` Poll Path B Stage P2 Instantiation
@@ -63,7 +64,9 @@ open CryptoVerification.SignalSession.Cli.RunCompose hiding Bytes
 open CryptoVerification.SignalSession.Cli.RunProofs
 open CryptoVerification.SignalSession.Cli.KitInst
 open LibsignalBinary.Proofs.SignalSession.Cli.AllocGhostLinkTransfer
-  (CliGhostHooks cliGhostExterns cliGhostExterns_other)
+  (CliGhostHooks cliGhostExterns)
+open LibsignalBinary.Proofs.Cli.E2E.Pqxdh.ResponderClosure.Matched.M2TopPlacedSat
+  (stageP2_matched_ok_framed_placed_sat)
 
 attribute [-arm64_norm]
   CryptoVerification.SpqrV1.Kdf.HkdfToSliceProof.sp_sub_688_eq_hsp
@@ -76,27 +79,8 @@ set_option linter.unusedSimpArgs false
 private theorem withPanics_cliGhostExterns_eq (mmpl : Obj.MultiPlacement)
     (gh : CliGhostHooks) (W : CliHooks) :
     Rust.withPanics (cliGhostExterns gh (cliExternsPlaced mmpl W)) =
-      cliGhostExterns gh (cliExternsPlaced mmpl W) := by
-  funext name
-  by_cases hp : Rust.isPanicSymbol name = true
-  · have hother :
-        cliGhostExterns gh (cliExternsPlaced mmpl W) name = cliExternsPlaced mmpl W name :=
-      cliGhostExterns_other gh (cliExternsPlaced mmpl W)
-        (fun h => by subst h; simp [Rust.isPanicSymbol, lsRustAllocSymCli, lsRustDeallocSymCli, lsRustReallocSymCli, lsRustAllocZeroedSymCli, lsRustNoAllocShimSymCli, lsStringCloneSym] at hp)
-        (fun h => by subst h; simp [Rust.isPanicSymbol, lsRustAllocSymCli, lsRustDeallocSymCli, lsRustReallocSymCli, lsRustAllocZeroedSymCli, lsRustNoAllocShimSymCli, lsStringCloneSym] at hp)
-        (fun h => by subst h; simp [Rust.isPanicSymbol, lsRustAllocSymCli, lsRustDeallocSymCli, lsRustReallocSymCli, lsRustAllocZeroedSymCli, lsRustNoAllocShimSymCli, lsStringCloneSym] at hp)
-        (fun h => by subst h; simp [Rust.isPanicSymbol, lsRustAllocSymCli, lsRustDeallocSymCli, lsRustReallocSymCli, lsRustAllocZeroedSymCli, lsRustNoAllocShimSymCli, lsStringCloneSym] at hp)
-        (fun h => by subst h; simp [Rust.isPanicSymbol, lsRustAllocSymCli, lsRustDeallocSymCli, lsRustReallocSymCli, lsRustAllocZeroedSymCli, lsRustNoAllocShimSymCli, lsStringCloneSym] at hp)
-        (fun h => by subst h; simp [Rust.isPanicSymbol, lsRustAllocSymCli, lsRustDeallocSymCli, lsRustReallocSymCli, lsRustAllocZeroedSymCli, lsRustNoAllocShimSymCli, lsStringCloneSym] at hp)
-        (fun h => by subst h; simp [Rust.isPanicSymbol, CryptoVerification.SignalSession.lsReadFileSym] at hp)
-        (fun h => by subst h; simp [Rust.isPanicSymbol, CryptoVerification.SignalSession.lsReadStdinSym] at hp)
-        (fun h => by subst h; simp [Rust.isPanicSymbol, CryptoVerification.SignalSession.lsMemsetSym] at hp)
-        (fun h => by subst h; simp [Rust.isPanicSymbol, CryptoVerification.SignalSession.lsMemcpySym] at hp)
-    unfold Rust.withPanics
-    rw [hother]
-    unfold cliExternsPlaced isCliPanicSymbolPlaced
-    simp [hp]
-  · simp [Rust.withPanics, hp]
+      cliGhostExterns gh (cliExternsPlaced mmpl W) :=
+  CryptoVerification.SignalSession.Cli.RunGlue.withPanics_cliGhostExterns mmpl gh W
 
 private theorem dpPollProgPlaced_eq_withPanics [LibsignalPlacement]
     (mmpl : Obj.MultiPlacement) (gh : CliGhostHooks) (W : CliHooks) :
@@ -112,16 +96,6 @@ private theorem hookSat_withPanics_placed (mmpl : Obj.MultiPlacement)
     HookSat (Rust.withPanics (cliGhostExterns gh (cliExternsPlaced mmpl W))) sym spec := by
   rw [withPanics_cliGhostExterns_eq mmpl gh W]
   exact hsat
-
-private theorem cliExternsPlaced_blackBox_withPanics (mmpl : Obj.MultiPlacement)
-    (gh : CliGhostHooks) (W : CliHooks) :
-    Rust.withPanics (cliGhostExterns gh (cliExternsPlaced mmpl W)) lsBlackBoxU8Sym =
-      some CryptoVerification.LibsignalSession.blackBoxHook := by
-  rw [withPanics_cliGhostExterns_eq mmpl gh W]
-  exact (cliGhostExterns_other gh (cliExternsPlaced mmpl W)
-    (by decide) (by decide) (by decide) (by decide) (by decide) (by decide)).trans
-    (CryptoVerification.SignalSession.Cli.RunGlue.cliExternsPlaced_row mmpl W
-      (List.mem_append_right _ (List.mem_of_getElem? (i := 11) rfl)))
 
 private theorem cliExternsPlaced_panic_alloc_withPanics [LibsignalPlacement]
     (mmpl : Obj.MultiPlacement) (gh : CliGhostHooks) (W : CliHooks)
@@ -222,11 +196,11 @@ theorem stageP2Matched_framed_cli_placed_ok [LibsignalPlacement] :
     ac_rfl
   rw [hpre_assoc]
   refine sepWPp_entails_post ?_
-  exact stageP2_matched_ok_framed_placed
+  exact stageP2_matched_ok_framed_placed_sat
     (cliPublicKeySerialize_placed_ok mmpl gh W hh)
     (cliStrToOwnedLocal2_placed_ok mmpl gh W hh)
     (cliDealloc_placed_ok mmpl gh W hh)
-    (cliExternsPlaced_blackBox_withPanics mmpl gh W)
+    (hookSat_withPanics_placed mmpl gh W hh.blackBox)
     (cliDropSessionStructureLocal2_placed_ok mmpl gh W hh)
     s0 s1
     sp y.fut y.out y.g.msgA y.g.peerA y.g.meA

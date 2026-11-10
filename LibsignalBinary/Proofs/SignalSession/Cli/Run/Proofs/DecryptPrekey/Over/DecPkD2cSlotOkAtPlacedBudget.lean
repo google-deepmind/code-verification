@@ -200,7 +200,8 @@ open CryptoVerification.SignalSession (
 open CryptoVerification.SignalSession.Cli.MainHops (cliIo cliRunBudgets cliWrOk)
 open CryptoVerification.SignalSession.Cli.RunCompose (DecPkGhost)
 open CryptoVerification.SignalSession.Cli.RunGlue (
-  CliGhostHooks cliExternsPlaced_row cliGhostExterns cliGhostExterns_other withPanics_cliGhostExterns
+  CliGhostHooks cliExternsPlaced_row cliExtraGhostSyms cliGhostExterns cliGhostExterns_other
+  withPanics_cliGhostExterns
 )
 open CryptoVerification.SignalSession.Cli.RunProofs.Poll (cliKitStk dpPollProgPlaced)
 open CryptoVerification.SignalSession.Cli.RunSkeleton (RunBudgets)
@@ -293,9 +294,11 @@ private theorem cliGhost_row_eq (mmpl : Obj.MultiPlacement) (gh : CliGhostHooks)
     (h7 : sym ≠ lsReadFileSym := by decide)
     (h8 : sym ≠ CryptoVerification.SignalSession.lsReadStdinSym := by decide)
     (h9 : sym ≠ CryptoVerification.LibsignalTripleRatchet.lsMemsetSym := by decide)
-    (h10 : sym ≠ CryptoVerification.LibsignalTripleRatchet.lsMemcpySym := by decide) :
+    (h10 : sym ≠ CryptoVerification.LibsignalTripleRatchet.lsMemcpySym := by decide)
+    (hExtra : cliExtraGhostSyms.contains sym = false ∨ gh.extra.lookup sym = none := by
+      left; decide) :
     cliGhostExterns gh (cliExternsPlaced mmpl W) sym = some f :=
-  (cliGhostExterns_other gh (cliExternsPlaced mmpl W) h1 h2 h3 h4 h5 h6 h7 h8 h9 h10).trans
+  (cliGhostExterns_other gh (cliExternsPlaced mmpl W) h1 h2 h3 h4 h5 h6 h7 h8 h9 h10 hExtra).trans
     (cliExternsPlaced_row mmpl W hrow)
 
 /-- Closed `formatInnerBudgetSpec` `HookSat` on `cliGhostExterns gh (cliExternsPlaced mmpl W)`. -/
@@ -4999,7 +5002,8 @@ open CryptoVerification.SignalSession (
 open CryptoVerification.SignalSession.Cli.MainHops (cliIo cliRunBudgets cliWrOk)
 open CryptoVerification.SignalSession.Cli.RunCompose (DecPkGhost)
 open CryptoVerification.SignalSession.Cli.RunGlue (
-  CliGhostHooks cliExternsPlaced_row cliGhostExterns cliGhostExterns_other withPanics_cliGhostExterns
+  CliGhostHooks cliExternsPlaced_row cliGhostExterns cliGhostExterns_other
+  withPanics_cliGhostExterns
 )
 open CryptoVerification.SignalSession.Cli.RunProofs.Poll (cliKitStk dpPollProgPlaced)
 open CryptoVerification.SignalSession.Cli.RunSkeleton (RunBudgets)
@@ -5241,7 +5245,7 @@ theorem decPkD2cSlotOk_full_placed_at_X_of_tryDec [LibsignalFullPlacement]
             LibsignalBinary.Proofs.SignalSession.Cli.Run.Proofs.DecryptPrekey.Poll.StagesInst.Stage2V1KitsPlacedBudgetAux.cliPollPk_kitPlacedOk
               mmpl gh W B F0 opkWord hDropNz hh_sk (hRead B)))
       (LibsignalBinary.Proofs.SignalSession.Cli.Run.Proofs.DecryptPrekey.Over.Stage2OverInstPlacedBudget.cliPromoteMatchingMissGen_placed_ok
-        A.repAlloc mmpl gh W)
+        A.repAlloc mmpl gh W hh.blackBox)
       (fun hh_sk =>
         LibsignalBinary.Proofs.SignalSession.Cli.Run.Proofs.DecryptPrekey.Over.Stage2OverInstPlacedBudget.cliPromoteOverGen_placed_ok
           mmpl gh W hh_sk (cliGrowOneVecU8_lsProg51_withLsCl_ok mmpl gh W hG) hRaw))
@@ -5331,7 +5335,7 @@ theorem decPkD2cSlotOk_full_placed_at_X_archive_of_tryDec [LibsignalFullPlacemen
             LibsignalBinary.Proofs.SignalSession.Cli.Run.Proofs.DecryptPrekey.Poll.StagesInst.Stage2V1KitsPlacedBudgetAux.cliPollPk_kitPlacedOk
               mmpl gh W B F0 opkWord hDropNz hh_sk (hRead B)))
       (LibsignalBinary.Proofs.SignalSession.Cli.Run.Proofs.DecryptPrekey.Over.Stage2OverInstPlacedBudget.cliPromoteMatchingMissGen_placed_ok
-        A.repAlloc mmpl gh W)
+        A.repAlloc mmpl gh W hh.blackBox)
       (fun hh_sk =>
         LibsignalBinary.Proofs.SignalSession.Cli.Run.Proofs.DecryptPrekey.Over.Stage2OverInstPlacedBudget.cliPromoteOverGen_archive_placed_ok
           mmpl gh W hh_sk (cliGrowOneVecU8_lsProg51_withLsCl_ok mmpl gh W hG) hRaw))

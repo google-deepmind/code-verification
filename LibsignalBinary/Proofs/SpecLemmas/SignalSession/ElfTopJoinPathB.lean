@@ -2155,7 +2155,7 @@ private theorem h8pb_toSkeletonRunHooks [LibsignalPlacement] {M : AllocCostModel
   { alloc := hh.alloc, allocFs := hh.allocFs, panics := hh.panics, memcpyRO := hh.memcpyRO,
     bcmp := hh.bcmp, fs := hh.fs, utf8 := hh.utf8, memrchr := hh.memrchr,
     codecHooks := hh.codecHooks, allocZeroed := hh.allocZeroed, stringClone := hh.stringClone,
-    formatInner := hh.formatInner }
+    formatInner := hh.formatInner, blackBox := hh.blackBox }
 
 private theorem h8pb_withPanics_cliGhostExterns_eq (mmpl : Obj.MultiPlacement)
     (gh : CliGhostHooks) (W : CliHooks) :
@@ -2540,7 +2540,7 @@ theorem hole_m24slot_pathB_assembly_closed
       memcpyRO := hHooksP.memcpyRO, bcmp := hHooksP.bcmp, fs := hHooksP.fs,
       utf8 := hHooksP.utf8, memrchr := hHooksP.memrchr, codecHooks := hHooksP.codecHooks,
       allocZeroed := hHooksP.allocZeroed, stringClone := hHooksP.stringClone,
-      formatInner := hHooksP.formatInner }
+      formatInner := hHooksP.formatInner, blackBox := hHooksP.blackBox }
   have hAesDec :=
     fineAesDec_budget_hookOk γ tp cliElfImage.brkStart cliBudgetLimits hPl_mng W.C.D
   have hSpqrTop :=

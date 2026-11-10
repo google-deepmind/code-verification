@@ -86,6 +86,7 @@ theorem pksmSlotOkPlaced_cli [LibsignalPlacement]
 theorem cliTryDecryptPqV1_placed_of_spqr [LibsignalPlacement]
     (mmpl : Obj.MultiPlacement) (gh : CliGhostHooks) (W : CliHooks)
     (hG : CliGhostA0Hooks E2E.HooksE.A0 gh)
+    (hMv : gh.extra.lookup "memmove" = some hookMemmove)
     (hAesDec : HookSat (cliGhostExterns gh (cliExternsPlaced mmpl W)) lsAesDecSym
       (aesDecSpec W.C.D E2E.HooksE.A0))
     (hSpqr : SpqrV1PlacedSeams mmpl gh W) :
@@ -93,7 +94,7 @@ theorem cliTryDecryptPqV1_placed_of_spqr [LibsignalPlacement]
   fun ctl =>
     CryptoVerification.LibsignalTripleRatchet.DecryptPq.tryDecryptPqV1_placed_ok_PTight_cli_at_block
       (callerProg := Poll.dpPollProgPlaced (cliGhostExterns gh (cliExternsPlaced mmpl W))) (i := 518)
-      mmpl gh W ctl hG hAesDec hSpqr (by decide)
+      mmpl gh W ctl hG hMv hAesDec hSpqr (by decide)
 
 /-- Assembles `RunProofs.DecPkD2cSlotOkPlaced mmpl gh W` from
 `RunProofs.Poll.decPkD2cSlotOk_placed_of_seams` and `cliTryDecryptPqV1_placed_of_spqr`. -/
@@ -101,6 +102,7 @@ theorem decPkD2cSlotOk_placed_of_seams [LibsignalPlacement]
     (mmpl : Obj.MultiPlacement) (gh : CliGhostHooks) (W : CliHooks)
     (hDropNz : lsmpl.base 547 ≠ 0#64)
     (hG : CliGhostA0Hooks E2E.HooksE.A0 gh)
+    (hMv : gh.extra.lookup "memmove" = some hookMemmove)
     (hRunA0 : CliA0RunHooks mmpl gh W)
     (hRead518 : subroutine_ok (Poll.dpPollProgPlaced (cliGhostExterns gh (cliExternsPlaced mmpl W)))
       (lsρ lsReadFileSym)
@@ -123,7 +125,7 @@ theorem decPkD2cSlotOk_placed_of_seams [LibsignalPlacement]
   RunProofs.Poll.decPkD2cSlotOk_placed_of_seams mmpl gh W
     hRunA0.runHooks hRead518 (Slots.stage2ContractsMinPlaced_cli mmpl gh W hG)
     hDropNz hSpqr h_accept h_accept_err hLog519
-    (cliTryDecryptPqV1_placed_of_spqr mmpl gh W hG hAesDec hSpqr)
+    (cliTryDecryptPqV1_placed_of_spqr mmpl gh W hG hMv hAesDec hSpqr)
 
 /-- Specializes `RunProofs.DecPkD2cSlotOkPlaced mmpl gh W` at `X := defaultModelExtras_placed` to
 witness `MainHops.CliDecPkSlotExistsPlaced mmpl gh W`
@@ -141,7 +143,7 @@ theorem cliDecPkSlotExistsPlaced_of_d2c [LibsignalPlacement]
 
 /-! ## 2. Top-Level `MainOk*Placed` Theorems Parameterized Over Pre-Key & SPQR/Log Seams -/
 
--- A2'' D1: A0 island, hMs/hMc discharged at a0Ghost
+-- A2'' D1 / 2B MV: A0 island, hMs/hMc/hMv discharged at a0Ghost
 /-- Assembles `MainOkPqAllTightPlaced mmpl gh` (all 5 `CliSpecPqxdh` clauses + Clause 6 `NoMatch`
 under `mainSpecTightPlaced`) from `hDecPk`, `hSpqr`, and `hLog462`. -/
 theorem main_ok_cli_pq_all_tight_placed_of_w4 [LibsignalPlacement]
@@ -149,6 +151,7 @@ theorem main_ok_cli_pq_all_tight_placed_of_w4 [LibsignalPlacement]
     (hG : CliGhostA0Hooks E2E.HooksE.A0 gh)
     (hMs : gh.memset = some CryptoVerification.LibsignalAesCbc.memsetHook)
     (hMc : gh.memcpy = some CryptoVerification.LibsignalAesCbc.memcpyHook)
+    (hMv : gh.extra.lookup "memmove" = some hookMemmove)
     (hMainHooks : ∀ W : CliHooks, CliA0MainHooks mmpl gh W)
     (hRunHooks : ∀ W : CliHooks, CliA0RunHooks mmpl gh W)
     (hRead589 : ∀ W : CliHooks,
@@ -176,18 +179,19 @@ theorem main_ok_cli_pq_all_tight_placed_of_w4 [LibsignalPlacement]
       hMainHooks
       (fun W => RunCompose.cliPubCallees_placed_ok mmpl gh W (hRunHooks W))
       (fun X W =>
-        MainHops.cliSlotCallees_placed_of_seams mmpl gh X W hDropNz hG hMs hMc
+        MainHops.cliSlotCallees_placed_of_seams mmpl gh X W hDropNz hG hMs hMc hMv
           (hRunHooks W).runHooks (hRead589 W) (hAesEnc W) (hAesDec W) (hSpqr W) (hLog462 W))
       (hDecPk hDropNz)
       (fun W => pksmSlotOkPlaced_cli mmpl gh W hG)
       hDropNz
 
--- A2'' D1: A0 island, hMs/hMc discharged at a0Ghost
+-- A2'' D1 / 2B MV: A0 island, hMs/hMc/hMv discharged at a0Ghost
 theorem main_ok_cli_pq_all_placed_of_w4 [LibsignalPlacement]
     (mmpl : Obj.MultiPlacement) (gh : CliGhostHooks)
     (hG : CliGhostA0Hooks E2E.HooksE.A0 gh)
     (hMs : gh.memset = some CryptoVerification.LibsignalAesCbc.memsetHook)
     (hMc : gh.memcpy = some CryptoVerification.LibsignalAesCbc.memcpyHook)
+    (hMv : gh.extra.lookup "memmove" = some hookMemmove)
     (hMainHooks : ∀ W : CliHooks, CliA0MainHooks mmpl gh W)
     (hRunHooks : ∀ W : CliHooks, CliA0RunHooks mmpl gh W)
     (hRead589 : ∀ W : CliHooks,
@@ -210,15 +214,16 @@ theorem main_ok_cli_pq_all_placed_of_w4 [LibsignalPlacement]
         (withLsCodeLoaded lsmpl
           CryptoVerification.LibsignalTripleRatchet.FromRecordCallees.logClosurePlacedSpec)) :
     MainOkPqAllPlaced mmpl gh :=
-  (main_ok_cli_pq_all_tight_placed_of_w4 mmpl gh hG hMs hMc hMainHooks hRunHooks hRead589 hAesEnc hAesDec
+  (main_ok_cli_pq_all_tight_placed_of_w4 mmpl gh hG hMs hMc hMv hMainHooks hRunHooks hRead589 hAesEnc hAesDec
     hDecPk hSpqr hLog462).toMainOkPqAllPlaced
 
--- A2'' D1: A0 island, hMs/hMc discharged at a0Ghost
+-- A2'' D1 / 2B MV: A0 island, hMs/hMc/hMv discharged at a0Ghost
 theorem main_ok_cli_pq_tight_placed_of_w4 [LibsignalPlacement]
     (mmpl : Obj.MultiPlacement) (gh : CliGhostHooks)
     (hG : CliGhostA0Hooks E2E.HooksE.A0 gh)
     (hMs : gh.memset = some CryptoVerification.LibsignalAesCbc.memsetHook)
     (hMc : gh.memcpy = some CryptoVerification.LibsignalAesCbc.memcpyHook)
+    (hMv : gh.extra.lookup "memmove" = some hookMemmove)
     (hMainHooks : ∀ W : CliHooks, CliA0MainHooks mmpl gh W)
     (hRunHooks : ∀ W : CliHooks, CliA0RunHooks mmpl gh W)
     (hRead589 : ∀ W : CliHooks,
@@ -241,15 +246,16 @@ theorem main_ok_cli_pq_tight_placed_of_w4 [LibsignalPlacement]
         (withLsCodeLoaded lsmpl
           CryptoVerification.LibsignalTripleRatchet.FromRecordCallees.logClosurePlacedSpec)) :
     MainOkCliPqTightPlaced mmpl gh :=
-  (main_ok_cli_pq_all_tight_placed_of_w4 mmpl gh hG hMs hMc hMainHooks hRunHooks hRead589 hAesEnc hAesDec
+  (main_ok_cli_pq_all_tight_placed_of_w4 mmpl gh hG hMs hMc hMv hMainHooks hRunHooks hRead589 hAesEnc hAesDec
     hDecPk hSpqr hLog462).toMainOkCliPqTightPlaced
 
--- A2'' D1: A0 island, hMs/hMc discharged at a0Ghost
+-- A2'' D1 / 2B MV: A0 island, hMs/hMc/hMv discharged at a0Ghost
 theorem main_ok_cli_pq_placed_of_w4 [LibsignalPlacement]
     (mmpl : Obj.MultiPlacement) (gh : CliGhostHooks)
     (hG : CliGhostA0Hooks E2E.HooksE.A0 gh)
     (hMs : gh.memset = some CryptoVerification.LibsignalAesCbc.memsetHook)
     (hMc : gh.memcpy = some CryptoVerification.LibsignalAesCbc.memcpyHook)
+    (hMv : gh.extra.lookup "memmove" = some hookMemmove)
     (hMainHooks : ∀ W : CliHooks, CliA0MainHooks mmpl gh W)
     (hRunHooks : ∀ W : CliHooks, CliA0RunHooks mmpl gh W)
     (hRead589 : ∀ W : CliHooks,
@@ -272,15 +278,16 @@ theorem main_ok_cli_pq_placed_of_w4 [LibsignalPlacement]
         (withLsCodeLoaded lsmpl
           CryptoVerification.LibsignalTripleRatchet.FromRecordCallees.logClosurePlacedSpec)) :
     MainOkCliPqPlaced mmpl gh :=
-  (main_ok_cli_pq_all_placed_of_w4 mmpl gh hG hMs hMc hMainHooks hRunHooks hRead589 hAesEnc hAesDec
+  (main_ok_cli_pq_all_placed_of_w4 mmpl gh hG hMs hMc hMv hMainHooks hRunHooks hRead589 hAesEnc hAesDec
     hDecPk hSpqr hLog462).toMainOkCliPqPlaced
 
--- A2'' D1: A0 island, hMs/hMc discharged at a0Ghost
+-- A2'' D1 / 2B MV: A0 island, hMs/hMc/hMv discharged at a0Ghost
 theorem main_ok_over_tight_placed_of_w4 [LibsignalPlacement]
     (mmpl : Obj.MultiPlacement) (gh : CliGhostHooks)
     (hG : CliGhostA0Hooks E2E.HooksE.A0 gh)
     (hMs : gh.memset = some CryptoVerification.LibsignalAesCbc.memsetHook)
     (hMc : gh.memcpy = some CryptoVerification.LibsignalAesCbc.memcpyHook)
+    (hMv : gh.extra.lookup "memmove" = some hookMemmove)
     (hMainHooks : ∀ W : CliHooks, CliA0MainHooks mmpl gh W)
     (hRunHooks : ∀ W : CliHooks, CliA0RunHooks mmpl gh W)
     (hRead589 : ∀ W : CliHooks,
@@ -303,15 +310,16 @@ theorem main_ok_over_tight_placed_of_w4 [LibsignalPlacement]
         (withLsCodeLoaded lsmpl
           CryptoVerification.LibsignalTripleRatchet.FromRecordCallees.logClosurePlacedSpec)) :
     MainOkOverTightPlaced mmpl gh :=
-  (main_ok_cli_pq_all_tight_placed_of_w4 mmpl gh hG hMs hMc hMainHooks hRunHooks hRead589 hAesEnc hAesDec
+  (main_ok_cli_pq_all_tight_placed_of_w4 mmpl gh hG hMs hMc hMv hMainHooks hRunHooks hRead589 hAesEnc hAesDec
     hDecPk hSpqr hLog462).toMainOkOverNormTightPlaced
 
--- A2'' D1: A0 island, hMs/hMc discharged at a0Ghost
+-- A2'' D1 / 2B MV: A0 island, hMs/hMc/hMv discharged at a0Ghost
 theorem main_ok_over_placed_of_w4 [LibsignalPlacement]
     (mmpl : Obj.MultiPlacement) (gh : CliGhostHooks)
     (hG : CliGhostA0Hooks E2E.HooksE.A0 gh)
     (hMs : gh.memset = some CryptoVerification.LibsignalAesCbc.memsetHook)
     (hMc : gh.memcpy = some CryptoVerification.LibsignalAesCbc.memcpyHook)
+    (hMv : gh.extra.lookup "memmove" = some hookMemmove)
     (hMainHooks : ∀ W : CliHooks, CliA0MainHooks mmpl gh W)
     (hRunHooks : ∀ W : CliHooks, CliA0RunHooks mmpl gh W)
     (hRead589 : ∀ W : CliHooks,
@@ -334,15 +342,16 @@ theorem main_ok_over_placed_of_w4 [LibsignalPlacement]
         (withLsCodeLoaded lsmpl
           CryptoVerification.LibsignalTripleRatchet.FromRecordCallees.logClosurePlacedSpec)) :
     MainOkOverPlaced mmpl gh :=
-  (main_ok_over_tight_placed_of_w4 mmpl gh hG hMs hMc hMainHooks hRunHooks hRead589 hAesEnc hAesDec
+  (main_ok_over_tight_placed_of_w4 mmpl gh hG hMs hMc hMv hMainHooks hRunHooks hRead589 hAesEnc hAesDec
     hDecPk hSpqr hLog462).toMainOkOverPlaced
 
--- A2'' D1: A0 island, hMs/hMc discharged at a0Ghost
+-- A2'' D1 / 2B MV: A0 island, hMs/hMc/hMv discharged at a0Ghost
 theorem main_ok_no_match_tight_placed_of_w4 [LibsignalPlacement]
     (mmpl : Obj.MultiPlacement) (gh : CliGhostHooks)
     (hG : CliGhostA0Hooks E2E.HooksE.A0 gh)
     (hMs : gh.memset = some CryptoVerification.LibsignalAesCbc.memsetHook)
     (hMc : gh.memcpy = some CryptoVerification.LibsignalAesCbc.memcpyHook)
+    (hMv : gh.extra.lookup "memmove" = some hookMemmove)
     (hMainHooks : ∀ W : CliHooks, CliA0MainHooks mmpl gh W)
     (hRunHooks : ∀ W : CliHooks, CliA0RunHooks mmpl gh W)
     (hRead589 : ∀ W : CliHooks,
@@ -365,15 +374,16 @@ theorem main_ok_no_match_tight_placed_of_w4 [LibsignalPlacement]
         (withLsCodeLoaded lsmpl
           CryptoVerification.LibsignalTripleRatchet.FromRecordCallees.logClosurePlacedSpec)) :
     MainOkNoMatchTightPlaced mmpl gh :=
-  (main_ok_cli_pq_all_tight_placed_of_w4 mmpl gh hG hMs hMc hMainHooks hRunHooks hRead589 hAesEnc hAesDec
+  (main_ok_cli_pq_all_tight_placed_of_w4 mmpl gh hG hMs hMc hMv hMainHooks hRunHooks hRead589 hAesEnc hAesDec
     hDecPk hSpqr hLog462).toMainOkNoMatchTightPlaced
 
--- A2'' D1: A0 island, hMs/hMc discharged at a0Ghost
+-- A2'' D1 / 2B MV: A0 island, hMs/hMc/hMv discharged at a0Ghost
 theorem main_ok_no_match_placed_of_w4 [LibsignalPlacement]
     (mmpl : Obj.MultiPlacement) (gh : CliGhostHooks)
     (hG : CliGhostA0Hooks E2E.HooksE.A0 gh)
     (hMs : gh.memset = some CryptoVerification.LibsignalAesCbc.memsetHook)
     (hMc : gh.memcpy = some CryptoVerification.LibsignalAesCbc.memcpyHook)
+    (hMv : gh.extra.lookup "memmove" = some hookMemmove)
     (hMainHooks : ∀ W : CliHooks, CliA0MainHooks mmpl gh W)
     (hRunHooks : ∀ W : CliHooks, CliA0RunHooks mmpl gh W)
     (hRead589 : ∀ W : CliHooks,
@@ -396,16 +406,17 @@ theorem main_ok_no_match_placed_of_w4 [LibsignalPlacement]
         (withLsCodeLoaded lsmpl
           CryptoVerification.LibsignalTripleRatchet.FromRecordCallees.logClosurePlacedSpec)) :
     MainOkNoMatchPlaced mmpl gh :=
-  (main_ok_cli_pq_all_placed_of_w4 mmpl gh hG hMs hMc hMainHooks hRunHooks hRead589 hAesEnc hAesDec
+  (main_ok_cli_pq_all_placed_of_w4 mmpl gh hG hMs hMc hMv hMainHooks hRunHooks hRead589 hAesEnc hAesDec
     hDecPk hSpqr hLog462).toMainOkNoMatchPlaced
 
--- A2'' D1: A0 island, hMs/hMc discharged at a0Ghost
+-- A2'' D1 / 2B MV: A0 island, hMs/hMc/hMv discharged at a0Ghost
 /-- Tightened SM-domain `MainOkCliSmTightPlaced mmpl gh` assembled via `main_ok_cli_sm_tight_placed`. -/
 theorem main_ok_cli_sm_tight_placed_of_w4 [LibsignalPlacement]
     (mmpl : Obj.MultiPlacement) (gh : CliGhostHooks)
     (hG : CliGhostA0Hooks E2E.HooksE.A0 gh)
     (hMs : gh.memset = some CryptoVerification.LibsignalAesCbc.memsetHook)
     (hMc : gh.memcpy = some CryptoVerification.LibsignalAesCbc.memcpyHook)
+    (hMv : gh.extra.lookup "memmove" = some hookMemmove)
     (hMainHooks : ∀ W : CliHooks, CliA0MainHooks mmpl gh W)
     (hRunHooks : ∀ W : CliHooks, CliA0RunHooks mmpl gh W)
     (hRead589 : ∀ W : CliHooks,
@@ -432,18 +443,19 @@ theorem main_ok_cli_sm_tight_placed_of_w4 [LibsignalPlacement]
     main_ok_cli_sm_tight_placed mmpl gh W
       (hMainHooks W)
       (RunCompose.cliPubCallees_placed_ok mmpl gh W (hRunHooks W))
-      (MainHops.cliSlotCallees_placed_of_seams mmpl gh defaultModelExtras_placed W hDropNz hG hMs hMc
+      (MainHops.cliSlotCallees_placed_of_seams mmpl gh defaultModelExtras_placed W hDropNz hG hMs hMc hMv
         (hRunHooks W).runHooks (hRead589 W) (hAesEnc W) (hAesDec W) (hSpqr W) (hLog462 W))
       (MainHops.cliPksmSlotExistsPlaced mmpl gh W hG)
       (cliDecPkSlotExistsPlaced_of_d2c mmpl gh W (hDecPk hDropNz W))
 
--- A2'' D1: A0 island, hMs/hMc discharged at a0Ghost
+-- A2'' D1 / 2B MV: A0 island, hMs/hMc/hMv discharged at a0Ghost
 /-- Non-tight SM-domain `MainOkCliSmPlaced mmpl gh` assembled via `main_ok_cli_sm_placed`. -/
 theorem main_ok_cli_sm_placed_of_w4 [LibsignalPlacement]
     (mmpl : Obj.MultiPlacement) (gh : CliGhostHooks)
     (hG : CliGhostA0Hooks E2E.HooksE.A0 gh)
     (hMs : gh.memset = some CryptoVerification.LibsignalAesCbc.memsetHook)
     (hMc : gh.memcpy = some CryptoVerification.LibsignalAesCbc.memcpyHook)
+    (hMv : gh.extra.lookup "memmove" = some hookMemmove)
     (hMainHooks : ∀ W : CliHooks, CliA0MainHooks mmpl gh W)
     (hRunHooks : ∀ W : CliHooks, CliA0RunHooks mmpl gh W)
     (hRead589 : ∀ W : CliHooks,
@@ -470,12 +482,12 @@ theorem main_ok_cli_sm_placed_of_w4 [LibsignalPlacement]
     main_ok_cli_sm_placed mmpl gh W
       (hMainHooks W)
       (RunCompose.cliPubCallees_placed_ok mmpl gh W (hRunHooks W))
-      (MainHops.cliSlotCallees_placed_of_seams mmpl gh defaultModelExtras_placed W hDropNz hG hMs hMc
+      (MainHops.cliSlotCallees_placed_of_seams mmpl gh defaultModelExtras_placed W hDropNz hG hMs hMc hMv
         (hRunHooks W).runHooks (hRead589 W) (hAesEnc W) (hAesDec W) (hSpqr W) (hLog462 W))
       (MainHops.cliPksmSlotExistsPlaced mmpl gh W hG)
       (cliDecPkSlotExistsPlaced_of_d2c mmpl gh W (hDecPk hDropNz W))
 
--- A2'' D1: A0 island, hMs/hMc discharged at a0Ghost
+-- A2'' D1 / 2B MV: A0 island, hMs/hMc/hMv discharged at a0Ghost
 /-- Assembles `MainOkPqAllTightPlaced mmpl gh` with `hDecPk` discharged via
 `decPkD2cSlotOk_placed_of_seams`. -/
 theorem main_ok_cli_pq_all_tight_placed_of_poll_seams [LibsignalPlacement]
@@ -483,6 +495,7 @@ theorem main_ok_cli_pq_all_tight_placed_of_poll_seams [LibsignalPlacement]
     (hG : CliGhostA0Hooks E2E.HooksE.A0 gh)
     (hMs : gh.memset = some CryptoVerification.LibsignalAesCbc.memsetHook)
     (hMc : gh.memcpy = some CryptoVerification.LibsignalAesCbc.memcpyHook)
+    (hMv : gh.extra.lookup "memmove" = some hookMemmove)
     (hMainHooks : ∀ W : CliHooks, CliA0MainHooks mmpl gh W)
     (hRunHooks : ∀ W : CliHooks, CliA0RunHooks mmpl gh W)
     (hRead518 : ∀ W : CliHooks,
@@ -519,13 +532,13 @@ theorem main_ok_cli_pq_all_tight_placed_of_poll_seams [LibsignalPlacement]
         (withLsCodeLoaded lsmpl
           CryptoVerification.LibsignalTripleRatchet.FromRecordCallees.logClosurePlacedSpec)) :
     MainOkPqAllTightPlaced mmpl gh :=
-  main_ok_cli_pq_all_tight_placed_of_w4 mmpl gh hG hMs hMc hMainHooks hRunHooks hRead589 hAesEnc hAesDec
+  main_ok_cli_pq_all_tight_placed_of_w4 mmpl gh hG hMs hMc hMv hMainHooks hRunHooks hRead589 hAesEnc hAesDec
     (fun hDropNz W =>
-      SignalSession.decPkD2cSlotOk_placed_of_seams mmpl gh W hDropNz hG (hRunHooks W) (hRead518 W)
+      SignalSession.decPkD2cSlotOk_placed_of_seams mmpl gh W hDropNz hG hMv (hRunHooks W) (hRead518 W)
         (hAesDec W) (hSpqr W) (fun X => h_accept X W) (fun X => h_accept_err X W) hLog519)
     hSpqr hLog462
 
--- A2'' D1: A0 island, hMs/hMc discharged at a0Ghost
+-- A2'' D1 / 2B MV: A0 island, hMs/hMc/hMv discharged at a0Ghost
 /-- Assembles `MainOkCliSmTightPlaced mmpl gh` with `hDecPk` discharged via
 `decPkD2cSlotOk_placed_of_seams`. -/
 theorem main_ok_cli_sm_tight_placed_of_poll_seams [LibsignalPlacement]
@@ -533,6 +546,7 @@ theorem main_ok_cli_sm_tight_placed_of_poll_seams [LibsignalPlacement]
     (hG : CliGhostA0Hooks E2E.HooksE.A0 gh)
     (hMs : gh.memset = some CryptoVerification.LibsignalAesCbc.memsetHook)
     (hMc : gh.memcpy = some CryptoVerification.LibsignalAesCbc.memcpyHook)
+    (hMv : gh.extra.lookup "memmove" = some hookMemmove)
     (hMainHooks : ∀ W : CliHooks, CliA0MainHooks mmpl gh W)
     (hRunHooks : ∀ W : CliHooks, CliA0RunHooks mmpl gh W)
     (hRead518 : ∀ W : CliHooks,
@@ -569,15 +583,15 @@ theorem main_ok_cli_sm_tight_placed_of_poll_seams [LibsignalPlacement]
         (withLsCodeLoaded lsmpl
           CryptoVerification.LibsignalTripleRatchet.FromRecordCallees.logClosurePlacedSpec)) :
     MainOkCliSmTightPlaced mmpl gh :=
-  main_ok_cli_sm_tight_placed_of_w4 mmpl gh hG hMs hMc hMainHooks hRunHooks hRead589 hAesEnc hAesDec
+  main_ok_cli_sm_tight_placed_of_w4 mmpl gh hG hMs hMc hMv hMainHooks hRunHooks hRead589 hAesEnc hAesDec
     (fun hDropNz W =>
-      SignalSession.decPkD2cSlotOk_placed_of_seams mmpl gh W hDropNz hG (hRunHooks W) (hRead518 W)
+      SignalSession.decPkD2cSlotOk_placed_of_seams mmpl gh W hDropNz hG hMv (hRunHooks W) (hRead518 W)
         (hAesDec W) (hSpqr W) (fun X => h_accept X W) (fun X => h_accept_err X W) hLog519)
     hSpqr hLog462
 
 /-! ## 3. Closed `[LibsignalFullPlacement]` `main`-Level Theorems (`0` Mutated-Callee Seam Premises) -/
 
--- A2'' D1: A0 island, hMs/hMc discharged at a0Ghost
+-- A2'' D1 / 2B MV: A0 island, hMs/hMc/hMv discharged at a0Ghost
 /-- Closed `[LibsignalFullPlacement]` assembly of `RunProofs.DecPkD2cSlotOkFrozenPlaced mmpl gh W`
 (`SpqrV1PlacedSeams` is discharged via `spqrV1PlacedSeams_ok` and `h_accept` / `h_accept_err` /
 `hLog519` are discharged inside `decPkD2cSlotOk_full_placed_of_seams`). -/
@@ -587,6 +601,7 @@ theorem decPkD2cSlotOk_frozen_placed [LibsignalFullPlacement]
     (hG : CliGhostA0Hooks E2E.HooksE.A0 gh)
     (hMs : gh.memset = some CryptoVerification.LibsignalAesCbc.memsetHook)
     (hMc : gh.memcpy = some CryptoVerification.LibsignalAesCbc.memcpyHook)
+    (hMv : gh.extra.lookup "memmove" = some hookMemmove)
     (hRunA0 : CliA0RunHooks mmpl gh W)
     (hRead518 : subroutine_ok (Poll.dpPollProgPlaced (cliGhostExterns gh (cliExternsPlaced mmpl W)))
       (lsρ lsReadFileSym)
@@ -598,11 +613,11 @@ theorem decPkD2cSlotOk_frozen_placed [LibsignalFullPlacement]
     RunProofs.DecPkD2cSlotOkFrozenPlaced mmpl gh W :=
   let hSpqr :=
     LibsignalBinary.Proofs.SignalSession.Cli.SpqrV1PlacedSeamsInst.spqrV1PlacedSeams_ok
-      mmpl gh W hG hMs hMc hHmac
+      mmpl gh W hG hMs hMc hMv hHmac
   RunProofs.Poll.decPkD2cSlotOk_full_placed_of_seams mmpl gh W
     hRunA0.runHooks hRead518 (Slots.stage2ContractsMinPlaced_cli mmpl gh W hG)
     hDropNz hG hSpqr
-    (cliTryDecryptPqV1_placed_of_spqr mmpl gh W hG hAesDec hSpqr)
+    (cliTryDecryptPqV1_placed_of_spqr mmpl gh W hG hMv hAesDec hSpqr)
 
 /-- Specializes `RunProofs.DecPkD2cSlotOkFrozenPlaced mmpl gh W` at `X := defaultModelExtras_placed`
 to witness `MainHops.CliDecPkSlotExistsFrozenPlaced mmpl gh W`. -/
@@ -617,7 +632,7 @@ theorem cliDecPkSlotExistsFrozenPlaced_of_d2c [LibsignalPlacement]
    fun S needs hfiles hdec hok hneed =>
      h defaultModelExtras_placed S needs hfiles hdec hok hneed⟩
 
--- A2'' D1: A0 island, hMs/hMc discharged at a0Ghost
+-- A2'' D1 / 2B MV: A0 island, hMs/hMc/hMv discharged at a0Ghost
 /-- Closed `[LibsignalFullPlacement]` 6-clause PQXDH + `NoMatch` `main` theorem with zero
 mutated-callee seam premises. -/
 theorem main_ok_cli_pq_all_tight_frozen_placed [LibsignalFullPlacement]
@@ -625,6 +640,7 @@ theorem main_ok_cli_pq_all_tight_frozen_placed [LibsignalFullPlacement]
     (hG : CliGhostA0Hooks E2E.HooksE.A0 gh)
     (hMs : gh.memset = some CryptoVerification.LibsignalAesCbc.memsetHook)
     (hMc : gh.memcpy = some CryptoVerification.LibsignalAesCbc.memcpyHook)
+    (hMv : gh.extra.lookup "memmove" = some hookMemmove)
     (hMainHooks : ∀ W : CliHooks, CliA0MainHooks mmpl gh W)
     (hRunHooks : ∀ W : CliHooks, CliA0RunHooks mmpl gh W)
     (hRead518 : ∀ W : CliHooks,
@@ -649,17 +665,17 @@ theorem main_ok_cli_pq_all_tight_frozen_placed [LibsignalFullPlacement]
       hMainHooks
       (fun W => RunCompose.cliPubCallees_frozen_placed_ok mmpl gh W (hRunHooks W))
       (fun X W =>
-        MainHops.cliSlotCallees_full_placed_of_seams mmpl gh X W hDropNz hG hMs hMc
+        MainHops.cliSlotCallees_full_placed_of_seams mmpl gh X W hDropNz hG hMs hMc hMv
           (hRunHooks W).runHooks (hRead589 W) (hAesEnc W) (hAesDec W)
           (LibsignalBinary.Proofs.SignalSession.Cli.SpqrV1PlacedSeamsInst.spqrV1PlacedSeams_ok
-            mmpl gh W hG hMs hMc (hHmac W)))
+            mmpl gh W hG hMs hMc hMv (hHmac W)))
       (fun W =>
-        decPkD2cSlotOk_frozen_placed mmpl gh W hDropNz hG hMs hMc (hRunHooks W) (hRead518 W) (hAesDec W)
+        decPkD2cSlotOk_frozen_placed mmpl gh W hDropNz hG hMs hMc hMv (hRunHooks W) (hRead518 W) (hAesDec W)
           (hHmac W))
       (fun W => pksmSlotOkPlaced_cli mmpl gh W hG)
       hDropNz
 
--- A2'' D1: A0 island, hMs/hMc discharged at a0Ghost
+-- A2'' D1 / 2B MV: A0 island, hMs/hMc/hMv discharged at a0Ghost
 /-- Closed `[LibsignalFullPlacement]` 5-clause PQXDH `main` theorem with zero mutated-callee
 seam premises. -/
 theorem main_ok_cli_pq_tight_frozen_placed [LibsignalFullPlacement]
@@ -667,6 +683,7 @@ theorem main_ok_cli_pq_tight_frozen_placed [LibsignalFullPlacement]
     (hG : CliGhostA0Hooks E2E.HooksE.A0 gh)
     (hMs : gh.memset = some CryptoVerification.LibsignalAesCbc.memsetHook)
     (hMc : gh.memcpy = some CryptoVerification.LibsignalAesCbc.memcpyHook)
+    (hMv : gh.extra.lookup "memmove" = some hookMemmove)
     (hMainHooks : ∀ W : CliHooks, CliA0MainHooks mmpl gh W)
     (hRunHooks : ∀ W : CliHooks, CliA0RunHooks mmpl gh W)
     (hRead518 : ∀ W : CliHooks,
@@ -686,10 +703,10 @@ theorem main_ok_cli_pq_tight_frozen_placed [LibsignalFullPlacement]
     (hHmac : ∀ W : CliHooks, HookSat (cliGhostExterns gh (cliExternsPlaced mmpl W))
       lsLibcruxHmacSymCli (libcruxHmacSpec W.C.F E2E.HooksE.A0)) :
     MainOkCliPqTightFrozenPlaced mmpl gh :=
-  (main_ok_cli_pq_all_tight_frozen_placed mmpl gh hG hMs hMc hMainHooks hRunHooks hRead518 hRead589 hAesEnc
+  (main_ok_cli_pq_all_tight_frozen_placed mmpl gh hG hMs hMc hMv hMainHooks hRunHooks hRead518 hRead589 hAesEnc
     hAesDec hHmac).toMainOkCliPqTightFrozenPlaced
 
--- A2'' D1: A0 island, hMs/hMc discharged at a0Ghost
+-- A2'' D1 / 2B MV: A0 island, hMs/hMc/hMv discharged at a0Ghost
 /-- Closed `[LibsignalFullPlacement]` `MainOkOverTightFrozenPlaced` theorem with zero mutated-callee
 seam premises. -/
 theorem main_ok_over_tight_frozen_placed [LibsignalFullPlacement]
@@ -697,6 +714,7 @@ theorem main_ok_over_tight_frozen_placed [LibsignalFullPlacement]
     (hG : CliGhostA0Hooks E2E.HooksE.A0 gh)
     (hMs : gh.memset = some CryptoVerification.LibsignalAesCbc.memsetHook)
     (hMc : gh.memcpy = some CryptoVerification.LibsignalAesCbc.memcpyHook)
+    (hMv : gh.extra.lookup "memmove" = some hookMemmove)
     (hMainHooks : ∀ W : CliHooks, CliA0MainHooks mmpl gh W)
     (hRunHooks : ∀ W : CliHooks, CliA0RunHooks mmpl gh W)
     (hRead518 : ∀ W : CliHooks,
@@ -716,10 +734,10 @@ theorem main_ok_over_tight_frozen_placed [LibsignalFullPlacement]
     (hHmac : ∀ W : CliHooks, HookSat (cliGhostExterns gh (cliExternsPlaced mmpl W))
       lsLibcruxHmacSymCli (libcruxHmacSpec W.C.F E2E.HooksE.A0)) :
     MainOkOverTightFrozenPlaced mmpl gh :=
-  (main_ok_cli_pq_all_tight_frozen_placed mmpl gh hG hMs hMc hMainHooks hRunHooks hRead518 hRead589 hAesEnc
+  (main_ok_cli_pq_all_tight_frozen_placed mmpl gh hG hMs hMc hMv hMainHooks hRunHooks hRead518 hRead589 hAesEnc
     hAesDec hHmac).toMainOkOverTightFrozenPlaced
 
--- A2'' D1: A0 island, hMs/hMc discharged at a0Ghost
+-- A2'' D1 / 2B MV: A0 island, hMs/hMc/hMv discharged at a0Ghost
 /-- Closed `[LibsignalFullPlacement]` standalone `NoMatch` `main` theorem with zero mutated-callee
 seam premises. -/
 theorem main_ok_no_match_tight_frozen_placed [LibsignalFullPlacement]
@@ -727,6 +745,7 @@ theorem main_ok_no_match_tight_frozen_placed [LibsignalFullPlacement]
     (hG : CliGhostA0Hooks E2E.HooksE.A0 gh)
     (hMs : gh.memset = some CryptoVerification.LibsignalAesCbc.memsetHook)
     (hMc : gh.memcpy = some CryptoVerification.LibsignalAesCbc.memcpyHook)
+    (hMv : gh.extra.lookup "memmove" = some hookMemmove)
     (hMainHooks : ∀ W : CliHooks, CliA0MainHooks mmpl gh W)
     (hRunHooks : ∀ W : CliHooks, CliA0RunHooks mmpl gh W)
     (hRead518 : ∀ W : CliHooks,
@@ -746,7 +765,7 @@ theorem main_ok_no_match_tight_frozen_placed [LibsignalFullPlacement]
     (hHmac : ∀ W : CliHooks, HookSat (cliGhostExterns gh (cliExternsPlaced mmpl W))
       lsLibcruxHmacSymCli (libcruxHmacSpec W.C.F E2E.HooksE.A0)) :
     MainOkNoMatchTightFrozenPlaced mmpl gh :=
-  (main_ok_cli_pq_all_tight_frozen_placed mmpl gh hG hMs hMc hMainHooks hRunHooks hRead518 hRead589 hAesEnc
+  (main_ok_cli_pq_all_tight_frozen_placed mmpl gh hG hMs hMc hMv hMainHooks hRunHooks hRead518 hRead589 hAesEnc
     hAesDec hHmac).toMainOkNoMatchTightFrozenPlaced
 
 end CryptoVerification.SignalSession

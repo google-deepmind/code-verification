@@ -58,26 +58,22 @@ open CryptoVerification.LibsignalPublicApi.StoreKit
   (FsFiles ls_subroutine_ok_rocl_of_block subroutine_ok_withLsCodeRoLoaded_of_rocl)
 open CryptoVerification.LibsignalTripleRatchetRepr (AddrGhost)
 open CryptoVerification.SignalSession
-  (CliHooks cliBcmpHook cliElfBytes cliElfImage cliExternsPlaced libsignalSessionLib lsAesEncSym
+  (CliHooks cliElfBytes cliElfImage cliExternsPlaced libsignalSessionLib lsAesEncSym
    lsReadFileSym lsStringCloneSym)
-open CryptoVerification.SignalSession.Cli (cliBcmpSpec)
-open CryptoVerification.SignalSession.Cli.KitInst (cliGhostExterns_blackBox)
+open CryptoVerification.SignalSession.Cli.KitInst (cliGhostExterns_blackBox_sat)
 open CryptoVerification.SignalSession.Cli.MainHops (cliIo cliRunBudgets cliRunNeeds cliWrOk)
 open CryptoVerification.SignalSession.Cli.Placed (blkPl_589 lsProg_569 lsProg_589)
 open CryptoVerification.SignalSession.Cli.Run.Placed (lsProg_579)
 open CryptoVerification.SignalSession.Cli.RunCompose (mkSlot)
-open CryptoVerification.SignalSession.Cli.RunGlue
-  (CliGhostHooks cliExternsPlaced_bcmp cliGhostExterns cliGhostExterns_other)
+open CryptoVerification.SignalSession.Cli.RunGlue (CliGhostHooks cliGhostExterns)
 open CryptoVerification.SignalSession.Cli.RunProofs (cliDecryptPrekeyNeed)
 open CryptoVerification.SignalSession.Cli.RunSkeleton (RunBudgets pathNeed)
-open CryptoVerification.SignalSession.Cli.Slots
-  (cliGhostExterns_sat_of_cliExternsPlaced scopeKit)
+open CryptoVerification.SignalSession.Cli.Slots (scopeKit)
 open CryptoVerification.SpqrV1.Top.DecodeState (canonicalV1InnerHeap)
 open CryptoVerification.SpqrV1.Unchunked (spqrLibcruxHmacSym)
 open LibsignalBinary.Heap (AllocCostModel BudgetLimits RustCliAllocBudget)
 open LibsignalBinary.Heap.Fine (fineCostModel fineHookRustCliAllocBudget)
-open LibsignalBinary.Heap.SpecBudget
-  (aesEncBudgetSpec libcruxHmacBudgetSpec withVmPreserved)
+open LibsignalBinary.Heap.SpecBudget (aesEncBudgetSpec libcruxHmacBudgetSpec)
 open LibsignalBinary.Proofs.PeakBudget.CliFitsTraceArith (cliBudgetLimits)
 open LibsignalBinary.Proofs.PeakBudget.RealCliDecPkSlotOk (cliRunHooksPlaced_of_ghost)
 open LibsignalBinary.Proofs.PeakBudget.RealCliRunEnvMemFixed
@@ -98,12 +94,12 @@ open LibsignalBinary.Proofs.SignalSession.Cli.Run.Compose.SemPlacedBudget (encSl
 open LibsignalBinary.Proofs.SignalSession.Cli.Run.Proofs.Ratchet.EncryptLemmas.SlotOfInnerPlacedBudget
   (w1IdKitPlaced w1SessKitPlaced)
 open LibsignalBinary.Proofs.SignalSession.Cli.Run.Proofs.Ratchet.EncryptSlotWithFds
-  (subroutine_ok_encSlot_withFdsGe3Closed_of_withFds w1BinaryIdKitPlaced_withFds_okIE
+  (subroutine_ok_encSlot_withFdsGe3Closed_of_withFds w1BinaryIdKitPlaced_withFds_okIE_sat
    w1BinarySessKitPlaced_withFds_okSE)
 open LibsignalBinary.Proofs.SignalSession.Cli.Run.SkeletonPlacedBudget
   (RunHooksPlaced path_placed_ok)
 open LibsignalBinary.Proofs.SignalSession.Cli.Run.Slots.CliHookSatPlacedBudget
-  (CliGhostAllocHooks CliGhostSpqrAllocHooks cliExternsPlaced_bcmp_budget_sat)
+  (CliGhostAllocHooks CliGhostSpqrAllocHooks)
 open LibsignalBinary.Proofs.SignalSession.Cli.SpecsPlacedBudget
   (dirGetSpecPlaced pathSpecPlaced sessDeserializeSpecPlaced)
 open LibsignalBinary.Proofs.SignalSession.Cli.Store.LoadPollRecordDeser
@@ -145,27 +141,7 @@ open LibsignalBinary.Proofs.SpqrV1.Top.DecodeState.DecodeStateSubMergesCountedR
 open LibsignalBinary.Proofs.SpqrV1.Top.DecodeState.E2aTightDecodeStatePlacedBudget
   (e2a_decodeState_cl_placed_ok_of_v1Merge_109)
 
-/-! ## `bcmp` `.keepsFs` and `ghFixed`-Parametric Slot-`464` Producer -/
-
-/-- `cliGhostExterns gh (cliExternsPlaced mmpl W)` satisfies `(withVmPreserved cliBcmpSpec).keepsFs`
-at `"bcmp"` (`cliBcmpName`), since `cliBcmpHook` leaves `.fs` unchanged. -/
-theorem cliGhostExterns_bcmp_keepsFs_sat
-    (mmpl : MultiPlacement) (gh : CliGhostHooks) (W : CliHooks) :
-    HookSat (cliGhostExterns gh (cliExternsPlaced mmpl W)) "bcmp"
-      (withVmPreserved cliBcmpSpec).keepsFs := by
-  have hsat :=
-    cliGhostExterns_sat_of_cliExternsPlaced mmpl gh W
-      (cliExternsPlaced_bcmp_budget_sat mmpl W)
-  rcases hsat with ⟨fn, hfn, hok⟩
-  have hlookup :
-      cliGhostExterns gh (cliExternsPlaced mmpl W) "bcmp" = some (cliBcmpHook W.bcmp) := by
-    rw [cliGhostExterns_other gh (cliExternsPlaced mmpl W)
-      (by decide) (by decide) (by decide) (by decide) (by decide) (by decide)]
-    exact cliExternsPlaced_bcmp mmpl W
-  rw [hlookup] at hfn
-  injection hfn with hfn_eq
-  subst hfn_eq
-  exact ⟨cliBcmpHook W.bcmp, hlookup, hok.keepsFs (fun _ => rfl)⟩
+/-! ## `ghFixed`-Parametric Slot-`464` Producer -/
 
 /-- `ghFixed`-parametric producer for `h2ki_EncryptSlot464OkAtPreFd` via
 `AllocWithFds.withFds` and `dirGet_placed_ok_of_h2k_fd` on Block `589`. -/
@@ -229,7 +205,7 @@ theorem h2k_encryptSlot464OkAtPreFd_of_gh
       (pathProg := lsProg_589 H) (jPath := 589)
       (fun _ hp => hp.2)
       hh.allocFs
-      (cliGhostExterns_bcmp_keepsFs_sat mmpl ghFixed W)
+      hh.bcmp
       (by decide) (by decide)
       hPathFd
       hReadSat
@@ -264,8 +240,8 @@ theorem h2k_encryptSlot464OkAtPreFd_of_gh
           (w1IdKitPlaced (withFds A0).repAlloc cliRunBudgets F peer)
           (w1BinaryIdKitPlacedBudgetFixed (withFds A0).repAlloc cliRunBudgets F peer) H :=
     fun F peer =>
-      w1BinaryIdKitPlaced_withFds_okIE rfl cliRunBudgets F peer h547
-        hh hhWf hGet589 (cliGhostExterns_blackBox mmpl ghFixed W)
+      w1BinaryIdKitPlaced_withFds_okIE_sat rfl cliRunBudgets F peer h547
+        hh hhWf hGet589 (cliGhostExterns_blackBox_sat mmpl ghFixed W hGWf.extraOk)
   have hc325 := w1t_decodeStateCalleeContractsClPlacedX_cli mmpl ghFixed W hGWf
   have h325Wf := e2a_decodeState_cl_placed_ok_of_v1Merge_109 (F := W.C.F) (K := W.Q.K)
     hc325
@@ -377,6 +353,7 @@ theorem cliGhostSpqrAllocHooks_of_h2k [LibsignalPlacement]
     memcpy := hK.memcpy
     memcpy_exact := hK.memcpy_exact
     memset_acp := hK.memset_acp
+    extraOk := hK.extraOk
     allocZeroed :=
       h2kb_hookOk_of_withKeepLrFalse hK.allocZeroed (h2kb_alloc_pre_keepSub_false hlink)
     allocZeroed_fs := hK.allocZeroed_fs

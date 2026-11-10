@@ -20,6 +20,7 @@ public import LibsignalBinary.Specifications.SignalSession.CliBinaryPq
 public meta import LibsignalBinary.Proofs.Common.SharedHelpers -- shake: keep
 import LibsignalBinary.Proofs.Common.SharedHelpers
 import LibsignalBinary.Proofs.E2E.Pqxdh.Initiator.ModelBridge
+import LibsignalBinary.Proofs.E2E.Pqxdh.ResponderCore.CryptoCalleesPlacedBudgetBbSat
 import LibsignalBinary.Proofs.E2E.Pqxdh.ResponderCore.CryptoCalleesPlacedBudgetSat
 import LibsignalBinary.Proofs.SpecLemmas.SyscallReadWritev
 import Arm64.Trusted.Spec.Hoare
@@ -92,7 +93,8 @@ open CryptoVerification.SignalSession.Cli.MainHops (cliIo cliRunBudgets cliWrOk)
 open CryptoVerification.SignalSession.Cli.Placed (lsProg_542 lsProg_543 lsProg_569 lsProg_586 lsProg_589)
 open CryptoVerification.SignalSession.Cli.Run.Placed (instIsLsBlockProg_579 lsProg_579)
 open CryptoVerification.SignalSession.Cli.RunCompose (InitGhost RunNeeds RunSem mkSlot)
-open CryptoVerification.SignalSession.Cli.RunGlue (CliGhostHooks IsFsC cliGhostExterns)
+open CryptoVerification.SignalSession.Cli.RunGlue
+  (CliGhostHooks IsFsC cliGhostExterns cliGhostExternsWithExtra)
 open CryptoVerification.SignalSession.Cli.RunProofs
   (InitOk₀ cliInitiateFrame cliInitiateNeed initDef padCoins)
 open CryptoVerification.SignalSession.Cli.RunProofs.Initiate
@@ -113,6 +115,8 @@ open LibsignalBinary.Proofs.E2E.Pqxdh.ResponderCore.CryptoBridgePlacedBudgetSat
   (expand_multi_info_placed_vm_ok_of_other_block_sat)
 open LibsignalBinary.Proofs.E2E.Pqxdh.ResponderCore.CryptoCalleesPlacedBudget
   (pqxdhHkdfExpandMultiInfo_placed_ok pqxdhHkdfExtract_placed_ok)
+open LibsignalBinary.Proofs.E2E.Pqxdh.ResponderCore.CryptoCalleesPlacedBudgetBbSat
+  (calculateAgreement_placed_ok_unconditional_sat)
 open LibsignalBinary.Proofs.E2E.Pqxdh.ResponderCore.CryptoCalleesPlacedBudgetSat
   (extract_placed_vm_ok_of_other_block_sat pqxdhHkdfExpandMultiInfo_placed_ok_sat
    pqxdhHkdfExtract_placed_ok_sat)
@@ -127,9 +131,9 @@ open LibsignalBinary.Proofs.SignalSession.Cli.F3.HRead.ReadFileBudgetPlaced
 open LibsignalBinary.Proofs.SignalSession.Cli.KitInst.SessionKitOkCliPlacedBudget
   (cliAddrText_placed_ok cliDirGet_placed_ok cliGrowOneDir_placed_ok)
 open LibsignalBinary.Proofs.SignalSession.Cli.Main.Proofs.CliSlotCalleesInstPlacedBudgetAux
-  (cliExistingStoreCalleesEnvs w3HkdfExtract40_cro_placed_ok w3IsSameAccount_placed_ok)
+  (cliExistingStoreCalleesEnvs w3HkdfExtract40_cro_placed_ok w3IsSameAccount_placed_ok_of_bb_sat)
 open LibsignalBinary.Proofs.SignalSession.Cli.Main.Proofs.CliSlotCalleesInstPlacedBudgetSeams
-  (CliSlotEnvs SpqrV1PlacedSeamsBudget cliDirPutStrNeedPlaced cliGhostExterns_blackBox_eq)
+  (CliSlotEnvs SpqrV1PlacedSeamsBudget cliDirPutStrNeedPlaced)
 open LibsignalBinary.Proofs.SignalSession.Cli.Run.Compose.SemPlacedBudget
   (RunSlotEnvs slotsOfPlaced)
 open LibsignalBinary.Proofs.SignalSession.Cli.Run.Proofs.Initiate.AssemblyPlacedBudget
@@ -176,11 +180,12 @@ open LibsignalBinary.Proofs.SignalSession.Cli.SpecsPlacedBudget
   (dirGetSpecPlaced dirPutSpecPlaced dirPutStrSpecPlaced readFileSpecPlaced
    sessDeserializeSpecPlaced)
 open LibsignalBinary.Proofs.SignalSession.Cli.Store.IdSavePollPlacedBudget
-  (idSavePoll_placed_ok_of_deps)
+  (idSavePoll_placed_ok_of_deps_16)
 open LibsignalBinary.Proofs.SignalSession.Cli.Store.IdSaveShimPlacedBudget
   (idSaveShim_placed_ok_of_deps)
 open LibsignalBinary.Proofs.SignalSession.Cli.Store.IdTrustPollPlacedBudget
-  (idTrustPoll_placed_ok_of_deps identityKey_decode_placed_ok publicKeyEq_placed_ok_of_bb)
+  (idTrustPoll_placed_ok_of_deps_16 identityKey_decode_placed_ok
+   publicKeyEq_mem_placed_ok_of_bb_16_sat)
 open LibsignalBinary.Proofs.SignalSession.Cli.Store.IdTrustShimPlacedBudget
   (idTrustShim_placed_ok_of_deps)
 open LibsignalBinary.Proofs.SignalSession.Cli.Store.LoadPollPlacedBudget
@@ -865,25 +870,14 @@ theorem tableNoAllocFailed_cliHookTablePlaced (mmpl : Obj.MultiPlacement) (W : C
   rcases hp with hpq | hcli
   · exact tableNoAllocFailed_cliPqxdhPlaced mmpl W.C W.Q p hpq
   · simp only [List.mem_cons, List.not_mem_nil, or_false] at hcli
-    rcases hcli with rfl | rfl | rfl | rfl | rfl | rfl | rfl | rfl | rfl | rfl |
-      rfl | rfl | rfl | rfl | rfl | rfl | rfl | rfl | rfl
-    · exact noAllocFailed_hookMemmove
-    · exact noAllocFailed_cliBcmpHook W.bcmp
-    · exact noAllocFailed_strlenHook
+    rcases hcli with rfl | rfl | rfl | rfl | rfl | rfl | rfl | rfl | rfl
     · exact noAllocFailed_writeFileHook
     · exact noAllocFailed_writeStdoutHook
-    · exact noAllocFailed_memrchrHook
-    · exact noAllocFailed_fromUtf8Hook W.utf8Err
     · exact noAllocFailed_fmtWriteHook0
     · exact fun _ => traceDeltaNoAllocFailed_of_eq rfl
-    · exact noAllocFailed_durationSinceExactHook
-    · exact noAllocFailed_timeAddHook
-    · exact noAllocFailed_blackBoxHook
     · exact fun _ => traceDeltaNoAllocFailed_of_eq rfl
     · exact aesEncHookMallocng_noAllocFailed mmpl W.C.E
     · exact aesDecHookMallocng_noAllocFailed mmpl W.C.D
-    · exact fun _ => traceDeltaNoAllocFailed_of_eq rfl
-    · exact fun _ => traceDeltaNoAllocFailed_of_eq rfl
     · exact fun _ => traceDeltaNoAllocFailed_of_eq rfl
     · exact fun _ => traceDeltaNoAllocFailed_of_eq rfl
 
@@ -904,7 +898,7 @@ theorem cliGhostExterns_mem_or_base (gh : CliGhostHooks) (baseExt : LibsignalHoo
     (sym : String) (f : State → State)
     (h : cliGhostExterns gh baseExt sym = some f) :
     cliGhostExterns gh (fun _ => none) sym = some f ∨ baseExt sym = some f := by
-  unfold cliGhostExterns at h ⊢
+  unfold cliGhostExterns cliGhostExternsWithExtra at h ⊢
   repeat' split
   all_goals simp_all
 
@@ -1062,7 +1056,7 @@ theorem w3Exist_placed_ok_of_ghost [LibsignalPlacement] {M : AllocCostModel}
       (fun _ hp => hp.2) hh hRead589 (by decide) (by decide)
   have hPutStr : subroutine_ok (lsProg_543 (cliGhostExterns gh' (cliExternsPlaced mmpl W)))
       (lsmpl.base 543) (dirPutStrSpecPlaced A lim DirPutStrEnv cliDirPutStrNeedPlaced) :=
-    dirPutStr_placed_ok_of_deps hh.alloc hh.panics hh.memcpyRO hh.bcmp
+    dirPutStr_placed_ok_of_deps hh.alloc hh.panics hh.memcpyRO hh.bcmp.of_keepsFs
       (growProg := lsProg_586 (cliGhostExterns gh' (cliExternsPlaced mmpl W))) (jGrow := 586)
       (by decide) (by decide) (cliGrowOneDir_placed_ok hh.alloc hh.panics)
       (Nat.le_refl cliDirPutStrNeedPlaced)
@@ -1070,11 +1064,11 @@ theorem w3Exist_placed_ok_of_ghost [LibsignalPlacement] {M : AllocCostModel}
       (lsmpl.base 542) (dirPutSpecPlaced A lim DirPutEnv cliDirPutStk) :=
     dirPut_placed_caller_ok_of_deps
       (callerProg := lsProg_542 (cliGhostExterns gh' (cliExternsPlaced mmpl W))) (i := 542)
-      hh.alloc hh.bcmp
+      hh.alloc hh.bcmp.of_keepsFs
       (growProg := lsProg_586 (cliGhostExterns gh' (cliExternsPlaced mmpl W))) (jGrow := 586)
       (by decide) (by decide) (cliGrowOneDir_placed_ok hh.alloc hh.panics)
       (Nat.le_refl dirPutNeedPlaced) (by decide)
-  have hEq := publicKeyEq_placed_ok_of_bb (cliGhostExterns_blackBox_eq mmpl gh' W)
+  have hEq := publicKeyEq_mem_placed_ok_of_bb_16_sat hh.blackBox
   have hDec := identityKey_decode_placed_ok (A := A) (cliGhostExterns gh' (cliExternsPlaced mmpl W))
   exact
     { dirGet := hGet
@@ -1088,7 +1082,7 @@ theorem w3Exist_placed_ok_of_ghost [LibsignalPlacement] {M : AllocCostModel}
         have := stk_sub_ge_base hstk
         have := stk_sub_ge_dirGet hstk
         have : extHookStack ≤ 65536 := by decide
-        exact idTrustPoll_placed_ok_of_deps hh.alloc hGet hDec hEq (by omega)
+        exact idTrustPoll_placed_ok_of_deps_16 hh.alloc hGet hDec hEq (by omega)
           (by decide) (by decide) (by decide) (by decide) (by decide) (by decide)
       sessLoadShim := fun {stk} hstk => by
         have := stk_sub_ge_base hstk
@@ -1111,7 +1105,7 @@ theorem w3Exist_placed_ok_of_ghost [LibsignalPlacement] {M : AllocCostModel}
         have : cliDirPutStrNeedPlaced ≤ 65536 := by decide
         have : publicKeySerializeStackX ≤ 65536 := by decide
         have : extHookStack ≤ 65536 := by decide
-        exact idSavePoll_placed_ok_of_deps hh.alloc hGet hPutStr hDec hEq (by omega)
+        exact idSavePoll_placed_ok_of_deps_16 hh.alloc hGet hPutStr hDec hEq (by omega)
           (by decide) (by decide) (by decide) (by decide)
           (by decide) (by decide) (by decide) (by decide)
       sessStoreShim := fun {stk} hstk => by
@@ -1160,20 +1154,6 @@ private theorem transfer_tr_codeRoLoaded [LibsignalPlacement] {α : Type}
       (fun _ _ _ _ hq => hq)
   exact transfer_withLsCodeRoLoaded (callerProg := initProgPlaced mmpl g W) hcrl (by decide) hj hj_unmut
 
-private theorem hookSat_of_keepsFs {α : Type} {H : LibsignalHooks} {sym : String}
-    {spec : Spec α} (h : HookSat H sym spec.keepsFs) :
-    HookSat H sym spec := by
-  rcases h with ⟨fn, hfn, hok⟩
-  refine ⟨fn, hfn, fun x R s0 hrun hpre hsp => ?_⟩
-  rcases hok x R s0 hrun hpre hsp with ⟨hkf, hsym, hout⟩
-  refine ⟨hkf, hsym, ?_⟩
-  rcases hout with ⟨hret, hcc, hpost⟩ | hrest
-  · refine Or.inl ⟨hret, hcc, ?_⟩
-    dsimp only [Arm64.Spec.keepsFs] at hpost
-    rw [sepConj_assoc, satisfies_pure_sepConj] at hpost
-    exact hpost.2
-  · exact Or.inr hrest
-
 private theorem hookSat_withStack_keepsFs {α : Type} {H : LibsignalHooks} {sym : String}
     {spec : Spec α} (hsat : HookSat H sym spec.keepsFs) (stk : Nat)
     (hpan : ∀ x s0 sf, spec.onPanic x s0 sf = ⌜False⌝ := by intros; rfl)
@@ -1205,13 +1185,10 @@ private theorem createChain40_cro_placed_ok [LibsignalPlacement]
         (createChainSpec M A lim W.C)) := by
   have : HkdfPlacedHooksExactSat W.C.F (cliGhostExterns g (cliExternsPlaced mmpl W)) := hh.hkdf
   have : HkdfPlacedHooksExactBudgetSat W.C.F (cliGhostExterns g (cliExternsPlaced mmpl W)) :=
-    HkdfPlacedHooksExactBudgetSat.of_exactSat (hookSat_of_keepsFs hh.memsetRegionKeepsFs)
-  have hct207 := ct_eq_ro_placed_vm_ok_of_block
-    (callerProg := (blkPC_207).rebase (blkPl_207).base (cliGhostExterns g (cliExternsPlaced mmpl W)))
-    hh.blackBox (by decide)
+    HkdfPlacedHooksExactBudgetSat.of_exactSat hh.memsetRegionKeepsFs.of_keepsFs
   have hag40 := keys_ls_subroutine_ok_of_block_cro
     (callerProg := (blkPC_40).rebase (blkPl_40).base (cliGhostExterns g (cliExternsPlaced mmpl W)))
-    (calculateAgreement_placed_ok hh.dh hh.sharedDrop hct207
+    (calculateAgreement_placed_ok_unconditional_sat hh.dh hh.sharedDrop hh.blackBox
       (hookSat_noAllocShimBudget_of_withVmPreserved hh.shim) hh.rawAlloc hh.staticDrop)
   have hext40 := extract_placed_vm_ok_of_other_block_sat W.C
     (callerProg := (blkPC_40).rebase (blkPl_40).base (cliGhostExterns g (cliExternsPlaced mmpl W)))
@@ -1242,7 +1219,7 @@ theorem w3Local_placed_ok_of_seams [LibsignalPlacement] {M : AllocCostModel}
     InitLocalCalleesPlaced A lim InitStateEnv mmpl gh' W stk := by
   have : HkdfPlacedHooksExactSat W.C.F (cliGhostExterns gh' (cliExternsPlaced mmpl W)) := hh.hkdf
   have : HkdfPlacedHooksExactBudgetSat W.C.F (cliGhostExterns gh' (cliExternsPlaced mmpl W)) :=
-    HkdfPlacedHooksExactBudgetSat.of_exactSat (hookSat_of_keepsFs hh.memsetRegionKeepsFs)
+    HkdfPlacedHooksExactBudgetSat.of_exactSat hh.memsetRegionKeepsFs.of_keepsFs
   have hcc40 := createChain40_cro_placed_ok mmpl gh' W hh
   exact
     { kemPubSerialize := kemPublicKeySerialize_local2_placed_ok mmpl gh' W hh (by
@@ -1251,7 +1228,7 @@ theorem w3Local_placed_ok_of_seams [LibsignalPlacement] {M : AllocCostModel}
         omega)
       dropSessionStructure := dropSessionStructure_cli_placed_ok mmpl gh' W hh
       verifySignature := hVerifySig
-      isSameAccount := w3IsSameAccount_placed_ok mmpl gh' A.repAlloc W
+      isSameAccount := w3IsSameAccount_placed_ok_of_bb_sat mmpl gh' A.repAlloc W hh.blackBox
       calculateAgreement := calculateAgreement_cli_placed_ok mmpl gh' W hh
       derivePubKeyBytes := derivePubKeyBytes_cli_placed_ok mmpl gh' W hh
       handshakeDerive := fun X =>

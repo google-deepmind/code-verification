@@ -5926,14 +5926,6 @@ private theorem dom0p_allFixed_eq_localFixed {P : PEParams} {i : Inputs}
 private def dom0p_dummyCliHooks (P : PEParams) : CliHooks where
   C := P.C
   Q := P.Q
-  bcmp := fun a b => if a = b then 0#64 else 1#64
-  bcmp_ok := fun a b _ => by
-    split
-    · next h => exact ⟨fun _ => h, fun _ => by decide⟩
-    · next h =>
-      exact ⟨fun hz => False.elim ((by decide : (1#64).setWidth 32 ≠ 0#32) hz),
-        fun heq => False.elim (h heq)⟩
-  utf8Err := fun _ => (0#64, 0#16)
 
 /-- `SR`-parametric `maxOps`-parametric `SingleSlotFineSpec` for `Dom0'` (`W4BinaryRecvPrekeyDomCmk0'`). -/
 def w4BinaryRecvPrekeyCmkDom0'Of_singleSlotFineSpec {P : PEParams} {c : CallV} {i : Inputs}

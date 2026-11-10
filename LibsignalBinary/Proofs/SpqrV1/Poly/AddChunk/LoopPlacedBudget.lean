@@ -11,6 +11,7 @@ module
 
 public import LibsignalBinary.Heap.IfaceBudgetLemmas
 public import LibsignalBinary.Heap.SpecBudget
+public import LibsignalBinary.Proofs.HookDischarge.Libc.Memmove -- proof-setup: allow-public-import
 public import LibsignalBinary.Proofs.Placed.BudgetPoolSync
 public meta import LibsignalBinary.Proofs.Placed.BudgetPoolSync -- shake: keep
 public import LibsignalBinary.Proofs.Placed.BudgetVmSteps
@@ -48,7 +49,9 @@ open scoped CryptoVerification.SpqrV1.Poly.AddChunk.AddChunkNorm
 open CryptoVerification (LibsignalPlacement blkPC_419 blkPl_419 lsmpl lsρ)
 open CryptoVerification.RustHeap (arrayAt)
 open CryptoVerification.LibsignalSpqrV1 (Chunk PolyDecoder Pt)
-open CryptoVerification.LibsignalTripleRatchet (sessionMemmoveSpec)
+open LibsignalBinary.Proofs.HookDischarge.Libc.Memmove (
+  MemmoveArithBound sessionMemmoveBoundedSpec
+)
 open CryptoVerification.SpqrV1.Alloc (growOneStack spqrMemmoveSym spqr_hook_ok_of_mem)
 open CryptoVerification.SpqrV1.Poly (ptAt ptSliceAt sortedSetPtOf)
 open CryptoVerification.SpqrV1.Poly.AddChunk (
@@ -284,13 +287,33 @@ theorem bsearchLoop_placed_sepWP [LibsignalPlacement] {ext : String → Option (
 
 /-! ## Placed `memmove` Insertion & `grow_one` Calls -/
 
+private theorem live_noWrap {M : AllocCostModel} (A : RustCliAllocBudget M)
+    (p : BitVec 64) (n al : Nat) :
+    A.live p n al ⊢ ⌜p.toNat + n < 2 ^ 64⌝ ∗ A.live p n al := by
+  refine Entails.trans (A.block_valid p n al) ?_
+  apply Entails.pure_left
+  rintro ⟨_, _, hnw, _⟩
+  exact Entails.pure_right hnw (Entails.refl _)
+
+private theorem sepWP_live_noWrap {M : AllocCostModel} (A : RustCliAllocBudget M)
+    (ptr : BitVec 64) (size align : Nat)
+    {prog : Program} {target_pc : BitVec 64} {s : State} {P F : SepProp}
+    {post : State → SepProp → Prop} {oom : State → SepProp}
+    (hf : P = A.live ptr size align ∗ F := by sep_focus)
+    (hnext : ptr.toNat + size < 2 ^ 64 → SepWP prog target_pc s P post oom) :
+    SepWP prog target_pc s P post oom := by
+  refine SepWP.weaken_pre (P' := ⌜ptr.toNat + size < 2 ^ 64⌝ ∗ P) ?_ (SepWP.focus_pure rfl hnext)
+  rw [hf]
+  exact Entails.trans (sepConj_mono_left (live_noWrap A ptr size align))
+    (Entails.of_eq (by sep_ac_rfl))
+
 private theorem bsearch_memmove_insert_gen_placed_sepWP [LibsignalPlacement]
     {M : AllocCostModel} {A : RustCliAllocBudget M} {ext : String → Option (State → State)}
     {Inv : State → State → Prop}
     (hof_acp : ∀ {a b}, AllocCallPreserved a b → Inv a b)
     (htrans : ∀ {a b c}, Inv a b → Inv b c → Inv a c)
     (hmemmove : subroutine_ok ((blkPC_419).rebase (blkPl_419).base (Rust.withPanics ext))
-      (lsρ spqrMemmoveSym) (withInvVmSpec Inv (sessionMemmoveSpec growOneStack)))
+      (lsρ spqrMemmoveSym) (withInvVmSpec Inv (sessionMemmoveBoundedSpec growOneStack)))
     (v cap ptr lenOld : BitVec 64) (vec : List Pt) (insertIdx : Nat) (pt : Pt)
     (hins : insertIdx < vec.length) (hlt : vec.length < cap.toNat)
     (hcap : cap.toNat * 4 < 2 ^ 63) (hptr : ptr ≠ 0#64)
@@ -355,8 +378,22 @@ private theorem bsearch_memmove_insert_gen_placed_sepWP [LibsignalPlacement]
       4 * (vec.length - insertIdx) + 4 := by
     rw [List.length_append, ptListBytes_length, List.length_drop, hslot]
   wp_steps 4
+  refine sepWP_live_noWrap A ptr (cap.toNat * 4) 2 (by sep_focus) fun hptr_nw => ?_
+  have hsplit_cap : 4 * insertIdx + (4 * (vec.length - insertIdx) + 4) ≤ cap.toNat * 4 := by
+    omega
+  have hbound : MemmoveArithBound (ptr + BitVec.ofNat 64 (4 * insertIdx))
+      (ptListBytes (vec.drop insertIdx) ++ slotBs) := by
+    have hmod1 : 4 * insertIdx < 2 ^ 64 := by omega
+    have hmod2 : ptr.toNat + 4 * insertIdx < 2 ^ 64 := by omega
+    have hptr_add :
+        (ptr + BitVec.ofNat 64 (4 * insertIdx)).toNat = ptr.toNat + 4 * insertIdx := by
+      rw [BitVec.toNat_add, BitVec.toNat_ofNat, Nat.mod_eq_of_lt hmod1, Nat.mod_eq_of_lt hmod2]
+    exact ⟨by rw [hptr_add, hbuf_len]; omega, by rw [hbuf_len]; omega⟩
+  have hbound_nw := hbound.1
+  have hbound_lt := hbound.2
   wp_call hmemmove (ptr + BitVec.ofNat 64 (4 * insertIdx),
     ptListBytes (vec.drop insertIdx) ++ slotBs, 4, 0, 4 * (vec.length - insertIdx))
+  clear hptr_nw hsplit_cap hbound hbound_nw hbound_lt
   have hvm_call : VmPreserved s sf :=
     vm_step_trans ‹VmPreserved _ sf› (by simp [wp_norm, arm64_norm])
   have hinv_call : Inv s sf :=
@@ -409,7 +446,7 @@ private theorem bsearch_memmove_insert_gen_placed_sepWP [LibsignalPlacement]
 theorem bsearch_memmove_insert_placed_sepWP [LibsignalPlacement]
     {M : AllocCostModel} {A : RustCliAllocBudget M} {ext : String → Option (State → State)}
     (hmemmove_sat : HookSat (Rust.withPanics ext) spqrMemmoveSym
-      (withVmPreserved (sessionMemmoveSpec growOneStack)))
+      (withVmPreserved (sessionMemmoveBoundedSpec growOneStack)))
     (v cap ptr lenOld : BitVec 64) (vec : List Pt) (insertIdx : Nat) (pt : Pt)
     (hins : insertIdx < vec.length) (hlt : vec.length < cap.toNat)
     (hcap : cap.toNat * 4 < 2 ^ 63) (hptr : ptr ≠ 0#64)
@@ -443,7 +480,7 @@ theorem bsearch_memmove_insert_placed_sepWP [LibsignalPlacement]
 theorem bsearch_memmove_insert_acp_placed_sepWP [LibsignalPlacement]
     {M : AllocCostModel} {A : RustCliAllocBudget M} {ext : String → Option (State → State)}
     (hmemmove_sat : HookSat (Rust.withPanics ext) spqrMemmoveSym
-      (withAllocVmPreserved (sessionMemmoveSpec growOneStack)))
+      (withAllocVmPreserved (sessionMemmoveBoundedSpec growOneStack)))
     (v cap ptr lenOld : BitVec 64) (vec : List Pt) (insertIdx : Nat) (pt : Pt)
     (hins : insertIdx < vec.length) (hlt : vec.length < cap.toNat)
     (hcap : cap.toNat * 4 < 2 ^ 63) (hptr : ptr ≠ 0#64)
@@ -592,7 +629,7 @@ private theorem bsearch_insert_at_336_gen_placed_sepWP [LibsignalPlacement]
     (hof_acp : ∀ {a b}, AllocCallPreserved a b → Inv a b)
     (htrans : ∀ {a b c}, Inv a b → Inv b c → Inv a c)
     (hmemmove : subroutine_ok ((blkPC_419).rebase (blkPl_419).base (Rust.withPanics ext))
-      (lsρ spqrMemmoveSym) (withInvVmSpec Inv (sessionMemmoveSpec growOneStack)))
+      (lsρ spqrMemmoveSym) (withInvVmSpec Inv (sessionMemmoveBoundedSpec growOneStack)))
     (v cap ptr lenOld : BitVec 64) (vec : List Pt) (insertIdx : Nat) (pt : Pt)
     (hins : insertIdx ≤ vec.length) (hlt : vec.length < cap.toNat)
     (hcap : cap.toNat * 4 < 2 ^ 63) (hptr : ptr ≠ 0#64)
@@ -679,7 +716,7 @@ private theorem bsearch_insert_at_336_gen_placed_sepWP [LibsignalPlacement]
 theorem bsearch_insert_at_336_placed_sepWP [LibsignalPlacement]
     {M : AllocCostModel} {A : RustCliAllocBudget M} {ext : String → Option (State → State)}
     (hmemmove_sat : HookSat (Rust.withPanics ext) spqrMemmoveSym
-      (withVmPreserved (sessionMemmoveSpec growOneStack)))
+      (withVmPreserved (sessionMemmoveBoundedSpec growOneStack)))
     (v cap ptr lenOld : BitVec 64) (vec : List Pt) (insertIdx : Nat) (pt : Pt)
     (hins : insertIdx ≤ vec.length) (hlt : vec.length < cap.toNat)
     (hcap : cap.toNat * 4 < 2 ^ 63) (hptr : ptr ≠ 0#64)
@@ -711,7 +748,7 @@ theorem bsearch_insert_at_336_placed_sepWP [LibsignalPlacement]
 theorem bsearch_insert_at_336_acp_placed_sepWP [LibsignalPlacement]
     {M : AllocCostModel} {A : RustCliAllocBudget M} {ext : String → Option (State → State)}
     (hmemmove_sat : HookSat (Rust.withPanics ext) spqrMemmoveSym
-      (withAllocVmPreserved (sessionMemmoveSpec growOneStack)))
+      (withAllocVmPreserved (sessionMemmoveBoundedSpec growOneStack)))
     (v cap ptr lenOld : BitVec 64) (vec : List Pt) (insertIdx : Nat) (pt : Pt)
     (hins : insertIdx ≤ vec.length) (hlt : vec.length < cap.toNat)
     (hcap : cap.toNat * 4 < 2 ^ 63) (hptr : ptr ≠ 0#64)
@@ -745,7 +782,7 @@ private theorem bsearch_insert_at_452_gen_placed_sepWP [LibsignalPlacement]
     (hof_acp : ∀ {a b}, AllocCallPreserved a b → Inv a b)
     (htrans : ∀ {a b c}, Inv a b → Inv b c → Inv a c)
     (hmemmove : subroutine_ok ((blkPC_419).rebase (blkPl_419).base (Rust.withPanics ext))
-      (lsρ spqrMemmoveSym) (withInvVmSpec Inv (sessionMemmoveSpec growOneStack)))
+      (lsρ spqrMemmoveSym) (withInvVmSpec Inv (sessionMemmoveBoundedSpec growOneStack)))
     (v : BitVec 64) (vec : List Pt) (insertIdx : Nat) (pt : Pt) (hins : insertIdx ≤ vec.length)
     (s : State) (P : SepProp) (post : State → SepProp → Prop)
     (hpc : s.pc = (blkPl_419).base + 452#64) (hstat : s.status = .Running) (hsp_align : s.spAligned = true)
@@ -833,7 +870,7 @@ private theorem bsearch_insert_at_452_gen_placed_sepWP [LibsignalPlacement]
 theorem bsearch_insert_at_452_placed_sepWP [LibsignalPlacement]
     {M : AllocCostModel} {A : RustCliAllocBudget M} {ext : String → Option (State → State)}
     (hmemmove_sat : HookSat (Rust.withPanics ext) spqrMemmoveSym
-      (withVmPreserved (sessionMemmoveSpec growOneStack)))
+      (withVmPreserved (sessionMemmoveBoundedSpec growOneStack)))
     (v : BitVec 64) (vec : List Pt) (insertIdx : Nat) (pt : Pt) (hins : insertIdx ≤ vec.length)
     (s : State) (P : SepProp) (post : State → SepProp → Prop)
     (hpc : s.pc = (blkPl_419).base + 452#64) (hstat : s.status = .Running) (hsp_align : s.spAligned = true)
@@ -861,7 +898,7 @@ theorem bsearch_insert_at_452_placed_sepWP [LibsignalPlacement]
 theorem bsearch_insert_at_452_acp_placed_sepWP [LibsignalPlacement]
     {M : AllocCostModel} {A : RustCliAllocBudget M} {ext : String → Option (State → State)}
     (hmemmove_sat : HookSat (Rust.withPanics ext) spqrMemmoveSym
-      (withAllocVmPreserved (sessionMemmoveSpec growOneStack)))
+      (withAllocVmPreserved (sessionMemmoveBoundedSpec growOneStack)))
     (v : BitVec 64) (vec : List Pt) (insertIdx : Nat) (pt : Pt) (hins : insertIdx ≤ vec.length)
     (s : State) (P : SepProp) (post : State → SepProp → Prop)
     (hpc : s.pc = (blkPl_419).base + 452#64) (hstat : s.status = .Running) (hsp_align : s.spAligned = true)

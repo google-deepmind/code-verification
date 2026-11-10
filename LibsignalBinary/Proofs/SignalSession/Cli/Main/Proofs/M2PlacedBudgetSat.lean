@@ -36,7 +36,7 @@ open CryptoVerification.LibsignalTripleRatchet (extHookStack)
 open CryptoVerification.LibsignalTripleRatchetRepr (uuidTryParse)
 open CryptoVerification.RustHeap (allocFailedIn)
 open CryptoVerification.SignalSession
-  (Inputs lsFromUtf8Sym lsMemrchrSym strlenHook)
+  (Inputs lsFromUtf8Sym lsMemrchrSym)
 open CryptoVerification.SignalSession.Cli (CliInputsOk)
 open CryptoVerification.SignalSession.Cli.MainHops
   (AtCallPlaced AtM1EndPlaced CallV CallW LsCodeInv argsBuf callCellsPlaced callHeap locals
@@ -68,7 +68,6 @@ theorem main_m2_pool_placed_of_hooks_sat [LibsignalPlacement] {CodeOk : Memory �
     {buf p0 : BitVec 64} {ps : List (BitVec 64 × List (BitVec 8))}
     {Statics : SepProp} {Q Qp : State → SepProp → Prop} {oom : State → SepProp}
     (hc : MainCalleesBlk617 A lim H uuidTryParse hookStack resStack)
-    (hstrlen : H "strlen" = some strlenHook)
     (hutf8 : HookSat H lsFromUtf8Sym (withVmPreserved (fromUtf8AsciiSpecRO hookStack)))
     (hmemrchr : HookSat H lsMemrchrSym (withLsRet (withVmPreserved (memrchrSpecRO extHookStack))))
     (hres : 0xB0 + extHookStack ≤ resStack) (hres64 : resStack ≤ 2 ^ 63)
@@ -106,7 +105,7 @@ theorem main_m2_pool_placed_of_hooks_sat [LibsignalPlacement] {CodeOk : Memory �
         A.pool lim st s ∗ Statics)
       Q Qp oom :=
   main_m2_pool_placed_proof
-    (mainCalleesROBlk617_of_mainCalleesBlk617_and_hooks_sat hc hstrlen hutf8 hmemrchr hres hres64)
+    (mainCalleesROBlk617_of_mainCalleesBlk617_and_hooks_sat hc hutf8 hmemrchr hres hres64)
     hstk hstk64 hok hne hps hfit hs hexit hnext
 
 /-- `HookSat` sibling of `b2_step2_pool_placed_of_hooks` (`M2PlacedBudget.lean:475`), weakening
@@ -117,7 +116,6 @@ theorem b2_step2_pool_placed_of_hooks_sat [LibsignalPlacement] {CodeOk : Memory 
     {stk hookStack resStack : Nat}
     {St1 : Inputs → M.σ → Prop} {St2 : Inputs → CallV → M.σ → Prop}
     (hc : MainCalleesBlk617 A lim H uuidTryParse hookStack resStack)
-    (hstrlen : H "strlen" = some strlenHook)
     (hutf8 : HookSat H lsFromUtf8Sym (withVmPreserved (fromUtf8AsciiSpecRO hookStack)))
     (hmemrchr : HookSat H lsMemrchrSym (withLsRet (withVmPreserved (memrchrSpecRO extHookStack))))
     (hres : 0xB0 + extHookStack ≤ resStack) (hres64 : resStack ≤ 2 ^ 63)
@@ -164,7 +162,7 @@ theorem b2_step2_pool_placed_of_hooks_sat [LibsignalPlacement] {CodeOk : Memory 
           A.pool lim st1 s ∗ Statics)
         Q Qp oom :=
   fun hst1 hok hne hps hs _hpanic hexit hnext =>
-    main_m2_pool_placed_of_hooks_sat hc hstrlen hutf8 hmemrchr hres hres64 hstk hstk64 hok hne hps
+    main_m2_pool_placed_of_hooks_sat hc hutf8 hmemrchr hres hres64 hstk hstk64 hok hne hps
       (hfit_st1 hst1 hok hne) hs hexit
       fun s' vcap evs_c w c hevs_c hvcap hp ha =>
         hnext s' w c _ (hst2 hst1 hok hne hevs_c hvcap hp) hp ha

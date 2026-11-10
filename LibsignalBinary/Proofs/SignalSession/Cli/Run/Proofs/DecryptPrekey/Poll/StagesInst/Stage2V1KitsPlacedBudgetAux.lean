@@ -200,7 +200,7 @@ private theorem toSkeletonRunHooks [LibsignalPlacement] {M : AllocCostModel}
   { alloc := hh.alloc, allocFs := hh.allocFs, panics := hh.panics, memcpyRO := hh.memcpyRO,
     bcmp := hh.bcmp, fs := hh.fs, utf8 := hh.utf8, memrchr := hh.memrchr,
     codecHooks := hh.codecHooks, allocZeroed := hh.allocZeroed, stringClone := hh.stringClone,
-    formatInner := hh.formatInner }
+    formatInner := hh.formatInner, blackBox := hh.blackBox }
 
 /-- Disjunction envelope for `decode_signed_pre_key` / `decode_kyber_pre_key` (Block `595`). -/
 def CliSpkDecodeEnv (bs : List (BitVec 8)) (evs : List AllocEvent) : Prop :=

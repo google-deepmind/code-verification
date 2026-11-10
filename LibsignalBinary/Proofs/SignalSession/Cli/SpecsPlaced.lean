@@ -851,7 +851,7 @@ def mainLitsPlaced [LibsignalPlacement] : SepProp :=
   (lsρ coinsLitSym ↦ᵣ utf8 "coins") ∗
     (dirLitsPlaced.foldr (fun l P => (lsρ l.1 ↦ᵣ utf8 l.2) ∗ P) emp)
 
-/-- Relocatable 14-field allocator and `libc` memory contract bundle on `lsProg_617 H` (`withLsCodeRoLoaded`). -/
+/-- Relocatable 12-field allocator and `libc` memory contract bundle on `lsProg_617 H` (`withLsCodeRoLoaded`). -/
 structure AllocContractsXCliPlaced [LibsignalPlacement] (A : RustAlloc)
     (H : LibsignalHooks) : Prop where
   alloc : subroutine_ok (lsProg_617 H) (lsρ lsRustAllocSymCli)
@@ -875,12 +875,6 @@ structure AllocContractsXCliPlaced [LibsignalPlacement] (A : RustAlloc)
   session_memcpy_region : ∀ (stk : Nat), extHookStack ≤ stk → stk ≤ 2 ^ 64 →
     subroutine_ok (lsProg_617 H) (lsρ memcpyName)
       (LibsignalPublicApi.StoreKit.withLsCodeRoLoaded lsmpl (withStack sessionMemcpyRegionSpec stk))
-  memmove : ∀ (stk : Nat), extHookStack ≤ stk → stk ≤ 2 ^ 64 →
-    subroutine_ok (lsProg_617 H) (lsρ memmoveName)
-      (LibsignalPublicApi.StoreKit.withLsCodeRoLoaded lsmpl (libcMemmoveSpec stk))
-  session_memmove : ∀ (stk : Nat), extHookStack ≤ stk → stk ≤ 2 ^ 64 →
-    subroutine_ok (lsProg_617 H) (lsρ memmoveName)
-      (LibsignalPublicApi.StoreKit.withLsCodeRoLoaded lsmpl (sessionMemmoveSpec stk))
   memset : ∀ (stk : Nat), extHookStack ≤ stk → stk ≤ 2 ^ 64 →
     subroutine_ok (lsProg_617 H) (lsρ memsetName)
       (LibsignalPublicApi.StoreKit.withLsCodeRoLoaded lsmpl (libcMemsetSpec stk))
@@ -894,7 +888,7 @@ structure AllocContractsXCliPlaced [LibsignalPlacement] (A : RustAlloc)
     subroutine_ok (lsProg_617 H) (lsρ memsetName)
       (LibsignalPublicApi.StoreKit.withLsCodeRoLoaded lsmpl (withStack sessionMemsetRegionSpec stk))
 
-/-- Relocatable 15-field `.keepsFs` allocator and `libc` memory contract bundle on `lsProg_617 H`. -/
+/-- Relocatable 13-field `.keepsFs` allocator and `libc` memory contract bundle on `lsProg_617 H`. -/
 structure AllocContractsFsPlaced [LibsignalPlacement] (A : RustAlloc)
     (H : LibsignalHooks) : Prop where
   alloc : subroutine_ok (lsProg_617 H) (lsρ lsRustAllocSymCli)
@@ -918,12 +912,6 @@ structure AllocContractsFsPlaced [LibsignalPlacement] (A : RustAlloc)
   session_memcpy_region : ∀ (stk : Nat), extHookStack ≤ stk → stk ≤ 2 ^ 64 →
     subroutine_ok (lsProg_617 H) (lsρ memcpyName)
       (LibsignalPublicApi.StoreKit.withLsCodeRoLoaded lsmpl (withStack sessionMemcpyRegionSpec stk).keepsFs)
-  memmove : ∀ (stk : Nat), extHookStack ≤ stk → stk ≤ 2 ^ 64 →
-    subroutine_ok (lsProg_617 H) (lsρ memmoveName)
-      (LibsignalPublicApi.StoreKit.withLsCodeRoLoaded lsmpl (libcMemmoveSpec stk).keepsFs)
-  session_memmove : ∀ (stk : Nat), extHookStack ≤ stk → stk ≤ 2 ^ 64 →
-    subroutine_ok (lsProg_617 H) (lsρ memmoveName)
-      (LibsignalPublicApi.StoreKit.withLsCodeRoLoaded lsmpl (sessionMemmoveSpec stk).keepsFs)
   memset : ∀ (stk : Nat), extHookStack ≤ stk → stk ≤ 2 ^ 64 →
     subroutine_ok (lsProg_617 H) (lsρ memsetName)
       (LibsignalPublicApi.StoreKit.withLsCodeRoLoaded lsmpl (libcMemsetSpec stk).keepsFs)

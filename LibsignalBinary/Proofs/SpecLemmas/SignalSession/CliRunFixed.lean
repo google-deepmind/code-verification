@@ -36,6 +36,21 @@ def readStdinName : String := "libsignal_cli_io::read_stdin"
 
 def writeStdoutName : String := "libsignal_cli_io::write_stdout"
 
+/-- Canonical byte-slice equality comparator replacing the retired `CliHooks.bcmp` field (`D-C2b`). -/
+def cliDefaultBcmp (a b : List (BitVec 8)) : BitVec 64 :=
+  if a == b then 0#64 else 1#64
+
+theorem cliDefaultBcmp_ok (a b : List (BitVec 8)) (_hlen : a.length = b.length) :
+    (cliDefaultBcmp a b).setWidth 32 = 0#32 ↔ a = b := by
+  unfold cliDefaultBcmp
+  by_cases h : a = b
+  · simp [h]
+  · have hb : (a == b) = false := beq_eq_false_iff_ne.mpr h
+    simp [hb, h]
+
+/-- Canonical invalid-UTF-8 error witness replacing the retired `CliHooks.utf8Err` field (`D-C2b`). -/
+def cliDefaultUtf8Err : List (BitVec 8) → BitVec 64 × BitVec 16 :=
+  fun _ => (0#64, 0#16)
 
 /-- Fixed-image `(stubName, hook)` table combining the 18 PQXDH/SPQR hooks of
 `E2E.pqxdhHookTable W.C W.Q` with the 28 allocator, libc, I/O, `core`/`std`, and session-crypto
@@ -52,7 +67,7 @@ noncomputable def cliHookTable (W : CliHooks) : List (String × (State → State
   ("memset", hookMemset),
   ("memmove", hookMemmove),
   ("memcpy", hookMemcpy),
-  ("bcmp", cliBcmpHook W.bcmp),
+  ("bcmp", cliBcmpHook cliDefaultBcmp),
   ("strlen", strlenHook),
   -- I/O crate.
   (readFileName, readFileHook),
@@ -61,7 +76,7 @@ noncomputable def cliHookTable (W : CliHooks) : List (String × (State → State
   (writeStdoutName, writeStdoutHook),
   -- `core` / `std`.
   ("core::slice::memchr::memrchr", memrchrHook),
-  ("core::str::converts::from_utf8", fromUtf8Hook W.utf8Err),
+  ("core::str::converts::from_utf8", fromUtf8Hook cliDefaultUtf8Err),
   ("core::fmt::write", E2E.fmtWriteHook0),
   ("alloc::fmt::format::format_inner", E2E.formatInnerHook0),
   ("<std::time::SystemTime>::duration_since", durationSinceExactHook),

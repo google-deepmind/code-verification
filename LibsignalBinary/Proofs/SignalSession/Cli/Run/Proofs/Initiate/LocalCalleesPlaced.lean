@@ -23,6 +23,7 @@ public import LibsignalBinary.Proofs.SignalSession.Cli.AllocGhostLinkTransfer
 import Arm64.Trusted.Spec.Hoare
 import Arm64.Trusted.Spec.SepLogic
 import LibsignalBinary.Proofs.E2E.Pqxdh.Initiator.ModelBridge
+import LibsignalBinary.Proofs.E2E.Pqxdh.ResponderCore.CryptoBridgePlacedSat
 import LibsignalBinary.Proofs.TripleRatchet.Alloc.DerivePublicKeyBytes
 
 /-!
@@ -199,12 +200,6 @@ structure SubsetA4InitCalleesPlaced [LibsignalPlacement] (A : RustAlloc) (mmpl :
   pqxdhHkdfExpand : ∀ (X : UnreachedPqxdhPrimitives),
     Pqxdh.Initiator.PqxdhHkdfExpandMultiInfoPlacedOk (modelPrims X ⟨W.C, W.Q⟩)
       ((CryptoVerification.blkPC_59).rebase (CryptoVerification.blkPl_59).base (cliGhostExterns gh (cliExternsPlaced mmpl W)))
-  ctEqSliceRO :
-    subroutine_ok
-      ((CryptoVerification.blkPC_207).rebase
-        (CryptoVerification.blkPl_207).base (cliGhostExterns gh (cliExternsPlaced mmpl W)))
-      (lsmpl.base 213)
-      (withLsCodeLoaded lsmpl ctEqSliceROSpec)
   newFromSlice :
     subroutine_ok
       ((CryptoVerification.LibsignalTripleRatchet.blkPC_54).rebase
@@ -375,8 +370,8 @@ theorem rootKeyCreateChain_cli_placed_ok [LibsignalPlacement] {A : RustAlloc} (m
     (calleeProg := CryptoVerification.lsProg_40 (cliGhostExterns gh (cliExternsPlaced mmpl W)))
     (Keys.createChain_placed_ok_of_contracts
       (keys_ls_subroutine_ok_of_block_cro
-        (Keys.calculateAgreement_placed_ok hh.dh hh.sharedDrop ha4.ctEqSliceRO hh.shim hh.rawAlloc
-          hh.staticDrop hh.panic_alloc))
+        (LibsignalBinary.Proofs.E2E.Pqxdh.ResponderCore.CryptoBridgePlacedSat.calculateAgreement_placed_ok_unconditional_sat
+          hh.dh hh.sharedDrop hh.blackBox hh.shim hh.rawAlloc hh.staticDrop hh.panic_alloc))
       hext40
       (CryptoVerification.LibsignalTripleRatchet.subroutine_ok_withLsCodeRoLoaded_of_withLsCodeLoaded hexp40)
       (keys_ls_hook_ok_of_mem hh.rawDealloc))

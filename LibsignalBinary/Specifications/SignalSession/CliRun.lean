@@ -24,16 +24,18 @@ set_option autoImplicit false
 (`libsignal_cli_pq_secure_elf_binary_placed` and `libsignal_cli_pq_binary_correct_placed`, see
 `Computational/docs/TRUSTED_BASE.md`), together with the symbolic binary headlines
 `signal_session_secure_placed` (`Symbolic/Theorems/Security.lean`) and `comp_refines_cli_placed`
-(`Symbolic/Theorems/Refinement.lean`), use `17` of the `22` definitions in this file via the
-`37`-row relocatable hook table `cliHookTablePlaced` and `Placed.cliRunPlacedSig`
-(`CliBinaryPq.lean`): `CliHooks`, `PathOk`, `Utf8Ok`, `ancestors`, `blockingAncestor?`,
-`cliBcmpHook`, `durationSinceExactHook`, `fromUtf8Hook`, `isUnmodelledPathComponent`, `memrchrHook`,
-`pathComps`, `readPath`, `strlenHook`, `unitResult`, `unmodelled`, `writeFileHook`, and
-`writeStdoutHook`. The remaining `5` definitions—`readFileHook`, `readStdinHook`, `vecEmptyOk`,
-`vecErr`, and `vecOk`—left the headline closure when F3 + IO.6b de-hooked `lsReadFileSym` and
-`lsReadStdinSym` (`cliDehookedSymsPlaced` in `CliBinaryPq.lean`) so the linked `libsignal-cli-io`
-ELF code executes; they are kept here outside the headline cone for fixed-image/legacy proofs and
-read-loop correspondence. A reader who trusts those theorems trusts, from here:
+(`Symbolic/Theorems/Refinement.lean`), use `11` of the `22` definitions in this file via the
+`27`-row relocatable hook table `cliHookTablePlaced` and `Placed.cliRunPlacedSig`
+(`CliBinaryPq.lean`): `CliHooks`, `PathOk`, `ancestors`, `blockingAncestor?`,
+`isUnmodelledPathComponent`, `pathComps`, `readPath`, `unitResult`, `unmodelled`, `writeFileHook`,
+and `writeStdoutHook`. The remaining `11` definitions left the headline closure when their rows were
+de-hooked (`cliDehookedSymsPlaced` in `CliBinaryPq.lean`) so the linked ELF code executes:
+`readFileHook`, `readStdinHook`, `vecEmptyOk`, `vecErr`, and `vecOk` when F3 + IO.6b de-hooked
+`lsReadFileSym` and `lsReadStdinSym` (`libsignal-cli-io`), and `strlenHook`, `memrchrHook`,
+`fromUtf8Hook`, `Utf8Ok`, `durationSinceExactHook`, and `cliBcmpHook` when the second stock
+`ld.lld` cutover (C2) de-hooked `strlen`, `memrchr`, `from_utf8`, `duration_since`, and `bcmp`.
+They are kept here outside the headline cone for fixed-image/legacy proofs and read-loop
+correspondence. A reader who trusts those theorems trusts, from here:
 
 * `PathOk` (with `readPath`, `pathComps`, `isUnmodelledPathComponent`, `ancestors`,
   `blockingAncestor?`): the file paths the I/O specifications model (relative, canonical, no NUL,
@@ -46,8 +48,9 @@ read-loop correspondence. A reader who trusts those theorems trusts, from here:
   headline closure, kept for fixed-image/legacy proofs): the contracts of the four I/O functions of
   `libsignal-cli-io`.
 * `strlenHook`, `memrchrHook`, `fromUtf8Hook` (with `Utf8Ok`), `durationSinceExactHook`,
-  `cliBcmpHook`: the other CLI-specific extern contracts.
-* `CliHooks`: what a run is quantified over: the abstract primitives and two unobservable choices.
+  `cliBcmpHook`: the other CLI-specific extern contracts (de-hooked at C2, outside the headline
+  closure, kept for fixed-image/legacy proofs).
+* `CliHooks`: what a run is quantified over: the abstract primitives.
 
 ## How hooks are found
 
@@ -147,34 +150,36 @@ their compiled blocks.
 
 Paths outside the modelled set (`PathOk`: non-canonical, a NUL byte, a component that `fsView`
 hides) and
-caller buffers that are not readable / writable make the hooks fail closed (`.Exception`), as do
-the other CLI-specific hooks on bad inputs. The shared hooks (`memmove`, `bcmp`, the primitives)
-check no permissions.
+caller buffers that are not readable / writable make the two write hooks fail closed
+(`.Exception`); since the second stock `ld.lld` cutover (C2) they are the only CLI-specific rows of
+`cliHookTablePlaced`. The shared hooks (the primitives) check no permissions.
 
 ## Free choices
 
-`W : CliHooks` holds the abstract primitives (`C`, `Q`) and two
-free choices that the CLI cannot observe: `bcmp`'s nonzero value and `from_utf8`'s `Err` payload.
-The binary theorem must show that the exit code, stdout and files do not depend on them; the CLI
-tests only `w0 = 0` after `bcmp`, and only `is_ok` after `from_utf8` (argv parsing: `.ok()`; the
-`address` file: `map_err`).
+`W : CliHooks` holds the abstract primitives (`C`, `Q`). Its two former free choices, `bcmp`'s
+nonzero value (with C's contract `bcmp_ok`) and `from_utf8`'s `Err` payload (`utf8Err`), were
+removed once the second stock `ld.lld` cutover (C2) de-hooked `bcmp` and `from_utf8` and no row read
+them: the run executes the linked musl `bcmp` and the compiled `from_utf8`. (`cliBcmpHook` and
+`fromUtf8Hook` above take these as explicit arguments, for fixed-image/legacy proofs.)
 
 ## Notable rows of `cliHookTablePlaced` (`CliBinaryPq.lean`)
 
 * not hooked: `std::sys::random::linux::hashmap_random_keys` (the CLI builds no `HashMap`) and
   `libsignal_session_rng_fill` (the CLI's coins are plain Rust, `cli/src/coins.rs`); reaching
   either halts (fail closed by design);
-* not hooked since the stock `ld.lld` cutover: `memset` and `memcpy` (in `cliDehookedSymsPlaced`;
-  the run executes the linked `VerifiedLibraries.mallocngLib` blocks `21` / `20`). `memmove` is
-  still hooked: its row is `hookMemmove`, an `abbrev` of `hookMemcpy`
-  (`ProofLib/Hoare/LibcHooks.lean`), so `hookMemcpy` stays trusted through that row;
-* `duration_since`: the exact `std` result (`durationSinceExactHook`), not a free choice;
-  the CLI's clock is the constant `SystemTime::UNIX_EPOCH` (`cli/src/lib.rs`), so the stored
-  `pending_pre_key.timestamp` is determined;
-* `bcmp`: `cliBcmpHook W.bcmp`, the `bcmp` hook with its nonzero value taken from `W`;
-* CLI-specific: `strlen` (argv), `core::slice::memchr::memrchr` (`rsplit_once('.')` on an address),
-  `core::str::converts::from_utf8` (argv; the `address` file), and `write_file` / `write_stdout`
-  (above; `read_file` and `read_stdin` are de-hooked in `cliDehookedSymsPlaced`).
+* not hooked since the first stock `ld.lld` cutover: `memset` and `memcpy` (in
+  `cliDehookedSymsPlaced`; the run executes the linked `VerifiedLibraries.mallocngLib` blocks
+  `21` / `20`);
+* not hooked since the second stock `ld.lld` cutover (C2): the musl routines
+  `memmove`, `bcmp` (with the `memcmp` it tail-calls) and `strlen`, and the compiled Rust functions
+  `memrchr`, `from_utf8`, `duration_since`,
+  `<SystemTime as Add<Duration>>::add`, `subtle::black_box` and the
+  x25519-dalek `StaticSecret` / `SharedSecret` destructors (all in `cliDehookedSymsPlaced`; the run
+  executes their linked code). With `memmove` de-hooked no row is `hookMemmove` (an `abbrev` of
+  `hookMemcpy`, `ProofLib/Hoare/LibcHooks.lean`), so neither `hookMemmove` nor `hookMemcpy` is
+  trusted any more;
+* CLI-specific: `write_file` / `write_stdout` (above; `read_file` and `read_stdin` are de-hooked in
+  `cliDehookedSymsPlaced`).
 * `core::fmt::write` (`Ok`, nothing written) and `format_inner`
   (an empty `String`). Their results reach no stdout byte, path or file of the CLI: the CLI's own
   code (`cli/src/`, the I/O crate) uses no `format!` / `write!` / `to_string` (it builds decimal
@@ -466,19 +471,12 @@ def durationSinceExactHook (s : State) : State :=
 /-! ## The free choices and the table -/
 
 /-- **What a CLI run is quantified over** (the `W` of `cliRunOf elf W` and `cliRunAbortOnPanic elf W`): the
-abstract primitives and two results the CLI cannot observe. -/
+abstract primitives. -/
 structure CliHooks where
   /-- SHA-256 compression, AES-256-CBC, X25519 (`CryptoGames.LibsignalSession.Crypto`). -/
   C : CryptoGames.LibsignalSession.Crypto
   /-- SHA-512, the Ed25519 curve core, Kyber1024, SPQR's ML-KEM-768 (`E2E.PqxdhPrims`). -/
   Q : E2E.PqxdhPrims
-  /-- `bcmp`'s `x0` on the two compared byte strings. -/
-  bcmp : List (BitVec 8) → List (BitVec 8) → BitVec 64
-  /-- On equal lengths, the low 32 bits are zero exactly when the strings are equal (C's
-  contract). -/
-  bcmp_ok : ∀ a b, a.length = b.length → ((bcmp a b).setWidth 32 = 0#32 ↔ a = b)
-  /-- `from_utf8`'s `Err` payload `(valid_up_to, error_len)` on ill-formed bytes. -/
-  utf8Err : List (BitVec 8) → BitVec 64 × BitVec 16
 
 /-- `bcmp(a = x0, b = x1, n = x2) -> int`: `x0 := bcmp (n bytes at a) (n bytes at b)`, return:
 the function-level (C-ABI) `bcmp` contract with the value function `bcmp`. Unlike the

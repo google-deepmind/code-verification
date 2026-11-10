@@ -687,6 +687,7 @@ theorem cliSpqrInitialState_placed_ok_closed [LibsignalPlacement]
     (hG : CliGhostA0Hooks E2E.HooksE.A0 gh)
     (hMs : gh.memset = some memsetHook)
     (hMc : gh.memcpy = some memcpyHook)
+    (hMv : gh.extra.lookup "memmove" = some hookMemmove)
     (hHmac : HookSat (cliGhostExterns gh (cliExternsPlaced mmpl W))
       lsLibcruxHmacSymCli (libcruxHmacSpec W.C.F E2E.HooksE.A0)) :
     subroutine_ok
@@ -697,7 +698,7 @@ theorem cliSpqrInitialState_placed_ok_closed [LibsignalPlacement]
   let _ := CryptoVerification.SpqrV1.Top.Placed.instIsLsBlockProg_327
     (Rust.withPanics (cliGhostExterns gh (cliExternsPlaced mmpl W)))
   have : CliSpqrExt W (cliGhostExterns gh (cliExternsPlaced mmpl W)) :=
-    cliSpqrExt_self mmpl gh W hG hMs hMc hHmac
+    cliSpqrExt_self mmpl gh W hG hMs hMc hMv hHmac
   have hv1 := initialState_v1_callInv_placed_ok (A := A0) (F := W.C.F)
     (ext := cliGhostExterns gh (cliExternsPlaced mmpl W))
     ((congrFun (withPanics_cliGhostExterns mmpl gh W) spqrHandleErrorSym).trans

@@ -55,7 +55,7 @@ open CryptoVerification.LibsignalTripleRatchetRepr (UuidParser uuidTryParse)
 open CryptoVerification.RustHeap (allocFailedIn)
 open CryptoVerification.SignalSession
   (CliHooks CliPqxdhInputs Inputs cliExternsPlaced cliProcessInputs
-   libsignalSessionLib lsFromUtf8Sym lsMemrchrSym stdinCapBytes strlenHook)
+   libsignalSessionLib lsFromUtf8Sym lsMemrchrSym stdinCapBytes)
 open CryptoVerification.SignalSession.Cli
   (CliInputsOk CoinsReadable IsSendOverCap MainPost MainResult RunAnswer StoresGhost
    cliInputs cliStaticsPlaced utf8)
@@ -71,8 +71,6 @@ open CryptoVerification.SignalSession.Cli.MainHops.MainOkPlacedHelpers
   (panic_of_mem traceStreamBytes_nil)
 open CryptoVerification.SignalSession.Cli.RunCompose (RunSem runRel)
 open CryptoVerification.SignalSession.Cli.RunGlue (CliGhostHooks cliGhostExterns)
-open CryptoVerification.SignalSession.Cli.Slots
-  (cliGhostExterns_fromUtf8_eq cliGhostExterns_memrchr_eq)
 open LibsignalBinary.Heap
   (AllocCostModel AllocEvent BudgetLimits FitsEvents RustCliAllocBudget rustAllocEvents)
 open LibsignalBinary.Heap.Fine
@@ -89,8 +87,6 @@ open LibsignalBinary.Proofs.SignalSession.Cli.M24.B2MainFrameComposeBudgetSat
   (sepWPp_argvAtROPPad_to_unpadded_needLocks sepWPp_b2MainFrameFinePad_mainLitsPlaced)
 open LibsignalBinary.Proofs.SignalSession.Cli.M24.CalleesRO
   (fromUtf8AsciiSpecRO memrchrSpecRO)
-open LibsignalBinary.Proofs.SignalSession.Cli.M24.CalleesROSat
-  (hookSat_fromUtf8ROVm_of_eq hookSat_memrchrROVm_ls_of_eq)
 open LibsignalBinary.Proofs.SignalSession.Cli.M24.CliElfMallocngHarness (cliProgExtPlacedAt)
 open LibsignalBinary.Proofs.SignalSession.Cli.M24.CliStrictPlaced
   (B2MainEntryFacts cliStaticsPlacedAt cliStaticsPlacedAt_eq_cliStaticsPlaced)
@@ -101,15 +97,12 @@ open LibsignalBinary.Proofs.SignalSession.Cli.M24.CliStrictPlacedPadSat
 open LibsignalBinary.Proofs.SignalSession.Cli.M24.MainEntryBudgetFitsInst
   (B2St1CapOf B2St2CapOf B2St3Cap B2St4Cap B2St5Cap MainEntryBudgetFitsCapOf
    b2St0Cap_init b2St01_of_mainEntryBudgetFitsCapOf
-   cliGhostExterns_handleErrorMain cliGhostExterns_strlen domScopedRun domScopedRun_dom)
+   cliGhostExterns_handleErrorMain domScopedRun domScopedRun_dom)
 open LibsignalBinary.Proofs.SignalSession.Cli.M24.MainEntryBudgetFitsInstSat
-  (hookSat_fromUtf8Vm_of_eq hookSat_strlenRO_of_eq
-   mainCalleesBlk617_of_allocFs_and_hooks_cliResStack_sat)
+  (mainCalleesBlk617_of_allocFs_and_hooks_cliResStack_sat)
 open LibsignalBinary.Proofs.SignalSession.Cli.M24.MainIoBoundedPlaced (ReadStdinBoundedEnv)
 open LibsignalBinary.Proofs.SignalSession.Cli.M24.MainOkCliExtB2NeedLocksInst
   (cliRunSemD2c_placed initFsState_cliProcessInputs_eq mainFrameSize_le_cliMainStk pqScopedRun)
-open LibsignalBinary.Proofs.SignalSession.Cli.Main.Proofs.AddressA1PlacedBudgetSat
-  (hookSat_memrchrVm_ls_of_eq)
 open LibsignalBinary.Proofs.SignalSession.Cli.Main.Proofs.M1PlacedRoBudgetSat
   (main_m1_ro_pool_placed_step1_of_sat)
 open LibsignalBinary.Proofs.SignalSession.Cli.Main.Proofs.M2PlacedBudgetSat
@@ -126,7 +119,10 @@ open LibsignalBinary.Proofs.SignalSession.Cli.Main.Proofs.M6PlacedBudget
   (main_m6_of_m6Env_pool_proof_placed)
 open LibsignalBinary.Proofs.SignalSession.Cli.Main.Proofs.RetPlacedBudget (ExitKPoolPlaced)
 open LibsignalBinary.Proofs.SignalSession.Cli.Run.Slots.CliHookSatPlacedBudget
-  (CliGhostAllocHooks allocContractsFsPlaced_of_hooks)
+  (CliGhostAllocHooks allocContractsFsPlaced_of_hooks
+   cliGhostExterns_fromUtf8RO_budget_sat cliGhostExterns_fromUtf8_budget_sat
+   cliGhostExterns_memrchrRO_budget_sat cliGhostExterns_memrchr_budget_sat
+   cliGhostExterns_strlenRO_budget_sat)
 open LibsignalBinary.Proofs.SignalSession.Cli.SpecsPlacedBudget
   (AllocContractsFsPlaced)
 open LibsignalBinary.Proofs.SpecLemmas.SignalSession.ElfSlicesPqOomH2KIfaces
@@ -157,7 +153,6 @@ theorem b2MainRemainingHopsCapOf_of_allocFs_and_io_preFd_sat [LibsignalPlacement
     (hFs : AllocContractsFsPlaced (fineHookRustCliAllocBudget γ mmpl tp brkStart) lim (ext W))
     (hioOf : MainIoOfPlacedFd (fineHookRustCliAllocBudget γ mmpl tp brkStart) lim (ext W)
       cliIo hookStack ReadStdinBoundedEnv ReadEnv)
-    (hstrlen : ext W "strlen" = some strlenHook)
     (hutf8 : HookSat (ext W) lsFromUtf8Sym (withVmPreserved (fromUtf8AsciiSpec hookStack)))
     (hutf8RO : HookSat (ext W) lsFromUtf8Sym (withVmPreserved (fromUtf8AsciiSpecRO hookStack)))
     (hmemrchr : HookSat (ext W) lsMemrchrSym (withLsRet (withVmPreserved (memrchrSpec extHookStack))))
@@ -171,9 +166,9 @@ theorem b2MainRemainingHopsCapOf_of_allocFs_and_io_preFd_sat [LibsignalPlacement
       (B2St4Cap fineCostModel lim)
       (B2St5Cap fineCostModel lim)
       RunEnv Run :=
-  let hc := mainCalleesBlk617_of_allocFs_and_hooks_cliResStack_sat hFs hstrlen hutf8 hmemrchr hpan
+  let hc := mainCalleesBlk617_of_allocFs_and_hooks_cliResStack_sat hFs hutf8 hmemrchr hpan
   { step2 :=
-      b2_step2_pool_placed_of_hooks_sat hc hstrlen hutf8RO hmemrchrRO
+      b2_step2_pool_placed_of_hooks_sat hc hutf8RO hmemrchrRO
         cli_resStack_callees.2.2.1 cli_resStack_callees.2.2.2 hstk cli_hstk64
         (fun hst1 _ _ => hst1.1)
         (fun hst1 _ _ hevs_c hvcap hp => hst1.2 _ _ _ hevs_c hvcap hp)
@@ -739,7 +734,6 @@ theorem b2MainSpecTightNeedLocksFineAt_of_runTight_and_budgetFitsCapOf_lsmpl_pre
     (hFs : AllocContractsFsPlaced (fineHookRustCliAllocBudget γ mmpl tp brkStart) lim (ext W))
     (hioOf : MainIoOfPlacedFd (fineHookRustCliAllocBudget γ mmpl tp brkStart) lim (ext W)
       cliIo hookStack ReadStdinBoundedEnv ReadEnv)
-    (hstrlen : ext W "strlen" = some strlenHook)
     (hstrlenRO : HookSat (ext W) "strlen" (strlenSpecROSat hookStack))
     (hutf8 : HookSat (ext W) lsFromUtf8Sym (withVmPreserved (fromUtf8AsciiSpec hookStack)))
     (hutf8RO : HookSat (ext W) lsFromUtf8Sym (withVmPreserved (fromUtf8AsciiSpecRO hookStack)))
@@ -762,7 +756,7 @@ theorem b2MainSpecTightNeedLocksFineAt_of_runTight_and_budgetFitsCapOf_lsmpl_pre
     (b2St01_of_mainEntryBudgetFitsCapOf hfitCap)
     hrun
     (b2MainRemainingHopsCapOf_of_allocFs_and_io_preFd_sat
-      hFs hioOf hstrlen hutf8 hutf8RO hmemrchr hmemrchrRO hpan hstk)
+      hFs hioOf hutf8 hutf8RO hmemrchr hmemrchrRO hpan hstk)
 
 /-- `HookSat` sibling of `b2MainSpecTightNeedLocksFineAt_of_domScopedRunSem_and_budgetFitsCapOf_lsmpl_preFd`
     (`ElfSlicesPqOomH2KMainEntryFits.lean:1260`), dropping unused `err`. -/
@@ -781,7 +775,6 @@ theorem b2MainSpecTightNeedLocksFineAt_of_domScopedRunSem_and_budgetFitsCapOf_ls
     (hFs : AllocContractsFsPlaced (fineHookRustCliAllocBudget γ mmpl tp brkStart) lim (ext W))
     (hioOf : MainIoOfPlacedFd (fineHookRustCliAllocBudget γ mmpl tp brkStart) lim (ext W)
       cliIo hookStack ReadStdinBoundedEnv ReadEnv)
-    (hstrlen : ext W "strlen" = some strlenHook)
     (hstrlenRO : HookSat (ext W) "strlen" (strlenSpecROSat hookStack))
     (hutf8 : HookSat (ext W) lsFromUtf8Sym (withVmPreserved (fromUtf8AsciiSpec hookStack)))
     (hutf8RO : HookSat (ext W) lsFromUtf8Sym (withVmPreserved (fromUtf8AsciiSpecRO hookStack)))
@@ -805,7 +798,7 @@ theorem b2MainSpecTightNeedLocksFineAt_of_domScopedRunSem_and_budgetFitsCapOf_ls
     (b2St01_of_mainEntryBudgetFitsCapOf hfitCap)
     hrun
     (b2MainRemainingHopsCapOf_of_allocFs_and_io_preFd_sat
-      hFs hioOf hstrlen hutf8 hutf8RO hmemrchr hmemrchrRO hpan hstk)
+      hFs hioOf hutf8 hutf8RO hmemrchr hmemrchrRO hpan hstk)
 
 /-- `HookSat` sibling of `b2MainSpecTightNeedLocksFineAt_of_domScopedRunSem_and_budgetFitsCapOf_placed_preFd`
     (`ElfSlicesPqOomH2KMainEntryFits.lean:1301`), dropping unused `err`. -/
@@ -830,7 +823,6 @@ theorem b2MainSpecTightNeedLocksFineAt_of_domScopedRunSem_and_budgetFitsCapOf_pl
     (hioOf : @MainIoOfPlacedFd (libsignalPlacementOf mpl hblk hext_nodup) _
       (fineHookRustCliAllocBudget γ mmpl tp brkStart) lim (ext W) cliIo hookStack
       ReadStdinBoundedEnv ReadEnv)
-    (hstrlen : ext W "strlen" = some strlenHook)
     (hstrlenRO : HookSat (ext W) "strlen" (strlenSpecROSat hookStack))
     (hutf8 : HookSat (ext W) lsFromUtf8Sym (withVmPreserved (fromUtf8AsciiSpec hookStack)))
     (hutf8RO : HookSat (ext W) lsFromUtf8Sym (withVmPreserved (fromUtf8AsciiSpecRO hookStack)))
@@ -857,7 +849,7 @@ theorem b2MainSpecTightNeedLocksFineAt_of_domScopedRunSem_and_budgetFitsCapOf_pl
   letI : LibsignalPlacement := libsignalPlacementOf mpl hblk hext_nodup
   letI : LsCodeInv CodeOk := hCI
   exact b2MainSpecTightNeedLocksFineAt_of_domScopedRunSem_and_budgetFitsCapOf_lsmpl_preFd_sat Dom S
-    hlibc hfs_eq hFs hioOf hstrlen hstrlenRO hutf8 hutf8RO hmemrchr hmemrchrRO hpan hstk hfitCap
+    hlibc hfs_eq hFs hioOf hstrlenRO hutf8 hutf8RO hmemrchr hmemrchrRO hpan hstk hfitCap
     hrun
 
 /-- `HookSat` sibling of `mainOkCliExtPqB2NeedLocksPlacedAt_of_runTight_and_budgetFitsCapOf_preFd`
@@ -883,7 +875,6 @@ theorem mainOkCliExtPqB2NeedLocksPlacedAt_of_runTight_and_budgetFitsCapOf_preFd_
       @MainIoOfPlacedFd (libsignalPlacementOf mpl hblk hext_nodup) _
         (fineHookRustCliAllocBudget γ mmpl tp brkStart) lim (ext W) cliIo hookStack
         ReadStdinBoundedEnv ReadEnv)
-    (hstrlen : ∀ W : CliHooks, ext W "strlen" = some strlenHook)
     (hstrlenRO : ∀ W : CliHooks, HookSat (ext W) "strlen" (strlenSpecROSat hookStack))
     (hutf8 : ∀ W : CliHooks,
       HookSat (ext W) lsFromUtf8Sym (withVmPreserved (fromUtf8AsciiSpec hookStack)))
@@ -922,7 +913,7 @@ theorem mainOkCliExtPqB2NeedLocksPlacedAt_of_runTight_and_budgetFitsCapOf_preFd_
         (cliRunSemD2c_placed X W)
         hlibc initFsState_cliProcessInputs_eq
         (hFs W γ tp) (hioOf W γ tp)
-        (hstrlen W) (hstrlenRO W) (hutf8 W) (hutf8RO W) (hmemrchr W) (hmemrchrRO W) (hpan W) hstk
+        (hstrlenRO W) (hutf8 W) (hutf8RO W) (hmemrchr W) (hmemrchrRO W) (hpan W) hstk
         (hfitCap h547 X W γ tp) (hrun h547 X W γ tp)
 
 /-- `HookSat` sibling of `mainOkCliExtOverB2NeedLocksPlacedAt_of_runTight_and_budgetFitsCapOf_preFd`
@@ -948,7 +939,6 @@ theorem mainOkCliExtOverB2NeedLocksPlacedAt_of_runTight_and_budgetFitsCapOf_preF
       @MainIoOfPlacedFd (libsignalPlacementOf mpl hblk hext_nodup) _
         (fineHookRustCliAllocBudget γ mmpl tp brkStart) lim (ext W) cliIo hookStack
         ReadStdinBoundedEnv ReadEnv)
-    (hstrlen : ∀ W : CliHooks, ext W "strlen" = some strlenHook)
     (hstrlenRO : ∀ W : CliHooks, HookSat (ext W) "strlen" (strlenSpecROSat hookStack))
     (hutf8 : ∀ W : CliHooks,
       HookSat (ext W) lsFromUtf8Sym (withVmPreserved (fromUtf8AsciiSpec hookStack)))
@@ -987,12 +977,12 @@ theorem mainOkCliExtOverB2NeedLocksPlacedAt_of_runTight_and_budgetFitsCapOf_preF
         (cliRunSemD2c_placed X W)
         hlibc initFsState_cliProcessInputs_eq
         (hFs W γ tp) (hioOf W γ tp)
-        (hstrlen W) (hstrlenRO W) (hutf8 W) (hutf8RO W) (hmemrchr W) (hmemrchrRO W) (hpan W) hstk
+        (hstrlenRO W) (hutf8 W) (hutf8RO W) (hmemrchr W) (hmemrchrRO W) (hpan W) hstk
         (hfitCap h547 X W γ tp) (hrun h547 X W γ tp)
 
 /-- `toSat` bridge for `mainOkCliExtPqB2NeedLocksPlacedAt_cliGhostExterns_of_runTight_and_budgetFitsCapOf_preFd`
-    (`ElfSlicesPqOomH2KMainEntryFits.lean:1456`), discharging `hstrlenRO` via `hookSat_strlenRO_of_eq`
-    and re-anchoring to `MainOkCliExtPqB2NeedLocksPadPlacedAt`. -/
+    (`ElfSlicesPqOomH2KMainEntryFits.lean:1456`), discharging `strlen`, `from_utf8`, and `memrchr`
+    via `ExtraSpecOk` and re-anchoring to `MainOkCliExtPqB2NeedLocksPadPlacedAt`. -/
 theorem mainOkCliExtPqB2NeedLocksPlacedAt_cliGhostExterns_of_runTight_and_budgetFitsCapOf_preFd_via_sat
     {mpl mmpl : MultiPlacement}
     (hblk : ∀ i, i < libsignalSessionLib.blocks.length → (i ∈ libsignalMutatedBlocks) = false →
@@ -1039,20 +1029,32 @@ theorem mainOkCliExtPqB2NeedLocksPlacedAt_cliGhostExterns_of_runTight_and_budget
       letI : LibsignalPlacement := libsignalPlacementOf mpl hblk hext_nodup
       exact allocContractsFsPlaced_of_hooks mmpl (ghOf W) W (hG W γ tp))
     hioOf
-    (fun W => cliGhostExterns_strlen mmpl (ghOf W) W)
-    (fun W => hookSat_strlenRO_of_eq hookStack (cliGhostExterns_strlen mmpl (ghOf W) W))
-    (fun W => hookSat_fromUtf8Vm_of_eq hookStack (cliGhostExterns_fromUtf8_eq mmpl (ghOf W) W))
-    (fun W => hookSat_fromUtf8ROVm_of_eq hookStack (cliGhostExterns_fromUtf8_eq mmpl (ghOf W) W))
-    (fun W => @hookSat_memrchrVm_ls_of_eq (libsignalPlacementOf mpl hblk hext_nodup) _
-      (cliGhostExterns_memrchr_eq mmpl (ghOf W) W))
-    (fun W => @hookSat_memrchrROVm_ls_of_eq (libsignalPlacementOf mpl hblk hext_nodup) _
-      extHookStack (cliGhostExterns_memrchr_eq mmpl (ghOf W) W))
+    (fun W => by
+      letI : LibsignalPlacement := libsignalPlacementOf mpl hblk hext_nodup
+      exact cliGhostExterns_strlenRO_budget_sat (ghOf W) (cliExternsPlaced mmpl W)
+        (hG W 0 0#64).extraOk hookStack)
+    (fun W => by
+      letI : LibsignalPlacement := libsignalPlacementOf mpl hblk hext_nodup
+      exact cliGhostExterns_fromUtf8_budget_sat (ghOf W) (cliExternsPlaced mmpl W)
+        (hG W 0 0#64).extraOk hookStack)
+    (fun W => by
+      letI : LibsignalPlacement := libsignalPlacementOf mpl hblk hext_nodup
+      exact cliGhostExterns_fromUtf8RO_budget_sat (ghOf W) (cliExternsPlaced mmpl W)
+        (hG W 0 0#64).extraOk hookStack)
+    (fun W => by
+      letI : LibsignalPlacement := libsignalPlacementOf mpl hblk hext_nodup
+      exact cliGhostExterns_memrchr_budget_sat (ghOf W) (cliExternsPlaced mmpl W)
+        (hG W 0 0#64).extraOk (Nat.le_refl extHookStack) (by decide))
+    (fun W => by
+      letI : LibsignalPlacement := libsignalPlacementOf mpl hblk hext_nodup
+      exact cliGhostExterns_memrchrRO_budget_sat (ghOf W) (cliExternsPlaced mmpl W)
+        (hG W 0 0#64).extraOk (Nat.le_refl extHookStack) (by decide))
     (fun W => cliGhostExterns_handleErrorMain mmpl (ghOf W) W)
     hstk hfitCap hrun
 
 /-- `toSat` bridge for `mainOkCliExtOverB2NeedLocksPlacedAt_cliGhostExterns_of_runTight_and_budgetFitsCapOf_preFd`
-    (`ElfSlicesPqOomH2KMainEntryFits.lean:1511`), discharging `hstrlenRO` via `hookSat_strlenRO_of_eq`
-    and re-anchoring to `MainOkCliExtOverB2NeedLocksPadPlacedAt`. -/
+    (`ElfSlicesPqOomH2KMainEntryFits.lean:1511`), discharging `strlen`, `from_utf8`, and `memrchr`
+    via `ExtraSpecOk` and re-anchoring to `MainOkCliExtOverB2NeedLocksPadPlacedAt`. -/
 theorem mainOkCliExtOverB2NeedLocksPlacedAt_cliGhostExterns_of_runTight_and_budgetFitsCapOf_preFd_via_sat
     {mpl mmpl : MultiPlacement}
     (hblk : ∀ i, i < libsignalSessionLib.blocks.length → (i ∈ libsignalMutatedBlocks) = false →
@@ -1099,14 +1101,26 @@ theorem mainOkCliExtOverB2NeedLocksPlacedAt_cliGhostExterns_of_runTight_and_budg
       letI : LibsignalPlacement := libsignalPlacementOf mpl hblk hext_nodup
       exact allocContractsFsPlaced_of_hooks mmpl (ghOf W) W (hG W γ tp))
     hioOf
-    (fun W => cliGhostExterns_strlen mmpl (ghOf W) W)
-    (fun W => hookSat_strlenRO_of_eq hookStack (cliGhostExterns_strlen mmpl (ghOf W) W))
-    (fun W => hookSat_fromUtf8Vm_of_eq hookStack (cliGhostExterns_fromUtf8_eq mmpl (ghOf W) W))
-    (fun W => hookSat_fromUtf8ROVm_of_eq hookStack (cliGhostExterns_fromUtf8_eq mmpl (ghOf W) W))
-    (fun W => @hookSat_memrchrVm_ls_of_eq (libsignalPlacementOf mpl hblk hext_nodup) _
-      (cliGhostExterns_memrchr_eq mmpl (ghOf W) W))
-    (fun W => @hookSat_memrchrROVm_ls_of_eq (libsignalPlacementOf mpl hblk hext_nodup) _
-      extHookStack (cliGhostExterns_memrchr_eq mmpl (ghOf W) W))
+    (fun W => by
+      letI : LibsignalPlacement := libsignalPlacementOf mpl hblk hext_nodup
+      exact cliGhostExterns_strlenRO_budget_sat (ghOf W) (cliExternsPlaced mmpl W)
+        (hG W 0 0#64).extraOk hookStack)
+    (fun W => by
+      letI : LibsignalPlacement := libsignalPlacementOf mpl hblk hext_nodup
+      exact cliGhostExterns_fromUtf8_budget_sat (ghOf W) (cliExternsPlaced mmpl W)
+        (hG W 0 0#64).extraOk hookStack)
+    (fun W => by
+      letI : LibsignalPlacement := libsignalPlacementOf mpl hblk hext_nodup
+      exact cliGhostExterns_fromUtf8RO_budget_sat (ghOf W) (cliExternsPlaced mmpl W)
+        (hG W 0 0#64).extraOk hookStack)
+    (fun W => by
+      letI : LibsignalPlacement := libsignalPlacementOf mpl hblk hext_nodup
+      exact cliGhostExterns_memrchr_budget_sat (ghOf W) (cliExternsPlaced mmpl W)
+        (hG W 0 0#64).extraOk (Nat.le_refl extHookStack) (by decide))
+    (fun W => by
+      letI : LibsignalPlacement := libsignalPlacementOf mpl hblk hext_nodup
+      exact cliGhostExterns_memrchrRO_budget_sat (ghOf W) (cliExternsPlaced mmpl W)
+        (hG W 0 0#64).extraOk (Nat.le_refl extHookStack) (by decide))
     (fun W => cliGhostExterns_handleErrorMain mmpl (ghOf W) W)
     hstk hfitCap hrun
 

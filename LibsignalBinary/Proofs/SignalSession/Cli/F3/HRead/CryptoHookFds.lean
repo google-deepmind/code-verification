@@ -44,12 +44,11 @@ open CryptoGames.LibsignalSession (aesCbcEncrypt)
 open CryptoVerification.E2E
   (aesDecFrameBytes aesDecHookMallocng aesEncFrameBytes aesEncHookMallocng
    libcruxHmacFrameBytes libcruxHmacHookMallocng mlkemEncaps1Hook restoreCallerRegs
-   stepRustAlloc1 stepRustDealloc1 timeAddHook)
+   stepRustAlloc1 stepRustDealloc1)
 open CryptoVerification.LibsignalSpqrV1 (LibcruxHmacCall)
 open CryptoVerification.LibsignalTripleRatchet (AesCall extHookStack)
 open CryptoVerification.SignalSession
-  (CliHooks cliExternsPlaced cliHookTablePlaced cliPqxdhHookTablePlaced durationSinceExactHook
-   fromUtf8Hook lsAesDecSym lsAesEncSym memrchrHook strlenHook)
+  (CliHooks cliExternsPlaced cliHookTablePlaced cliPqxdhHookTablePlaced lsAesDecSym lsAesEncSym)
 open CryptoVerification.SignalSession.Cli.RunGlue
   (CliGhostHooks cliExternsPlaced_row cliGhostExterns)
 open CryptoVerification.SignalSession.Cli.Slots
@@ -1017,23 +1016,13 @@ theorem cliExternsPlaced_nonMallocngSym_preserves_fdsGe3Closed
     rcases hp with hpq | hcli
     · exact table_cliPqxdhPlaced_nonMallocng_fdsGe3Closed mmpl W hne_hmac hpq
     · simp only [List.mem_cons, List.not_mem_nil, or_false] at hcli
-      rcases hcli with h | h | h | h | h | h | h | h | h | h | h | h | h | h | h | h | h | h | h <;>
+      rcases hcli with h | h | h | h | h | h | h | h | h <;>
         first
         | (rcases Prod.mk.inj h with ⟨_, rfl⟩; exact fun _ hfs => hfs)
         | exact False.elim (hne_enc (Prod.mk.inj h).1)
         | exact False.elim (hne_dec (Prod.mk.inj h).1)
         | (rcases Prod.mk.inj h with ⟨_, rfl⟩; exact fun _ hfs => fdsGe3Closed_writeFileHook hfs)
         | (rcases Prod.mk.inj h with ⟨_, rfl⟩; exact fun _ hfs => fdsGe3Closed_writeStdoutHook hfs)
-        | (rcases Prod.mk.inj h with ⟨_, rfl⟩
-           intro u hfs; unfold strlenHook; dsimp only; split <;> exact hfs)
-        | (rcases Prod.mk.inj h with ⟨_, rfl⟩
-           intro u hfs; unfold memrchrHook; dsimp only; split <;> first | exact hfs | (split <;> exact hfs))
-        | (rcases Prod.mk.inj h with ⟨_, rfl⟩
-           intro u hfs; unfold fromUtf8Hook; dsimp only; split <;> first | exact hfs | (split <;> exact hfs))
-        | (rcases Prod.mk.inj h with ⟨_, rfl⟩
-           intro u hfs; unfold durationSinceExactHook; dsimp only; split <;> first | exact hfs | (split <;> exact hfs))
-        | (rcases Prod.mk.inj h with ⟨_, rfl⟩
-           intro u hfs; unfold timeAddHook; dsimp only; split <;> split <;> exact hfs)
 
 theorem cliExternsPlaced_nonMallocngSym_hookSat_withFdsGe3Closed
     {α : Type} (mmpl : Obj.MultiPlacement) (W : CliHooks)

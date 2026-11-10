@@ -44,12 +44,12 @@ open CryptoVerification.LibsignalPublicApi.StoreKit
   (subroutine_ok_rocl_of_withLsCodeRoLoaded subroutine_ok_withLsCodeRoLoaded_of_plain withLsRoCl)
 open CryptoVerification.LibsignalTripleRatchetRepr (AddrGhost UuidParser protocolAddressAt)
 open CryptoVerification.SignalSession
-  (CliHooks Utf8Ok cliExternsPlaced fromUtf8Hook lsFromUtf8Sym lsMemrchrSym memrchrHook
+  (Utf8Ok fromUtf8Hook lsFromUtf8Sym lsMemrchrSym memrchrHook
    strlenHook unmodelled)
 open CryptoVerification.SignalSession.Cli.Main.Placed (blkPC_617 blkPl_617 lsProg_617)
 open CryptoVerification.SignalSession.Cli.MainHops
-  (AddressCall MemrchrCall addrParse cliExternsPlaced_fromUtf8 cliExternsPlaced_memrchr
-   cliExternsPlaced_strlen lsHandleErrorSymMain memrchrIdx utf8Ok_of_ascii)
+  (AddressCall MemrchrCall addrParse
+   lsHandleErrorSymMain memrchrIdx utf8Ok_of_ascii)
 open CryptoVerification.SignalSession.Cli.Placed (lsProg_580)
 open LibsignalBinary.Heap
   (AllocCostModel AllocEvent BudgetLimits FitsEnv RustCliAllocBudget VmPreserved)
@@ -125,8 +125,6 @@ structure MainCalleesROBlk617 [LibsignalPlacement] {M : AllocCostModel}
     (uuidParse : UuidParser) (hookStack resStack : Nat) : Prop where
   alloc : AllocContractsXCliPlaced A lim H
   allocFs : AllocContractsFsPlaced A lim H
-  strlen : subroutine_ok (lsProg_617 H) (lsρ "strlen")
-    (withLsRoCl lsmpl (withVmPreserved (strlenSpecRO hookStack)))
   fromUtf8 : subroutine_ok (lsProg_617 H) (lsρ lsFromUtf8Sym)
     (withLsRoCl lsmpl (withVmPreserved (fromUtf8AsciiSpecRO hookStack)))
   address : subroutine_ok (lsProg_617 H) (lsmpl.base 580)
@@ -149,14 +147,6 @@ theorem main_panic_handle_error_ro_placed [LibsignalPlacement] {M : AllocCostMod
     ((blkPC_617).rebase (blkPl_617).base H).externAt? (lsρ lsHandleErrorSymMain) =
       some Rust.panicked :=
   hc.handleErrorPanic
-
-theorem main_strlen_ro_placed_ok [LibsignalPlacement] {M : AllocCostModel}
-    {A : RustCliAllocBudget M} {lim : BudgetLimits} {H : LibsignalHooks}
-    {uuidParse : UuidParser} {hookStack resStack : Nat}
-    (hc : MainCalleesROBlk617 A lim H uuidParse hookStack resStack) :
-    subroutine_ok ((blkPC_617).rebase (blkPl_617).base H) (lsρ "strlen")
-      (withLsRoCl lsmpl (withVmPreserved (strlenSpecRO hookStack))) :=
-  hc.strlen
 
 theorem main_fromUtf8_ro_placed_ok [LibsignalPlacement] {M : AllocCostModel}
     {A : RustCliAllocBudget M} {lim : BudgetLimits} {H : LibsignalHooks}
@@ -584,12 +574,6 @@ theorem strlen_ro_placed_ok_of_hooks [LibsignalPlacement]
   exact subroutine_ok_rocl_of_plain
     (ls_hook_ok_ultra_of_mem (prog := lsProg_617 H) (i := 617) hsat_vm (by decide))
 
-theorem strlen_ro_placed_ok_cliExterns [LibsignalPlacement]
-    (mmpl : Obj.MultiPlacement) (W : CliHooks) (hookStack : Nat) :
-    subroutine_ok (lsProg_617 (cliExternsPlaced mmpl W)) (lsρ "strlen")
-      (withLsRoCl lsmpl (withVmPreserved (strlenSpecRO hookStack))) :=
-  strlen_ro_placed_ok_of_hooks (cliExternsPlaced_strlen mmpl W)
-
 theorem fromUtf8Ascii_ro_placed_ok_of_hooks [LibsignalPlacement]
     {H : LibsignalHooks} {hookStack : Nat}
     {err : List (BitVec 8) → BitVec 64 × BitVec 16}
@@ -604,12 +588,6 @@ theorem fromUtf8Ascii_ro_placed_ok_of_hooks [LibsignalPlacement]
       exact fromUtf8Hook_vmPreserved err s)
   exact subroutine_ok_rocl_of_plain
     (ls_hook_ok_ultra_of_mem (prog := lsProg_617 H) (i := 617) hsat_vm (by decide))
-
-theorem fromUtf8Ascii_ro_placed_ok_cliExterns [LibsignalPlacement]
-    (mmpl : Obj.MultiPlacement) (W : CliHooks) (hookStack : Nat) :
-    subroutine_ok (lsProg_617 (cliExternsPlaced mmpl W)) (lsρ lsFromUtf8Sym)
-      (withLsRoCl lsmpl (withVmPreserved (fromUtf8AsciiSpecRO hookStack))) :=
-  fromUtf8Ascii_ro_placed_ok_of_hooks (cliExternsPlaced_fromUtf8 mmpl W)
 
 theorem memrchr_ro_blk580_ok_of_hooks [LibsignalPlacement]
     {H : LibsignalHooks} {stk : Nat}
@@ -628,12 +606,6 @@ theorem memrchr_ro_blk580_ok_of_hooks [LibsignalPlacement]
     exact ls_hook_ok_ultra_of_mem hsat_vm (by decide)
   exact subroutine_ok_rocl_of_plain hplain
 
-theorem memrchr_ro_blk580_ok_cliExterns [LibsignalPlacement]
-    (mmpl : Obj.MultiPlacement) (W : CliHooks) (stk : Nat) :
-    subroutine_ok (lsProg_580 (cliExternsPlaced mmpl W)) (lsρ lsMemrchrSym)
-      (withLsRoCl lsmpl (withVmPreserved (memrchrSpecRO stk))) :=
-  memrchr_ro_blk580_ok_of_hooks (cliExternsPlaced_memrchr mmpl W)
-
 /-! ## `MainCalleesROBlk617` assembly -/
 
 theorem mainCalleesROBlk617_of_mainCalleesBlk617_and_addr [LibsignalPlacement]
@@ -641,14 +613,12 @@ theorem mainCalleesROBlk617_of_mainCalleesBlk617_and_addr [LibsignalPlacement]
     {H : LibsignalHooks} {uuidParse : UuidParser} {hookStack resStack : Nat}
     {err : List (BitVec 8) → BitVec 64 × BitVec 16}
     (hc : MainCalleesBlk617 A lim H uuidParse hookStack resStack)
-    (hstrlen : H "strlen" = some strlenHook)
     (hutf8 : H lsFromUtf8Sym = some (fromUtf8Hook err))
     (haddr : subroutine_ok (lsProg_617 H) (lsmpl.base 580)
       (withLsRoCl lsmpl (addressSpecRO A lim uuidParse resStack))) :
     MainCalleesROBlk617 A lim H uuidParse hookStack resStack where
   alloc := hc.alloc
   allocFs := hc.allocFs
-  strlen := strlen_ro_placed_ok_of_hooks hstrlen
   fromUtf8 := fromUtf8Ascii_ro_placed_ok_of_hooks hutf8
   address := haddr
   reserve16 := hc.reserve16

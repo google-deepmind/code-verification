@@ -136,7 +136,7 @@ open LibsignalBinary.Proofs.Cli.E2E.Pqxdh.ResponderClosure.Matched.M2TopPlacedBu
   StageP2MatchedEnv
 )
 open LibsignalBinary.Proofs.SignalSession.Cli.AllocGhostLinkTransfer (
-  CliGhostHooks cliGhostExterns cliGhostExterns_other
+  CliGhostHooks cliGhostExterns
 )
 open LibsignalBinary.Proofs.SignalSession.Cli.Run.Proofs.DecryptPrekey.Poll.ClosureEntryPlacedBudget (
   dpPollEntrySpatialPlaced dpPollPre_unpack_placed
@@ -649,26 +649,8 @@ theorem closure_trusted_branch_placed_ok_at [LibsignalPlacement]
 private theorem withPanics_cliGhostExterns_eq (mmpl : Obj.MultiPlacement)
     (gh : CliGhostHooks) (W : CliHooks) :
     Rust.withPanics (cliGhostExterns gh (cliExternsPlaced mmpl W)) =
-      cliGhostExterns gh (cliExternsPlaced mmpl W) := by
-  funext s
-  by_cases hp : Rust.isPanicSymbol s = true
-  · have hother : cliGhostExterns gh (cliExternsPlaced mmpl W) s = cliExternsPlaced mmpl W s :=
-      cliGhostExterns_other gh (cliExternsPlaced mmpl W)
-        (fun h => by subst h; simp [Rust.isPanicSymbol, CryptoVerification.SignalSession.lsRustAllocSymCli, CryptoVerification.SignalSession.lsRustDeallocSymCli, CryptoVerification.SignalSession.lsRustReallocSymCli, CryptoVerification.SignalSession.lsRustAllocZeroedSymCli, CryptoVerification.SignalSession.lsRustNoAllocShimSymCli, CryptoVerification.SignalSession.lsStringCloneSym] at hp)
-        (fun h => by subst h; simp [Rust.isPanicSymbol, CryptoVerification.SignalSession.lsRustAllocSymCli, CryptoVerification.SignalSession.lsRustDeallocSymCli, CryptoVerification.SignalSession.lsRustReallocSymCli, CryptoVerification.SignalSession.lsRustAllocZeroedSymCli, CryptoVerification.SignalSession.lsRustNoAllocShimSymCli, CryptoVerification.SignalSession.lsStringCloneSym] at hp)
-        (fun h => by subst h; simp [Rust.isPanicSymbol, CryptoVerification.SignalSession.lsRustAllocSymCli, CryptoVerification.SignalSession.lsRustDeallocSymCli, CryptoVerification.SignalSession.lsRustReallocSymCli, CryptoVerification.SignalSession.lsRustAllocZeroedSymCli, CryptoVerification.SignalSession.lsRustNoAllocShimSymCli, CryptoVerification.SignalSession.lsStringCloneSym] at hp)
-        (fun h => by subst h; simp [Rust.isPanicSymbol, CryptoVerification.SignalSession.lsRustAllocSymCli, CryptoVerification.SignalSession.lsRustDeallocSymCli, CryptoVerification.SignalSession.lsRustReallocSymCli, CryptoVerification.SignalSession.lsRustAllocZeroedSymCli, CryptoVerification.SignalSession.lsRustNoAllocShimSymCli, CryptoVerification.SignalSession.lsStringCloneSym] at hp)
-        (fun h => by subst h; simp [Rust.isPanicSymbol, CryptoVerification.SignalSession.lsRustAllocSymCli, CryptoVerification.SignalSession.lsRustDeallocSymCli, CryptoVerification.SignalSession.lsRustReallocSymCli, CryptoVerification.SignalSession.lsRustAllocZeroedSymCli, CryptoVerification.SignalSession.lsRustNoAllocShimSymCli, CryptoVerification.SignalSession.lsStringCloneSym] at hp)
-        (fun h => by subst h; simp [Rust.isPanicSymbol, CryptoVerification.SignalSession.lsRustAllocSymCli, CryptoVerification.SignalSession.lsRustDeallocSymCli, CryptoVerification.SignalSession.lsRustReallocSymCli, CryptoVerification.SignalSession.lsRustAllocZeroedSymCli, CryptoVerification.SignalSession.lsRustNoAllocShimSymCli, CryptoVerification.SignalSession.lsStringCloneSym] at hp)
-        (fun h => by subst h; simp [Rust.isPanicSymbol, CryptoVerification.SignalSession.lsReadFileSym] at hp)
-        (fun h => by subst h; simp [Rust.isPanicSymbol, CryptoVerification.SignalSession.lsReadStdinSym] at hp)
-        (fun h => by subst h; simp [Rust.isPanicSymbol, CryptoVerification.SignalSession.lsMemsetSym] at hp)
-        (fun h => by subst h; simp [Rust.isPanicSymbol, CryptoVerification.SignalSession.lsMemcpySym] at hp)
-    unfold Rust.withPanics
-    rw [hother]
-    unfold cliExternsPlaced isCliPanicSymbolPlaced
-    simp [hp]
-  · simp [Rust.withPanics, hp]
+      cliGhostExterns gh (cliExternsPlaced mmpl W) :=
+  CryptoVerification.SignalSession.Cli.RunGlue.withPanics_cliGhostExterns mmpl gh W
 
 /-- Full budget-threaded `[LibsignalPlacement]` `decrypt_prekey` poll closure (`dpPollEntryPlaced`)
 at fixed `(mmpl, gh, W, X, B, S, Scope)` accepting pointwise `StageP2PathAQpanCliPlacedAtStmt`. -/

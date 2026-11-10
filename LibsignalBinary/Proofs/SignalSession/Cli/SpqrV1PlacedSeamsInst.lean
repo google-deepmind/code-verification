@@ -150,6 +150,7 @@ theorem cliSpqrDecodeState_sendCoins_ok_closed [LibsignalPlacement]
     (hG : CliGhostA0Hooks CryptoVerification.E2E.HooksE.A0 gh)
     (hMs : gh.memset = some memsetHook)
     (hMc : gh.memcpy = some memcpyHook)
+    (hMv : gh.extra.lookup "memmove" = some hookMemmove)
     (hHmac : HookSat (cliGhostExterns gh (cliExternsPlaced mmpl W)) lsLibcruxHmacSymCli
       (libcruxHmacSpec W.C.F CryptoVerification.E2E.HooksE.A0)) :
     subroutine_ok
@@ -160,8 +161,8 @@ theorem cliSpqrDecodeState_sendCoins_ok_closed [LibsignalPlacement]
         (CryptoVerification.SpqrV1.Top.DecodeState.decodeStatePlacedSpecX
           CryptoVerification.SpqrV1.Top.DecodeState.canonicalV1InnerHeap CryptoVerification.E2E.HooksE.A0)) := by
   have : CliSpqrExt W (cliGhostExterns gh (cliExternsPlaced mmpl W)) :=
-    cliSpqrExt_self mmpl gh W hG hMs hMc hHmac
-  exact cliSpqrDecodeState_sendCoins_ok mmpl gh W hG hMs hMc hHmac
+    cliSpqrExt_self mmpl gh W hG hMs hMc hMv hHmac
+  exact cliSpqrDecodeState_sendCoins_ok mmpl gh W hG hMs hMc hMv hHmac
     (cliDrop_267_cl W) (cliDrop_270_cl W) (cliDrop_281_cl W) (cliDrop_282_cl W)
     (cliDecodeErrorPush_blockProgram_cl W)
     (cliDecodeErrorFrom_blockProgram_cl W)
@@ -229,6 +230,7 @@ theorem cliSpqrDecodeState_recv_trTrap_ok_closed [LibsignalPlacement]
     (hG : CliGhostA0Hooks CryptoVerification.E2E.HooksE.A0 gh)
     (hMs : gh.memset = some memsetHook)
     (hMc : gh.memcpy = some memcpyHook)
+    (hMv : gh.extra.lookup "memmove" = some hookMemmove)
     (hHmac : HookSat (cliGhostExterns gh (cliExternsPlaced mmpl W)) lsLibcruxHmacSymCli
       (libcruxHmacSpec W.C.F CryptoVerification.E2E.HooksE.A0)) :
     subroutine_ok
@@ -238,8 +240,8 @@ theorem cliSpqrDecodeState_recv_trTrap_ok_closed [LibsignalPlacement]
         (decodeStatePlacedSpecX
           CryptoVerification.SpqrV1.Top.DecodeState.canonicalV1InnerHeap CryptoVerification.E2E.HooksE.A0)) := by
   have : CliSpqrExt W (trTrapExternsPlaced (cliGhostExterns gh (cliExternsPlaced mmpl W))) :=
-    cliSpqrExt_trTrap mmpl gh W hG hMs hMc hHmac
-  exact cliSpqrDecodeState_recv_trTrap_ok mmpl gh W hG hMs hMc hHmac
+    cliSpqrExt_trTrap mmpl gh W hG hMs hMc hMv hHmac
+  exact cliSpqrDecodeState_recv_trTrap_ok mmpl gh W hG hMs hMc hMv hHmac
     (cliDrop_267_cl W) (cliDrop_270_cl W) (cliDrop_281_cl W) (cliDrop_282_cl W)
     (cliDecodeErrorPush_blockProgram_cl W)
     (cliDecodeErrorFrom_blockProgram_cl W)
@@ -309,6 +311,7 @@ theorem cliSpqrSendCoins_placed_ok_closed [LibsignalPlacement]
     (hG : CliGhostA0Hooks CryptoVerification.E2E.HooksE.A0 gh)
     (hMs : gh.memset = some memsetHook)
     (hMc : gh.memcpy = some memcpyHook)
+    (hMv : gh.extra.lookup "memmove" = some hookMemmove)
     (hHmac : HookSat (cliGhostExterns gh (cliExternsPlaced mmpl W)) lsLibcruxHmacSymCli
       (libcruxHmacSpec W.C.F CryptoVerification.E2E.HooksE.A0)) :
     subroutine_ok
@@ -318,11 +321,11 @@ theorem cliSpqrSendCoins_placed_ok_closed [LibsignalPlacement]
       (lsmpl.base 427)
       (CryptoVerification.LibsignalPublicApi.StoreKit.withLsCodeRoLoaded lsmpl
         (spqrSendCoinsPlacedSpecT CryptoVerification.E2E.HooksE.A0 0#64 (CryptoVerification.E2E.pqxdhSpqrModel ⟨W.C, W.Q⟩))) :=
-  cliSpqrSendCoins_placed_ok mmpl gh W hG hMs hMc hHmac
-    (cliSpqrSend_chainFromPb_ok mmpl gh W hG hMs hMc hHmac)
-    (cliSpqrSend_chainIntoPb_ok mmpl gh W hG hMs hMc hHmac)
-    (cliSpqrDecodeState_sendCoins_ok_closed mmpl gh W hG hMs hMc hHmac)
-    (cliStatesIntoPb_sendCoins_ok mmpl gh W hG hMs hMc hHmac)
+  cliSpqrSendCoins_placed_ok mmpl gh W hG hMs hMc hMv hHmac
+    (cliSpqrSend_chainFromPb_ok mmpl gh W hG hMs hMc hMv hHmac)
+    (cliSpqrSend_chainIntoPb_ok mmpl gh W hG hMs hMc hMv hHmac)
+    (cliSpqrDecodeState_sendCoins_ok_closed mmpl gh W hG hMs hMc hMv hHmac)
+    (cliStatesIntoPb_sendCoins_ok mmpl gh W hG hMs hMc hMv hHmac)
 
 /-! ### 4. Closed `SpqrRecvPlacedContracts` & `spqr::recv` (`Block 329`) -/
 
@@ -378,6 +381,7 @@ theorem cliSpqrRecvPlacedContracts [LibsignalPlacement]
     (hG : CliGhostA0Hooks CryptoVerification.E2E.HooksE.A0 gh)
     (hMs : gh.memset = some memsetHook)
     (hMc : gh.memcpy = some memcpyHook)
+    (hMv : gh.extra.lookup "memmove" = some hookMemmove)
     (hHmac : HookSat (cliGhostExterns gh (cliExternsPlaced mmpl W)) lsLibcruxHmacSymCli
       (libcruxHmacSpec W.C.F CryptoVerification.E2E.HooksE.A0)) :
     SpqrRecvPlacedContracts
@@ -385,7 +389,7 @@ theorem cliSpqrRecvPlacedContracts [LibsignalPlacement]
       CryptoVerification.E2E.HooksE.A0 W.C.F W.Q.K
       (trTrapExternsPlaced (cliGhostExterns gh (cliExternsPlaced mmpl W))) := by
   let extTrap := trTrapExternsPlaced (cliGhostExterns gh (cliExternsPlaced mmpl W))
-  have : CliSpqrExt W extTrap := cliSpqrExt_trTrap mmpl gh W hG hMs hMc hHmac
+  have : CliSpqrExt W extTrap := cliSpqrExt_trTrap mmpl gh W hG hMs hMc hMv hHmac
   exact
     { dealloc_ok := cliDealloc_at_block W (i := 329)
       memcpy_ok := cliFramelessMemcpy_at_block W (i := 329)
@@ -401,7 +405,7 @@ theorem cliSpqrRecvPlacedContracts [LibsignalPlacement]
         lift_blockProgram_cl_to_recv (j := 270) (hcallee := cliDrop_270_cl W)
       dropStates_ok :=
         lift_blockProgram_cl_to_recv (j := 273) (hcallee := cliDrop_273_cl W)
-      decodeState_ok := cliSpqrDecodeState_recv_trTrap_ok_closed mmpl gh W hG hMs hMc hHmac
+      decodeState_ok := cliSpqrDecodeState_recv_trTrap_ok_closed mmpl gh W hG hMs hMc hMv hHmac
       initInner_ok := by
         have h0 := cliInitInner_callInv_placed_ok W (ext := extTrap)
         conv at h0 => arg 2; rw [ls_blockPlacement_base (i := 324)]
@@ -414,8 +418,8 @@ theorem cliSpqrRecvPlacedContracts [LibsignalPlacement]
               initInnerPlacedSpecX] at hpre ⊢
             exact hpre)
           (fun _ _ _ _ hpost => hpost)
-      chainFrom_ok := cliSpqrRecv_chainFrom_ok_trTrap mmpl gh W hG hMs hMc hHmac
-      chainFromPb_ok := cliSpqrRecv_chainFromPb_ok_trTrap mmpl gh W hG hMs hMc hHmac
+      chainFrom_ok := cliSpqrRecv_chainFrom_ok_trTrap mmpl gh W hG hMs hMc hMv hHmac
+      chainFromPb_ok := cliSpqrRecv_chainFromPb_ok_trTrap mmpl gh W hG hMs hMc hMv hHmac
       chainNew_ok := by
         have h0 := cliChainNew_placed_ok W (H := Rust.withPanics extTrap)
         conv at h0 => arg 2; rw [ls_blockPlacement_base (i := 363)]
@@ -434,7 +438,7 @@ theorem cliSpqrRecvPlacedContracts [LibsignalPlacement]
         exact ls_subroutine_ok_cro_of_callInv
           (callerProg := spqrRecvPlacedProg extTrap)
           (i := 329) (j := 366) h0
-      chainIntoPb_ok := cliSpqrRecv_chainIntoPb_ok_trTrap mmpl gh W hG hMs hMc hHmac
+      chainIntoPb_ok := cliSpqrRecv_chainIntoPb_ok_trTrap mmpl gh W hG hMs hMc hMv hHmac
       messageDeserialize_ok := by
         let _ := instIsLsBlockProg_351 (Rust.withPanics extTrap)
         have h0 := cliMessageDeserialize_placed_ok W (ext := extTrap)
@@ -446,7 +450,7 @@ theorem cliSpqrRecvPlacedContracts [LibsignalPlacement]
         (cliStatesPlacedSeamsExt W (ext := extTrap)).statesFromPb_on
       statesRecv_ok :=
         (cliStatesPlacedSeamsExt W (ext := extTrap)).statesRecv_on
-      statesIntoPb_ok := cliStatesIntoPb_recv_trTrap_ok mmpl gh W hG hMs hMc hHmac
+      statesIntoPb_ok := cliStatesIntoPb_recv_trTrap_ok mmpl gh W hG hMs hMc hMv hHmac
       encodeToVec_ok := by
         have h0 := cliEncodeToVec_placed_ok W (ext := extTrap)
         dsimp only [CryptoVerification.SpqrV1.Prost.EncodeToVec.PqRatchetStateEncodeToVecPlacedOkExt] at h0
@@ -473,6 +477,7 @@ theorem cliSpqrRecv_placed_ok_closed [LibsignalPlacement]
     (hG : CliGhostA0Hooks CryptoVerification.E2E.HooksE.A0 gh)
     (hMs : gh.memset = some memsetHook)
     (hMc : gh.memcpy = some memcpyHook)
+    (hMv : gh.extra.lookup "memmove" = some hookMemmove)
     (hHmac : HookSat (cliGhostExterns gh (cliExternsPlaced mmpl W)) lsLibcruxHmacSymCli
       (libcruxHmacSpec W.C.F CryptoVerification.E2E.HooksE.A0)) :
     subroutine_ok
@@ -483,7 +488,7 @@ theorem cliSpqrRecv_placed_ok_closed [LibsignalPlacement]
         (spqrRecvPlacedInnerSpecXT CryptoVerification.E2E.HooksE.A0 (spqrV1Recv W.C.F W.Q.K))) := by
   have hok := spqr_recv_placed_ok_blockProgram_ext_of_contracts
     (trTrapExternsPlaced_isPanic mmpl gh W)
-    (cliSpqrRecvPlacedContracts mmpl gh W hG hMs hMc hHmac)
+    (cliSpqrRecvPlacedContracts mmpl gh W hG hMs hMc hMv hHmac)
   have heq_cro (m : Memory) :
       CryptoVerification.LibsignalPublicApi.StoreKit.LibsignalCodeRoLoaded lsmpl m =
         LibsignalCodeRoLoaded lsmpl m :=
@@ -514,11 +519,12 @@ theorem spqrV1PlacedSeams_ok [LibsignalPlacement]
     (hG : CliGhostA0Hooks CryptoVerification.E2E.HooksE.A0 gh)
     (hMs : gh.memset = some memsetHook)
     (hMc : gh.memcpy = some memcpyHook)
+    (hMv : gh.extra.lookup "memmove" = some hookMemmove)
     (hHmac : HookSat (cliGhostExterns gh (cliExternsPlaced mmpl W)) lsLibcruxHmacSymCli
       (libcruxHmacSpec W.C.F CryptoVerification.E2E.HooksE.A0)) :
     SpqrV1PlacedSeams mmpl gh W :=
-  { spqrInitialState := cliSpqrInitialState_placed_ok_closed mmpl gh W hG hMs hMc hHmac
-    spqrRecv         := cliSpqrRecv_placed_ok_closed mmpl gh W hG hMs hMc hHmac
-    spqrSendCoins    := cliSpqrSendCoins_placed_ok_closed mmpl gh W hG hMs hMc hHmac }
+  { spqrInitialState := cliSpqrInitialState_placed_ok_closed mmpl gh W hG hMs hMc hMv hHmac
+    spqrRecv         := cliSpqrRecv_placed_ok_closed mmpl gh W hG hMs hMc hMv hHmac
+    spqrSendCoins    := cliSpqrSendCoins_placed_ok_closed mmpl gh W hG hMs hMc hMv hHmac }
 
 end LibsignalBinary.Proofs.SignalSession.Cli.SpqrV1PlacedSeamsInst

@@ -201,7 +201,7 @@ theorem libcruxHmacHookMallocng_fsT (mpl : Obj.MultiPlacement)
       apply stepRustAlloc1_fsT; intro _ _
       exact FsTraced.of_eq rfl rfl
 
-/-- Every row of the `37`-row `cliHookTablePlaced mmpl W` satisfies `HookFsTraced IsFsC`. -/
+/-- Every row of the `27`-row `cliHookTablePlaced mmpl W` satisfies `HookFsTraced IsFsC`. -/
 theorem cliHookTablePlaced_fsT (mmpl : Obj.MultiPlacement) (W : CliHooks) :
     ∀ p ∈ cliHookTablePlaced mmpl W, HookFsTraced IsFsC p.2 := by
   simp only [cliHookTablePlaced, cliPqxdhHookTablePlaced, List.cons_append,
@@ -211,12 +211,10 @@ theorem cliHookTablePlaced_fsT (mmpl : Obj.MultiPlacement) (W : CliHooks) :
     kemEncapsHook_fsT, kemDecapsHook_fsT, mlkemFromSeedHook_fsT, mlkemPk1Hook_fsT,
     mlkemPk2Hook_fsT, mlkemEncaps1Hook_fsT, mlkemEncaps2Hook_fsT, mlkemDecapsHook_fsT,
     mlkemValidatePkHook_fsT, libcruxHmacHookMallocng_fsT,
-    hookMemmove_fsT, cliBcmpHook_fsT, strlenHook_fsT,
     writeFileHook_fsT, writeStdoutHook_fsT,
-    memrchrHook_fsT, fromUtf8Hook_fsT, fmtWriteHook0_fsT,
-    formatInnerHook0_fsT, durationSinceExactHook_fsT, timeAddHook_fsT, blackBoxHook_fsT,
+    fmtWriteHook0_fsT, formatInnerHook0_fsT,
     compress256Hook_fsT, aesEncHookMallocng_fsT, aesDecHookMallocng_fsT, pubFromSecretHook_fsT,
-    diffieHellmanHook_fsT, zeroizeSecretHook_fsT]
+    diffieHellmanHook_fsT]
 
 /-- Every extern hook of `cliExternsPlaced mmpl W` satisfies `HookFsTraced IsFsC`. -/
 theorem fsTHooks_cliExternsPlaced (mmpl : Obj.MultiPlacement) (W : CliHooks) :
@@ -268,12 +266,17 @@ structure CliGhostHooksFs (g : CliGhostHooks) : Prop where
   stringClone_fsT : ∀ f, g.stringClone = some f → HookFsTraced IsFsC f
   memset_fsT : ∀ f, g.memset = some f → HookFsTraced IsFsC f := by intro _ h; cases h
   memcpy_fsT : ∀ f, g.memcpy = some f → HookFsTraced IsFsC f := by intro _ h; cases h
+  extra_fsT : ∀ sym f,
+    cliExtraGhostSyms.contains sym = true →
+    g.extra.lookup sym = some f →
+    HookFsTraced IsFsC f := by
+    intro _ _ _ h; cases h
 
 theorem fsTHooks_cliGhostExterns_of_fs {g : CliGhostHooks} {baseExt : LibsignalHooks}
     (hFs : CliGhostHooksFs g) (hBase : FsTHooks baseExt) :
     FsTHooks (cliGhostExterns g baseExt) := by
   intro sym f h
-  unfold cliGhostExterns at h
+  unfold cliGhostExterns cliGhostExternsWithExtra at h
   split at h
   · cases h; exact hFs.alloc_fsT
   · split at h
@@ -314,7 +317,17 @@ theorem fsTHooks_cliGhostExterns_of_fs {g : CliGhostHooks} {baseExt : LibsignalH
                         rw [hmc] at h; cases h; exact hFs.memcpy_fsT f hmc
                       | none =>
                         rw [hmc] at h; exact hBase sym f h
-                    · exact hBase sym f h
+                    · cases hDom : cliExtraGhostSyms.contains sym
+                      · rw [hDom] at h
+                        simp only [Bool.false_eq_true, ↓reduceIte] at h
+                        exact hBase sym f h
+                      · rw [hDom] at h
+                        simp only [↓reduceIte] at h
+                        cases hex : g.extra.lookup sym with
+                        | some ex =>
+                          rw [hex] at h; cases h; exact hFs.extra_fsT sym f hDom hex
+                        | none =>
+                          rw [hex] at h; exact hBase sym f h
 
 theorem traceFsSound_lsProg_ghost_of_fs [LibsignalPlacement]
     {g : CliGhostHooks} {baseExt : LibsignalHooks}

@@ -38,31 +38,31 @@ open CryptoVerification.E2E (allocHook0 deallocHook reallocHook0)
 open CryptoVerification.LibsignalPublicApi.StoreKit
   (subroutine_ok_withLsCodeRoLoaded_of_plain withLsCodeRoLoaded)
 open CryptoVerification.LibsignalTripleRatchet
-  (extHookStack memcpyName memmoveName memsetName withStack)
+  (extHookStack memcpyName memsetName withStack)
 open CryptoVerification.SignalSession
   ( lsRustAllocSymCli lsRustDeallocSymCli lsRustNoAllocShimSymCli
    lsRustReallocSymCli)
 open CryptoVerification.SignalSession.Cli.Main.Placed (lsProg_617)
 open CryptoVerification.SignalSession.Cli.MainHops
   (allocHook0_fs allocHookStack_le_extHookStack deallocHook_fs
-   extHookStack_le hookMemcpy_fs hookMemmove_fs hookMemset_fs hookNoop_fs hook_stub_placed_ok
+   extHookStack_le hookMemcpy_fs hookMemset_fs hookNoop_fs hook_stub_placed_ok
    pos_of_extHookStack_le reallocHook0_fs subroutine_ok_withLsCodeRoLoaded_of_keepsFs)
 open CryptoVerification.SpqrV1.Alloc (sessionMemcpyRegionROSpec)
 open LibsignalBinary.Heap (AllocCostModel BudgetLimits RustCliAllocBudget)
 open LibsignalBinary.Heap.SpecBudget (withVmPreserved)
 open LibsignalBinary.Proofs.SignalSession.Cli.Main.Proofs.AllocFsA1Budget
   (CliAllocHooks hookMemcpy_region_ro_vm_ok hookMemcpy_region_vm_ok hookMemcpy_vm_ok
-   hookMemmove_vm_ok hookMemset_region_vm_ok hookMemset_vm_ok)
+   hookMemset_region_vm_ok hookMemset_vm_ok)
 open LibsignalBinary.Proofs.SignalSession.Cli.Main.Proofs.KeepsFsBudget
   (hookOk_rustAllocWithStack hookOk_rustDeallocExternWithStack hookOk_rustReallocExternWithStack
    hookOk_withStack)
 open LibsignalBinary.Proofs.SignalSession.Cli.SpecsPlacedBudget
   (AllocContractsFsPlaced AllocContractsXCliPlaced)
 open LibsignalBinary.Proofs.TripleRatchet.Alloc.DefsBudget
-  (sessionMemcpyBudget_hookOk sessionMemcpyRegionBudget_hookOk sessionMemmoveBudget_hookOk
+  (sessionMemcpyBudget_hookOk sessionMemcpyRegionBudget_hookOk
    sessionMemsetBudget_hookOk sessionMemsetRegionBudget_hookOk sessionShimBudget_hookOk)
 open LibsignalBinary.Proofs.TripleRatchet.Hooks.DefsBudget
-  (sessionMemcpyBudgetSpec sessionMemcpyRegionBudgetSpec sessionMemmoveBudgetSpec
+  (sessionMemcpyBudgetSpec sessionMemcpyRegionBudgetSpec
    sessionMemsetBudgetSpec sessionMemsetRegionBudgetSpec sessionShimBudgetSpec)
 open LibsignalBinary.Proofs.TripleRatchet.Hooks2Budget
   (rustAllocSpecWithStack rustDeallocExternSpecWithStack rustReallocExternSpecWithStack)
@@ -92,9 +92,6 @@ theorem allocContractsFsPlaced_toAllocContractsX [LibsignalPlacement] {M : Alloc
     subroutine_ok_withLsCodeRoLoaded_of_keepsFs (hA.memcpy_region stk h1 h2)
   session_memcpy_region stk h1 h2 :=
     subroutine_ok_withLsCodeRoLoaded_of_keepsFs (hA.session_memcpy_region stk h1 h2)
-  memmove stk h1 h2 := subroutine_ok_withLsCodeRoLoaded_of_keepsFs (hA.memmove stk h1 h2)
-  session_memmove stk h1 h2 :=
-    subroutine_ok_withLsCodeRoLoaded_of_keepsFs (hA.session_memmove stk h1 h2)
   memset stk h1 h2 := subroutine_ok_withLsCodeRoLoaded_of_keepsFs (hA.memset stk h1 h2)
   session_memset stk h1 h2 :=
     subroutine_ok_withLsCodeRoLoaded_of_keepsFs (hA.session_memset stk h1 h2)
@@ -121,10 +118,6 @@ theorem allocContractsFsPlaced_of_hookSat [LibsignalPlacement] {M : AllocCostMod
       HookSat H memcpyName (withStack (withVmPreserved memcpyRegionSpec) stk).keepsFs)
     (hsmemcpyR : ∀ stk, extHookStack ≤ stk → stk ≤ 2 ^ 64 →
       HookSat H memcpyName (withStack sessionMemcpyRegionBudgetSpec stk).keepsFs)
-    (hmemmove : ∀ stk, extHookStack ≤ stk → stk ≤ 2 ^ 64 →
-      HookSat H memmoveName (withVmPreserved (libcMemmoveSpec stk)).keepsFs)
-    (hsmemmove : ∀ stk, extHookStack ≤ stk → stk ≤ 2 ^ 64 →
-      HookSat H memmoveName (sessionMemmoveBudgetSpec stk).keepsFs)
     (hmemset : ∀ stk, extHookStack ≤ stk → stk ≤ 2 ^ 64 →
       HookSat H memsetName (withVmPreserved (libcMemsetSpec stk)).keepsFs)
     (hsmemset : ∀ stk, extHookStack ≤ stk → stk ≤ 2 ^ 64 →
@@ -144,8 +137,6 @@ theorem allocContractsFsPlaced_of_hookSat [LibsignalPlacement] {M : AllocCostMod
   session_memcpy stk h1 h2 := ls_hook_placed_ok (hsmemcpy stk h1 h2)
   memcpy_region stk h1 h2 := ls_hook_placed_ok (hmemcpyR stk h1 h2)
   session_memcpy_region stk h1 h2 := ls_hook_placed_ok (hsmemcpyR stk h1 h2)
-  memmove stk h1 h2 := ls_hook_placed_ok (hmemmove stk h1 h2)
-  session_memmove stk h1 h2 := ls_hook_placed_ok (hsmemmove stk h1 h2)
   memset stk h1 h2 := ls_hook_placed_ok (hmemset stk h1 h2)
   session_memset stk h1 h2 := ls_hook_placed_ok (hsmemset stk h1 h2)
   memset_region stk h1 h2 := ls_hook_placed_ok (hmemsetR stk h1 h2)
@@ -168,10 +159,6 @@ theorem allocContractsXCliPlaced_of_hookSat [LibsignalPlacement] {M : AllocCostM
       HookSat H memcpyName (withStack (withVmPreserved memcpyRegionSpec) stk))
     (hsmemcpyR : ∀ stk, extHookStack ≤ stk → stk ≤ 2 ^ 64 →
       HookSat H memcpyName (withStack sessionMemcpyRegionBudgetSpec stk))
-    (hmemmove : ∀ stk, extHookStack ≤ stk → stk ≤ 2 ^ 64 →
-      HookSat H memmoveName (withVmPreserved (libcMemmoveSpec stk)))
-    (hsmemmove : ∀ stk, extHookStack ≤ stk → stk ≤ 2 ^ 64 →
-      HookSat H memmoveName (sessionMemmoveBudgetSpec stk))
     (hmemset : ∀ stk, extHookStack ≤ stk → stk ≤ 2 ^ 64 →
       HookSat H memsetName (withVmPreserved (libcMemsetSpec stk)))
     (hsmemset : ∀ stk, extHookStack ≤ stk → stk ≤ 2 ^ 64 →
@@ -189,8 +176,6 @@ theorem allocContractsXCliPlaced_of_hookSat [LibsignalPlacement] {M : AllocCostM
   session_memcpy stk h1 h2 := ls_hook_placed_ok (hsmemcpy stk h1 h2)
   memcpy_region stk h1 h2 := ls_hook_placed_ok (hmemcpyR stk h1 h2)
   session_memcpy_region stk h1 h2 := ls_hook_placed_ok (hsmemcpyR stk h1 h2)
-  memmove stk h1 h2 := ls_hook_placed_ok (hmemmove stk h1 h2)
-  session_memmove stk h1 h2 := ls_hook_placed_ok (hsmemmove stk h1 h2)
   memset stk h1 h2 := ls_hook_placed_ok (hmemset stk h1 h2)
   session_memset stk h1 h2 := ls_hook_placed_ok (hsmemset stk h1 h2)
   memset_region stk h1 h2 := ls_hook_placed_ok (hmemsetR stk h1 h2)
@@ -207,7 +192,6 @@ theorem allocContractsFsPlaced_of_hooks [LibsignalPlacement]
     (hdealloc : H lsRustDeallocSymCli = some deallocHook)
     (hrealloc : H lsRustReallocSymCli = some reallocHook0)
     (hmemset : H memsetName = some hookMemset)
-    (hmemmove : H memmoveName = some hookMemmove)
     (hmemcpy : H memcpyName = some hookMemcpy) :
     AllocContractsFsPlaced A lim H where
   alloc := hook_stub_placed_ok halloc <|
@@ -229,10 +213,6 @@ theorem allocContractsFsPlaced_of_hooks [LibsignalPlacement]
     (hookOk_withStack hookMemcpy_region_vm_ok stk).keepsFs hookMemcpy_fs
   session_memcpy_region stk _ _ := hook_stub_placed_ok hmemcpy <|
     (hookOk_withStack sessionMemcpyRegionBudget_hookOk stk).keepsFs hookMemcpy_fs
-  memmove stk _ _ := hook_stub_placed_ok hmemmove <|
-    (hookMemmove_vm_ok stk).keepsFs hookMemmove_fs
-  session_memmove stk _ _ := hook_stub_placed_ok hmemmove <|
-    (sessionMemmoveBudget_hookOk stk).keepsFs hookMemmove_fs
   memset stk hle _ := hook_stub_placed_ok hmemset <|
     (hookMemset_vm_ok stk (pos_of_extHookStack_le hle)).keepsFs hookMemset_fs
   session_memset stk hle _ := hook_stub_placed_ok hmemset <|
@@ -253,11 +233,10 @@ theorem allocContractsXCliPlaced_of_hooks [LibsignalPlacement]
     (hdealloc : H lsRustDeallocSymCli = some deallocHook)
     (hrealloc : H lsRustReallocSymCli = some reallocHook0)
     (hmemset : H memsetName = some hookMemset)
-    (hmemmove : H memmoveName = some hookMemmove)
     (hmemcpy : H memcpyName = some hookMemcpy) :
     AllocContractsXCliPlaced A lim H :=
   allocContractsFsPlaced_toAllocContractsX
-    (allocContractsFsPlaced_of_hooks hA hshim halloc hdealloc hrealloc hmemset hmemmove hmemcpy)
+    (allocContractsFsPlaced_of_hooks hA hshim halloc hdealloc hrealloc hmemset hmemcpy)
 
 /-- Any extern map mapping `memcpyName` to `hookMemcpy` meets
     `withVmPreserved sessionMemcpyRegionROSpec`. -/

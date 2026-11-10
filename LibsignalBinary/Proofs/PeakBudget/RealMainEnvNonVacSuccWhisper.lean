@@ -1610,9 +1610,6 @@ theorem recvWhisperSuccMainEnv_sub_kit [LibsignalPlacement]
 def w0CliHooks : CliHooks where
   C := C0
   Q := Q0
-  bcmp a b := if a = b then 0#64 else 1#64
-  bcmp_ok a b _ := by by_cases h : a = b <;> simp [h]
-  utf8Err _ := (0#64, 0#16)
 
 def w0Rec0 : SessionRecord (List (BitVec 8)) :=
   toRecord (extrasOf fun _ => w0XA) ⟨.A, w0SA0, 0, [0]⟩

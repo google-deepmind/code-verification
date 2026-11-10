@@ -661,7 +661,7 @@ theorem stageP2_v3_reject_placedBudget [LibsignalPlacement]
     have hPromMissAt : LibsignalBinary.Proofs.Cli.E2E.Pqxdh.ResponderClosure.Over.StageP2DefsPlacedBudget.PromoteMatchingMissAtPlacedProp A.repAlloc
         (cliGhostExterns gh (cliExternsPlaced mmpl W)) y.fut g recG sess 3#8 y.g.msg.baseKey.serialize :=
       LibsignalBinary.Proofs.Cli.E2E.Pqxdh.ResponderClosure.Over.StageP2DefsPlacedBudget.promoteMatchingMissAt_placed_of_gen
-        (cliPromoteMatchingMissGen_placed_d3 A.repAlloc mmpl gh W)
+        (cliPromoteMatchingMissGen_placed_d3 A.repAlloc mmpl gh W hh.blackBox)
         y.fut g recG sess 3#8 y.g.msg.baseKey.serialize
         (not_p2SessMatchesMsg_of_v3' hv3 hnm) (baseKey_serialize_length y.g.msg.baseKey)
     exact stageP2_over_v3_kits_placed

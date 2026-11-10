@@ -36,6 +36,7 @@ public import LibsignalBinary.Proofs.SignalSession.Cli.HooksDehook.NarrowF3R1Wit
 public import LibsignalBinary.Proofs.SignalSession.Cli.Main.Callees
 public import LibsignalBinary.Proofs.SignalSession.Cli.Run.Compose.RunOkNoMatchPlacedBudget
 public import LibsignalBinary.Proofs.SignalSession.Cli.Run.Glue.FsTracedPlaced
+public import LibsignalBinary.Proofs.SignalSession.Cli.Run.Slots.PureExtraGhosts -- proof-setup: allow-public-import
 public import LibsignalBinary.Proofs.SignalSession.Cli.SpecsPlacedBudget
 public import LibsignalBinary.Proofs.SignalSession.Cli.SpqrExactEnvDefs
 public import LibsignalBinary.Proofs.SignalSession.Cli.SpqrSendCoinsTightCliInst
@@ -51,6 +52,7 @@ public import LibsignalBinary.Specifications.SignalSession.CliElf
 public import ProofLib.FsTrace
 public import LibsignalBinary.Heap.IfaceBudgetBase
 import LibsignalBinary.Heap.IfaceBudgetBaseBridges
+import LibsignalBinary.Proofs.PeakBudget.CliNoOomOfFitsEnvGhostSat
 import LibsignalBinary.Proofs.SignalSession.Cli.HooksDehook.MemsetGhostAcp
 import LibsignalBinary.Proofs.SignalSession.Cli.F3.HRead.ReadStdinCliIoInst
 import LibsignalBinary.Proofs.SignalSession.Cli.F3Relink.TieSpec
@@ -137,8 +139,8 @@ open LibsignalBinary.Proofs.PeakBudget.CliF3MainOkBridge
 open LibsignalBinary.Proofs.PeakBudget.CliFitsTraceArith (cliBudgetLimits)
 open LibsignalBinary.Proofs.PeakBudget.CliKitEnvFits
   (realCliMainBinaryKitEnvOfFixed_fitsEnv_cliBudgetLimits)
-open LibsignalBinary.Proofs.PeakBudget.CliNoOomOfFitsEnv
-  (mainOkCliExtPqB2NeedLocksPlacedAt_cliGhostExterns_cliBudgetLimits_of_kitEnvFits_and_runTightOf)
+open LibsignalBinary.Proofs.PeakBudget.CliNoOomOfFitsEnvGhostSat
+  (mainOkCliExtPqB2NeedLocksPadPlacedAt_cliGhostExterns_cliBudgetLimits_of_kitEnvFits_and_runTightOf)
 open LibsignalBinary.Proofs.PeakBudget.CliRunArmsPeak (CliRunCalleeEnvs)
 open LibsignalBinary.Proofs.PeakBudget.CliSlotEnvelopeBridge (cliMainArmEnvs cliRunCalleesEnvs)
 open LibsignalBinary.Proofs.PeakBudget.D3MainEntryBudgetFitsCapFixed
@@ -377,7 +379,8 @@ noncomputable def hole2_ghFixed [LibsignalPlacement] (mpl mmpl : MultiPlacement)
       LibsignalBinary.Proofs.SpecLemmas.SignalSession.ElfF3Relink.Tie.f3TrialRxProg
       (hole2_targets mpl) mmpl cliElfImage.brkStart cliBudgetLimits hole2_hookStack
       (some (LibsignalBinary.Proofs.SignalSession.Cli.HooksDehook.NarrowF3R1Witness.f3EmptyMemsetGhostHookNarrow mmpl))
-      (some (LibsignalBinary.Proofs.SignalSession.Cli.HooksDehook.NarrowF3R1Witness.f3EmptyMemcpyGhostHookNarrow mmpl)))
+      (some (LibsignalBinary.Proofs.SignalSession.Cli.HooksDehook.NarrowF3R1Witness.f3EmptyMemcpyGhostHookNarrow mmpl))
+      LibsignalBinary.Proofs.SignalSession.Cli.Run.Slots.PureExtraGhosts.pureExtraGhosts)
     with stringClone := some (hole2_strCloneGhostHook mpl mmpl) }
 
 theorem hole2_hblk (mpl : MultiPlacement) (hLs : libsignalSessionLib.LinkedAt cliElfBytes mpl) :
@@ -700,6 +703,7 @@ private theorem hole2_spqrAllocHooks [LibsignalPlacement] (mpl mmpl : MultiPlace
       hole2_keepSub hole2_emptyProg
       LibsignalBinary.Proofs.SpecLemmas.SignalSession.ElfF3Relink.Tie.f3TrialRxProg
       LibsignalBinary.Heap.Fine.f3RdlAzAddr mmpl cliElfImage.brkStart cliBudgetLimits
+  extraOk := LibsignalBinary.Proofs.SignalSession.Cli.Run.Slots.PureExtraGhosts.pureExtraGhosts_specOk
 
 theorem hole2_hGSpqr
     (mpl mmpl : MultiPlacement)
@@ -770,7 +774,8 @@ theorem hole2_hFs
       shim_fsT := CryptoVerification.SignalSession.Cli.RunGlue.hookNoop_fsT
       stringClone_fsT := ?_
       memset_fsT := ?_
-      memcpy_fsT := ?_ }
+      memcpy_fsT := ?_
+      extra_fsT := LibsignalBinary.Proofs.SignalSession.Cli.Run.Slots.PureExtraGhosts.pureExtraGhosts_fsT }
   · intro f hf
     dsimp only [hole2_ghFixed] at hf
     injection hf with hfeq
@@ -2380,7 +2385,7 @@ theorem hole2_hghNoAlloc
   letI : LibsignalPlacement := libsignalPlacementOf mpl (hole2_hblk mpl hLs) (hole2_hext_nodup mpl hLs)
   have _ := hMm
   intro name f h
-  unfold cliGhostExterns at h
+  unfold cliGhostExterns CryptoVerification.SignalSession.Cli.RunGlue.cliGhostExternsWithExtra at h
   dsimp only [hole2_ghFixed,
     LibsignalBinary.Proofs.SignalSession.Cli.F3.L4B.F3AllocStdinGhostHooks.f3CliGhostHooksFixed,
     LibsignalBinary.Proofs.SignalSession.Cli.F3.HRead.F3ReadFileGhostHook.f3ReadFileFixedGhostHookFineSub,
@@ -2430,7 +2435,19 @@ theorem hole2_hghNoAlloc
                       subst hfeq
                       exact
                         LibsignalBinary.Proofs.SignalSession.Cli.HooksDehook.NarrowF3R1Witness.f3EmptyMemcpyGhostHookNarrow_noAllocFailed mmpl
-                    · cases h
+                    · split at h
+                      · cases hex :
+                          LibsignalBinary.Proofs.SignalSession.Cli.Run.Slots.PureExtraGhosts.pureExtraGhosts.lookup name with
+                        | none =>
+                          rw [hex] at h
+                          cases h
+                        | some ex =>
+                          rw [hex] at h
+                          injection h with hfeq
+                          subst hfeq
+                          exact
+                            LibsignalBinary.Proofs.SignalSession.Cli.Run.Slots.PureExtraGhosts.pureExtraGhosts_noAllocFailed hex
+                      · cases h
 
 section Hole2SegcloneIoHelpers
 
@@ -7913,7 +7930,7 @@ theorem hole_gap4_untyped_slot520
       { alloc := hh.alloc, allocFs := hh.allocFs, panics := hh.panics, memcpyRO := hh.memcpyRO,
         bcmp := hh.bcmp, fs := hh.fs, utf8 := hh.utf8, memrchr := hh.memrchr,
         codecHooks := hh.codecHooks, allocZeroed := hh.allocZeroed, stringClone := hh.stringClone,
-        formatInner := hh.formatInner }
+        formatInner := hh.formatInner, blackBox := hh.blackBox }
       hRead hDeser
       (cliRunSemD3 W)
       (binaryKitRunSlotEnvsExact W (fineHookRustCliAllocBudget γ mmpl tp brkStart)
@@ -7998,7 +8015,7 @@ theorem hmain_cliElf
     617 cliProcessInputs (LibsignalFrozen mpl)
     (mallocngAddrsOfPlacement mmpl).libc cliElfImage.brkStart cliMainStk cliBudgetLimits).mp ?_
   exact
-    mainOkCliExtPqB2NeedLocksPlacedAt_cliGhostExterns_cliBudgetLimits_of_kitEnvFits_and_runTightOf
+    mainOkCliExtPqB2NeedLocksPadPlacedAt_cliGhostExterns_cliBudgetLimits_of_kitEnvFits_and_runTightOf
       w.hblk w.hext_nodup
       (@instLsCodeInvFrozen (libsignalPlacementOf mpl w.hblk w.hext_nodup))
       (fun _ => w.ghFixed)

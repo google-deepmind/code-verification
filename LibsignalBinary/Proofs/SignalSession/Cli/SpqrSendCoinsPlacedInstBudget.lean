@@ -13,7 +13,9 @@ public import LibsignalBinary.Heap.Fine.SpecBudgetHelpersFine
 public import LibsignalBinary.Proofs.Cli.SpqrV1.Top.Send.StatesSendKeysUnsampledPlacedBudget
 public import LibsignalBinary.Proofs.Cli.SpqrV1.Top.Send.TopPlacedBudget
 public import LibsignalBinary.Proofs.Cli.TripleRatchet.Decrypt.DhStepCoinsFillBridgePlacedBudget
+public import LibsignalBinary.Proofs.HookDischarge.Libc.Memmove -- proof-setup: allow-public-import
 public import LibsignalBinary.Proofs.Placed.SubsetA4cBudget
+public import LibsignalBinary.Proofs.SignalSession.Cli.Run.Slots.ExtraGhostSpecs -- proof-setup: allow-public-import
 public import LibsignalBinary.Proofs.SignalSession.Cli.SpqrChainPlacedInstBudget
 public import LibsignalBinary.Proofs.SignalSession.Cli.SpqrChunkedMergePlacedInstBudget
 public import LibsignalBinary.Proofs.SignalSession.Cli.SpqrInitialStatePlacedInstBudget
@@ -103,8 +105,8 @@ open CryptoVerification.SignalSession
    lsStringCloneSym)
 open CryptoVerification.SignalSession.Coins.Placed (instIsLsBlockProg_618)
 open CryptoVerification.SignalSession.Cli.RunGlue
-  (CliGhostHooks cliExternsPlaced_row cliGhostExterns cliGhostExterns_other hookSat_of_eq
-   withPanics_cliGhostExterns)
+  (CliGhostHooks cliExternsPlaced_row cliExtraGhostSyms cliGhostExterns cliGhostExterns_other
+   hookSat_of_eq withPanics_cliGhostExterns)
 open CryptoVerification.SignalSession.Cli.Slots
   (cliExternsPlaced_panic_add_overflow cliExternsPlaced_panic_assert_jj
    cliExternsPlaced_panic_assert_yy cliExternsPlaced_panic_bounds_check
@@ -113,7 +115,7 @@ open CryptoVerification.SignalSession.Cli.Slots
    cliGhostExterns_panic_handle_error cliGhostExterns_sat_of_cliExternsPlaced
    formatInner_row_placed
    lsMlkemEncaps1SymCli lsMlkemFromSeedSymCli lsMlkemPk1SymCli lsMlkemPk2SymCli
-   lsMlkemValidatePkSymCli memmove_row_placed
+   lsMlkemValidatePkSymCli
    mlkemDecaps_row_placed mlkemEncaps1_row_placed mlkemEncaps2_row_placed
    mlkemFromSeed_row_placed mlkemPk1_row_placed mlkemPk2_row_placed mlkemValidatePk_row_placed)
 open CryptoVerification.SpqrV1.Alloc
@@ -178,6 +180,7 @@ open LibsignalBinary.Proofs.Cli.TripleRatchet.Decrypt.DhStep433PlacedBudgetAux
   (coinsFillBudgetSpecPlaced)
 open LibsignalBinary.Proofs.Cli.TripleRatchet.Decrypt.DhStepCoinsFillBridgePlacedBudget
   (cliCoinsFillBudgetPlaced_ok)
+open LibsignalBinary.Proofs.HookDischarge.Libc.Memmove (sessionMemmoveBoundedSpec)
 open LibsignalBinary.Proofs.Placed.SubsetA4cBudget (statesPlacedSeams_of_hooks)
 open LibsignalBinary.Proofs.Placed.SubsetA4cBudgetSat (statesPlacedSeams_of_hooks_sat)
 open LibsignalBinary.Proofs.SignalSession.Cli.Run.Slots.CliHookSatPlacedBudget
@@ -185,6 +188,7 @@ open LibsignalBinary.Proofs.SignalSession.Cli.Run.Slots.CliHookSatPlacedBudget
    cliExternsPlaced_dealloc_budget_sat cliExternsPlaced_noAllocShim_budget_sat
    cliExternsPlaced_realloc_budget_sat cliExternsPlaced_sessionMemcpyRegion_budget_sat
    cliExternsPlaced_sessionMemsetRegion_budget_sat cliExternsPlaced_shim_budget_sat)
+open LibsignalBinary.Proofs.SignalSession.Cli.Run.Slots.ExtraGhostSpecs (ExtraSpecOk)
 open LibsignalBinary.Proofs.SignalSession.Cli.SpqrChainPlacedInstBudget
   (cliChainFromVn_placed_ok cliDeallocBudget_at_block cliExternsPlaced_sessionMemmoveAcp_sat
    cliSpqrSend_chainFromPb_ok cliSpqrSend_chainFromVn_ok cliSpqrSend_chainIntoPb_ok
@@ -206,7 +210,7 @@ open LibsignalBinary.Proofs.SpqrV1.Alloc.DoReserveBudget
 open LibsignalBinary.Proofs.SpqrV1.Alloc.VecDequeGrowBudgetAux
   (finishGrow8NeCellsAcpSpecG finishGrow8ZeroCellsAcpSpecG
    finish_grow_8_ne_cells_acp_placed_ok_of_hooks finish_grow_8_zero_cells_acp_placed_ok_of_hooks
-   sessionMemmoveAcpSpec)
+   sessionMemmoveAcpSpec sessionMemmoveBoundedAcpSpec)
 open LibsignalBinary.Proofs.SpqrV1.Auth.MacHdrBudget
   (authMacHdrPinned_placed_ok authMacHdrSpec authMacHdr_placed_ok)
 open LibsignalBinary.Proofs.SpqrV1.Auth.UpdateBudget (authUpdateSpec)
@@ -279,9 +283,11 @@ private theorem r1sc_cliGhostExterns_eq_of_base
     (h7 : sym ≠ lsReadFileSym := by decide)
     (h8 : sym ≠ lsReadStdinSym := by decide)
     (h9 : sym ≠ lsMemsetSym := by decide)
-    (h10 : sym ≠ lsMemcpySym := by decide) :
+    (h10 : sym ≠ lsMemcpySym := by decide)
+    (hExtra : cliExtraGhostSyms.contains sym = false ∨ gh.extra.lookup sym = none :=
+      by left; decide) :
     cliGhostExterns gh (cliExternsPlaced mmpl W) sym = v :=
-  (cliGhostExterns_other gh (cliExternsPlaced mmpl W) h1 h2 h3 h4 h5 h6 h7 h8 h9 h10).trans h
+  (cliGhostExterns_other gh (cliExternsPlaced mmpl W) h1 h2 h3 h4 h5 h6 h7 h8 h9 h10 hExtra).trans h
 
 private theorem r1sc_hExt_id
     (mmpl : Obj.MultiPlacement) (gh : CliGhostHooks) (W : CliHooks) :
@@ -328,13 +334,16 @@ theorem cliSpqrSend_coinsFill_ok_cli [LibsignalPlacement]
     spqrCoinsFillSpecPlaced_eq_coinsFillBudgetSpecPlaced]
   exact cliCoinsFillBudgetPlaced_ok mmpl gh W hA spqrSendCalleeStack (by decide) (by decide)
 
-theorem cliExternsPlaced_sessionMemmove_allocVm_sat
-    (mmpl : Obj.MultiPlacement) (gh : CliGhostHooks) (W : CliHooks) :
+theorem cliExternsPlaced_sessionMemmove_allocVm_sat [LibsignalPlacement]
+    (mmpl : Obj.MultiPlacement) (gh : CliGhostHooks) (W : CliHooks)
+    (hOk : ExtraSpecOk gh) :
     HookSat (cliGhostExterns gh (cliExternsPlaced mmpl W)) spqrMemmoveSym
-      (withAllocVmPreserved (sessionMemmoveSpec 0)) := by
-  refine HookSat.mono (cliExternsPlaced_sessionMemmoveAcp_sat mmpl gh W 0) fun x R s0 hpre =>
+      (withAllocVmPreserved (sessionMemmoveBoundedSpec 0)) := by
+  refine HookSat.mono (cliExternsPlaced_sessionMemmoveAcp_sat mmpl gh W hOk 0) fun x R s0 hpre =>
     ⟨x, R, hpre, fun sf hpost => ?_⟩
-  dsimp only [sessionMemmoveAcpSpec, withAllocVmPreserved, sessionMemmoveSpec] at hpost ⊢
+  rcases x with ⟨base, buf, dst, src, len⟩
+  dsimp only [sessionMemmoveBoundedAcpSpec, sessionMemmoveAcpSpec, withAllocVmPreserved,
+    sessionMemmoveBoundedSpec, sessionMemmoveSpec] at hpost ⊢
   rw [sepConj_assoc, satisfies_pure_sepConj] at hpost
   rcases hpost with ⟨⟨hx0, hacp, hvm⟩, hm⟩
   rw [sepConj_assoc, satisfies_pure_sepConj]
@@ -504,7 +513,7 @@ theorem cliStatesPlacedSeamsExt [LibsignalPlacement]
   exact statesPlacedSeams_of_hooks_sat
     (cliRecvCt2PlacedAllocExt mmpl gh W hA hExt)
     (hookSat_of_eq (r1sc_hExt_withPanics mmpl gh W hExt _ (by decide))
-      (cliExternsPlaced_sessionMemmove_allocVm_sat mmpl gh W))
+      (cliExternsPlaced_sessionMemmove_allocVm_sat mmpl gh W hA.extraOk))
     hmemset_wp
     (hookSat_of_eq (r1sc_hExt_withPanics mmpl gh W hExt _ (by decide))
       (cliGhostExterns_sat_of_cliExternsPlaced mmpl gh W

@@ -467,7 +467,7 @@ section Placed
 set_option maxRecDepth 2000000
 
 /-- Relocatable `[LibsignalPlacement]` counterpart of `SerContractsX`:
-allocator / shim / memmove / panic contracts (`Stage1X.AllocContractsPlaced`, at `extHookStack`)
+allocator / shim / panic contracts (`Stage1X.AllocContractsPlaced`, at `extHookStack`)
 plus owned-source `memcpy` (`sessionMemcpySpec extHookStack`). -/
 structure SerContractsXPlaced [LibsignalPlacement] (A : RustAlloc) (H : LibsignalHooks) : Prop where
   alloc : Stage1X.AllocContractsPlaced A H
@@ -486,14 +486,12 @@ theorem SerContractsXPlaced.of_block0 [LibsignalPlacement] {A : RustAlloc} {H : 
       (withLsCodeLoaded lsmpl (Proofs.libsignal.Stage1X.rustReallocExternSpecWithStack A Stage1X.extHookStack)))
     (hshim : subroutine_ok blk0Prog (lsρ lsRustNoAllocShimSym)
       (withLsCodeLoaded lsmpl Proofs.libsignal.Stage1X.session2ShimSpecX))
-    (hmemmove : subroutine_ok blk0Prog (lsρ "memmove")
-      (withLsCodeLoaded lsmpl (sessionMemmoveSpec Stage1X.extHookStack)))
     (hmemcpy : subroutine_ok blk0Prog (lsρ lsMemcpySym)
       (withLsCodeLoaded lsmpl (sessionMemcpySpec CryptoVerification.LibsignalTripleRatchet.extHookStack)))
     (hpan_err : H lsHandleErrorSym = some Rust.panicked)
     (hpan_alloc : H "_RNvNtCs69KKACWg7bl_5alloc5alloc18handle_alloc_error" = some Rust.panicked) :
     SerContractsXPlaced A H where
-  alloc := Stage1X.AllocContractsPlaced.of_block0 halloc hdealloc hrealloc hshim hmemmove hpan_err hpan_alloc
+  alloc := Stage1X.AllocContractsPlaced.of_block0 halloc hdealloc hrealloc hshim hpan_err hpan_alloc
   memcpy := ls_subroutine_ok_cl_of_callee (j := 0) hmemcpy
 
 /-- Construct `SerContractsXPlaced A H` from `HookSat H` single-step hooks. -/
@@ -502,12 +500,11 @@ theorem SerContractsXPlaced.of_hooks [LibsignalPlacement] {A : RustAlloc} {H : L
     (hdealloc : HookSat H lsRustDeallocSym (rustDeallocSpec A))
     (hrealloc : HookSat H lsRustReallocSym (rustReallocSpec A))
     (hshim : HookSat H lsRustNoAllocShimSym sessionShimSpec)
-    (hmemmove : HookSat H "memmove" (sessionMemmoveSpec Stage1X.extHookStack))
     (hmemcpy : HookSat H lsMemcpySym (sessionMemcpySpec CryptoVerification.LibsignalTripleRatchet.extHookStack))
     (hpan_err : H lsHandleErrorSym = some Rust.panicked)
     (hpan_alloc : H "_RNvNtCs69KKACWg7bl_5alloc5alloc18handle_alloc_error" = some Rust.panicked) :
     SerContractsXPlaced A H where
-  alloc := Stage1X.AllocContractsPlaced.of_hooks halloc hdealloc hrealloc hshim hmemmove hpan_err hpan_alloc
+  alloc := Stage1X.AllocContractsPlaced.of_hooks halloc hdealloc hrealloc hshim hpan_err hpan_alloc
   memcpy := ls_subroutine_ok_cl_of_plain_prog (ls_hook_ok_of_caller hmemcpy)
 
 theorem serContractsXPlaced_of_stage2ContractsA0Placed [LibsignalPlacement] {H : LibsignalHooks}

@@ -101,7 +101,7 @@ open LibsignalBinary.Proofs.SignalSession.Cli.KitInst.SessionKitOkCliPlacedBudge
 open LibsignalBinary.Proofs.SignalSession.Cli.Main.Proofs.CliSlotCalleesInstPlacedBudgetAux
   (cliExistingStoreCalleesEnvs)
 open LibsignalBinary.Proofs.SignalSession.Cli.Main.Proofs.CliSlotCalleesInstPlacedBudgetSeams
-  (cliDirPutStrNeedPlaced cliGhostExterns_blackBox_eq)
+  (cliDirPutStrNeedPlaced)
 open LibsignalBinary.Proofs.SignalSession.Cli.Run.Compose.SemPlacedBudget
   (RunSlotEnvs slotsOfPlaced)
 open LibsignalBinary.Proofs.SignalSession.Cli.Run.Proofs.Initiate.AssemblyPlacedBudget
@@ -115,16 +115,17 @@ open LibsignalBinary.Proofs.SignalSession.Cli.Run.Proofs.Initiate.StoreCalleesPl
 open LibsignalBinary.Proofs.SignalSession.Cli.Run.SkeletonPlacedBudgetFd
   (slotWithPreFdsGe3Closed withPreFdsGe3Closed)
 open LibsignalBinary.Proofs.SignalSession.Cli.Run.Slots.CliHookSatPlacedBudget
-  (CliGhostSpqrAllocHooks cliExternsPlaced_bcmp_budget_sat)
+  (CliGhostSpqrAllocHooks)
 open LibsignalBinary.Proofs.SignalSession.Cli.SpecsPlacedBudget
   (dirGetSpecPlaced dirPutSpecPlaced dirPutStrSpecPlaced pathSpecPlaced readFileSpecPlaced
    sessDeserializeSpecPlaced)
 open LibsignalBinary.Proofs.SignalSession.Cli.Store.IdSavePollPlacedBudget
-  (idSavePoll_placed_ok_of_deps)
+  (idSavePoll_placed_ok_of_deps_16)
 open LibsignalBinary.Proofs.SignalSession.Cli.Store.IdSaveShimPlacedBudget
   (idSaveShim_placed_ok_of_deps)
 open LibsignalBinary.Proofs.SignalSession.Cli.Store.IdTrustPollPlacedBudget
-  (idTrustPoll_placed_ok_of_deps identityKey_decode_placed_ok publicKeyEq_placed_ok_of_bb)
+  (idTrustPoll_placed_ok_of_deps_16 identityKey_decode_placed_ok
+   publicKeyEq_mem_placed_ok_of_bb_16_sat)
 open LibsignalBinary.Proofs.SignalSession.Cli.Store.IdTrustShimPlacedBudget
   (idTrustShim_placed_ok_of_deps)
 open LibsignalBinary.Proofs.SignalSession.Cli.Store.LoadPollPlacedBudget
@@ -229,18 +230,6 @@ theorem dirGetSpecPlaced_withFds_of_withFdsGe3Closed [LibsignalPlacement] {M : A
 
 /-! ## `ExistingStoreCalleesPlaced (withFds A)` -/
 
-private theorem cliGhostExterns_bcmp_keepsFs_sat (mmpl : Obj.MultiPlacement)
-    (gh' : CliGhostHooks) (W : CliHooks) :
-    HookSat (cliGhostExterns gh' (cliExternsPlaced mmpl W)) cliBcmpName
-      (withVmPreserved cliBcmpSpec).keepsFs := by
-  refine cliGhostExterns_sat_of_cliExternsPlaced mmpl gh' W ?_
-  rcases cliExternsPlaced_bcmp_budget_sat mmpl W with ⟨f, hf, hok⟩
-  have hbcmp := CryptoVerification.SignalSession.Cli.RunGlue.cliExternsPlaced_bcmp mmpl W
-  rw [hbcmp] at hf
-  injection hf with hfg
-  subst hfg
-  exact ⟨_, hbcmp, hok.keepsFs fun _ => rfl⟩
-
 private theorem sessDeserialize_false_placed_ok [LibsignalPlacement] {M : AllocCostModel}
     {A : RustCliAllocBudget M} {lim : BudgetLimits} {prog : Program} :
     subroutine_ok prog (lsmpl.base 46)
@@ -282,7 +271,7 @@ theorem w3Exist_withFds_placed_ok_of_hooks_fd [LibsignalPlacement] {M : AllocCos
     dirGet_placed_caller_ok_of_deps_fd
       (callerProg := lsProg_589 H) (i := 589)
       (pathProg := lsProg_589 H) (jPath := 589)
-      (fun _ hp => hp.2) hh0.allocFs (cliGhostExterns_bcmp_keepsFs_sat mmpl gh' W)
+      (fun _ hp => hp.2) hh0.allocFs hh0.bcmp
       (by decide) (by decide) hPath589_fds hReadSatFd
       (hh0.fs (lsProg_589 H) 589)
       (Nat.le_refl cliRunBudgets.dirGetNeed)
@@ -294,7 +283,7 @@ theorem w3Exist_withFds_placed_ok_of_hooks_fd [LibsignalPlacement] {M : AllocCos
   have hAddr' := cliAddrText_placed_ok hh'
   have hPutStr' : subroutine_ok (lsProg_543 H) (lsmpl.base 543)
       (dirPutStrSpecPlaced (withFds A) lim DirPutStrEnv cliDirPutStrNeedPlaced) :=
-    dirPutStr_placed_ok_of_deps hh'.alloc hh'.panics hh'.memcpyRO hh'.bcmp
+    dirPutStr_placed_ok_of_deps hh'.alloc hh'.panics hh'.memcpyRO hh'.bcmp.of_keepsFs
       (growProg := lsProg_586 H) (jGrow := 586)
       (by decide) (by decide) (cliGrowOneDir_placed_ok hh'.alloc hh'.panics)
       (Nat.le_refl cliDirPutStrNeedPlaced)
@@ -302,11 +291,11 @@ theorem w3Exist_withFds_placed_ok_of_hooks_fd [LibsignalPlacement] {M : AllocCos
       (dirPutSpecPlaced (withFds A) lim DirPutEnv cliDirPutStk) :=
     dirPut_placed_caller_ok_of_deps
       (callerProg := lsProg_542 H) (i := 542)
-      hh'.alloc hh'.bcmp
+      hh'.alloc hh'.bcmp.of_keepsFs
       (growProg := lsProg_586 H) (jGrow := 586)
       (by decide) (by decide) (cliGrowOneDir_placed_ok hh'.alloc hh'.panics)
       (Nat.le_refl dirPutNeedPlaced) (by decide)
-  have hEq := publicKeyEq_placed_ok_of_bb (cliGhostExterns_blackBox_eq mmpl gh' W)
+  have hEq := publicKeyEq_mem_placed_ok_of_bb_16_sat hh'.blackBox
   have hDec' := identityKey_decode_placed_ok (A := withFds A) H
   exact
     { dirGet := hGet'
@@ -320,7 +309,7 @@ theorem w3Exist_withFds_placed_ok_of_hooks_fd [LibsignalPlacement] {M : AllocCos
         have := stk_sub_ge_base hstk
         have := stk_sub_ge_dirGet hstk
         have : extHookStack ≤ 65536 := by decide
-        exact idTrustPoll_placed_ok_of_deps hh'.alloc hGet' hDec' hEq (by omega)
+        exact idTrustPoll_placed_ok_of_deps_16 hh'.alloc hGet' hDec' hEq (by omega)
           (by decide) (by decide) (by decide) (by decide) (by decide) (by decide)
       sessLoadShim := fun {stk} hstk => by
         have := stk_sub_ge_base hstk
@@ -342,7 +331,7 @@ theorem w3Exist_withFds_placed_ok_of_hooks_fd [LibsignalPlacement] {M : AllocCos
         have : cliDirPutStrNeedPlaced ≤ 65536 := by decide
         have : publicKeySerializeStackX ≤ 65536 := by decide
         have : extHookStack ≤ 65536 := by decide
-        exact idSavePoll_placed_ok_of_deps hh'.alloc hGet' hPutStr' hDec' hEq (by omega)
+        exact idSavePoll_placed_ok_of_deps_16 hh'.alloc hGet' hPutStr' hDec' hEq (by omega)
           (by decide) (by decide) (by decide) (by decide)
           (by decide) (by decide) (by decide) (by decide)
       sessStoreShim := fun {stk} hstk => by

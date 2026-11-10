@@ -28,6 +28,7 @@ public import LibsignalBinary.Proofs.SignalSession.Cli.Run.Slots.KemDeserializeS
 public import LibsignalBinary.Proofs.SignalSession.Cli.Store.DropSpeWordPlacedBudget
 public import LibsignalBinary.Proofs.SignalSession.Cli.Store.IdSavePollPlacedBudgetFd
 public import LibsignalBinary.Proofs.SignalSession.Cli.Store.IdTrustPollPlacedBudgetFd
+import LibsignalBinary.Proofs.SignalSession.Cli.Store.IdTrustPollPlacedBudgetFdSat
 public import LibsignalBinary.Proofs.SignalSession.Cli.Store.KpkGetPollPlacedBudgetFd
 public import LibsignalBinary.Proofs.SignalSession.Cli.Store.KpkMarkPollPlacedBudgetFd
 public import LibsignalBinary.Proofs.SignalSession.Cli.Store.LoadPollPlacedBudgetFd
@@ -66,7 +67,6 @@ open CryptoVerification.LibsignalPublicApi.StoreKit
 open CryptoVerification.LibsignalTripleRatchet (doReserveStackX)
 open CryptoVerification.RecordCodecs.Placed (lsProg_65 lsProg_84 lsProg_595)
 open CryptoVerification.SignalSession (CliHooks cliExternsPlaced lsReadFileSym)
-open CryptoVerification.SignalSession.Cli.KitInst.IdKit (cliGhostExterns_blackBox)
 open CryptoVerification.SignalSession.Cli.MainHops (cliIo cliRunBudgets cliWrOk handleErrorSymCli)
 open CryptoVerification.SignalSession.Cli.Placed
   (lsProg_543 lsProg_553 lsProg_565 lsProg_566 lsProg_567 lsProg_568 lsProg_569 lsProg_570
@@ -132,9 +132,9 @@ open LibsignalBinary.Proofs.SignalSession.Cli.SpecsPlacedBudget
    dropSpeWordSpecPlaced readFileSpecPlaced sessDeserializeSpecPlaced sessStorePollSpecPlaced)
 open LibsignalBinary.Proofs.SignalSession.Cli.Store.DropSpeWordPlacedBudget (dropSpeWord_placed_ok)
 open LibsignalBinary.Proofs.SignalSession.Cli.Store.IdSavePollPlacedBudgetFd
-  (idSavePoll_placed_ok_of_get_put_bb_fd)
-open LibsignalBinary.Proofs.SignalSession.Cli.Store.IdTrustPollPlacedBudgetFd
-  (idTrustPoll_placed_ok_of_get_bb_fd)
+  (idSavePoll_placed_ok_of_get_put_bb_fd_sat)
+open LibsignalBinary.Proofs.SignalSession.Cli.Store.IdTrustPollPlacedBudgetFdSat
+  (idTrustPoll_placed_ok_of_get_bb_fd_sat)
 open LibsignalBinary.Proofs.SignalSession.Cli.Store.KpkGetPollPlacedBudgetFd
   (kpkGetPoll_placed_fs_ok_of_deps_fd)
 open LibsignalBinary.Proofs.SignalSession.Cli.Store.KpkMarkPollPlacedBudgetFd
@@ -175,7 +175,7 @@ theorem sessKitHooksPlaced_withFds_of_runHooks [LibsignalPlacement] {M : AllocCo
     { alloc := halloc
       panics := hh.panics
       memcpyRO := hh.memcpyRO
-      bcmp := hh.bcmp
+      bcmp := hh.bcmp.of_keepsFs
       fs := hh.fs
       reserve := fun hstk hi => hres hstk hi
       path := fun hstk hi =>
@@ -547,22 +547,6 @@ theorem subroutine_ok_decodeSignedPreKey_withFdsGe3Closed_of_withFds [LibsignalP
 
 /-! ## Top-Level `CliDecPkPollKitsPlacedOkFds` Dischargers -/
 
-private theorem cliGhostExterns_bcmp_keepsFs_sat (mmpl : Obj.MultiPlacement)
-    (g : CliGhostHooks) (W : CliHooks) :
-    HookSat (cliGhostExterns g (cliExternsPlaced mmpl W))
-      CryptoVerification.SignalSession.Cli.cliBcmpName
-      (LibsignalBinary.Heap.SpecBudget.withVmPreserved
-        CryptoVerification.SignalSession.Cli.cliBcmpSpec).keepsFs := by
-  refine CryptoVerification.SignalSession.Cli.Slots.cliGhostExterns_sat_of_cliExternsPlaced
-    mmpl g W ?_
-  rcases LibsignalBinary.Proofs.SignalSession.Cli.Run.Slots.CliHookSatPlacedBudget.cliExternsPlaced_bcmp_budget_sat
-    mmpl W with ⟨f, hf, hok⟩
-  have hbcmp := CryptoVerification.SignalSession.Cli.RunGlue.cliExternsPlaced_bcmp mmpl W
-  rw [hbcmp] at hf
-  injection hf with hfg
-  subst hfg
-  exact ⟨_, hbcmp, hok.keepsFs fun _ => rfl⟩
-
 /-- Parametric `B : RunBudgets` and `DeserEnv` discharger for `CliDecPkPollKitsPlacedOkFds` from
 `RunHooksPlaced`, `withLsRetAddr624AndFds` `read_file` `HookSat`, `sessDeserialize` (block 46), and
 `serializeCanonSpecX` (block 52) at `withFds A`. -/
@@ -593,8 +577,8 @@ theorem cliDecPkPollKitsPlacedOkFds_of_deps [LibsignalPlacement]
   let H := cliGhostExterns g (cliExternsPlaced mmpl W)
   have hsh := sessKitHooksPlaced_withFds_of_runHooks hh
   have hc := codecHooksPlaced_withFds hh.codecHooks
-  have hBcmpFs := cliGhostExterns_bcmp_keepsFs_sat mmpl g W
-  have hBb := cliGhostExterns_blackBox mmpl g W
+  have hBcmpFs := hh.bcmp
+  have hBb := hh.blackBox
   have hPath596 := path_placed_caller_ok_of_allocFs_fd
     (callerProg := lsProg_596 H) (i := 596) (resStack := doReserveStackX)
     hh.allocFs (by decide) (Nat.le_refl pathNeed)
@@ -635,10 +619,10 @@ theorem cliDecPkPollKitsPlacedOkFds_of_deps [LibsignalPlacement]
     hsh.alloc hAddr594_wf hSer hPut542_wf (Nat.le_refl _)
     (by decide) (by decide) hSerBlk hSerUnmut (by decide) (by decide)
   have h570 := subroutine_ok_sessStorePoll_withFdsGe3Closed_of_withFds henf h570_wf
-  have h566 := idTrustPoll_placed_ok_of_get_bb_fd
+  have h566 := idTrustPoll_placed_ok_of_get_bb_fd_sat
     (getProg := lsProg_589 H) (getBlk := 589)
     hh.allocFs hGet589 hBb (Nat.le_refl _) (by decide) (by decide)
-  have h565 := idSavePoll_placed_ok_of_get_put_bb_fd
+  have h565 := idSavePoll_placed_ok_of_get_put_bb_fd_sat
     (getProg := lsProg_589 H) (getBlk := 589)
     (putProg := lsProg_543 H) (putBlk := 543)
     hh.allocFs hGet589 hPutStr543 hBb (Nat.le_refl _)

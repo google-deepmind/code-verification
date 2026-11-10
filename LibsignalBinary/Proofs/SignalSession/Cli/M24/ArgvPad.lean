@@ -46,11 +46,10 @@ open CryptoVerification.LibsignalPublicApi.StoreKit
   (subroutine_ok_rocl_of_withLsCodeRoLoaded subroutine_ok_withLsCodeRoLoaded_of_plain withLsRoCl)
 open CryptoVerification.RustHeap (allocFailedIn)
 open CryptoVerification.SignalSession
-  (CliHooks Inputs cliExternsPlaced strlenHook)
+  (Inputs strlenHook)
 open CryptoVerification.SignalSession.Cli
   (CliInputsOk IsSendOverCap IsStdinOverCap MainCaseB2 MainGhost MainPost MainResult RunAnswer)
 open CryptoVerification.SignalSession.Cli.Main.Placed (blkPC_617 blkPl_617 lsProg_617)
-open CryptoVerification.SignalSession.Cli.MainHops (cliExternsPlaced_strlen)
 open LibsignalBinary.Heap
   (AllocCostModel BudgetLimits RustCliAllocBudget)
 open LibsignalBinary.Heap.SpecBudget (withVmPreserved)
@@ -485,17 +484,24 @@ theorem strlenHook_ro_sat_ok (hookStack : Nat) : HookOk strlenHook (strlenSpecRO
   · exact False.elim (not_satisfies_false_sepConj he)
   · exact False.elim (not_satisfies_false_sepConj ho)
 
+/-- Strengthening `spec.pre` with `withStrlenPadRO` preserves `HookOk` (since `withStrlenPadRO`
+only adjoins a read-only pad witness to `pre`, leaving `post`, `onPanic`, `onExit`, and `onOom`
+definitionally identical). -/
+theorem hookOk_withStrlenPadRO_of_hookOk {f : State → State}
+    {spec : Spec (BitVec 64 × List (BitVec 8))}
+    (hf : HookOk f spec) :
+    HookOk f (withStrlenPadRO spec) := by
+  intro ⟨p, s⟩ R s0 hrun hpre hsp
+  dsimp only [withStrlenPadRO] at hpre
+  rw [sepConj_assoc] at hpre
+  exact hf (p, s) R s0 hrun (Satisfies.of_sep_right hpre) hsp
+
 /-- Exact-to-`HookSat` bridge (`toSat`): `H "strlen" = some strlenHook` implies
 `HookSat H "strlen" (strlenSpecROSat hookStack)`. -/
 theorem hookSat_strlenHook_ro_sat {H : LibsignalHooks} {hookStack : Nat}
     (hext : H "strlen" = some strlenHook) :
     HookSat H "strlen" (strlenSpecROSat hookStack) :=
   ⟨strlenHook, hext, strlenHook_ro_sat_ok hookStack⟩
-
-theorem hookSat_strlenHook_ro_sat_cliExterns
-    (mmpl : Obj.MultiPlacement) (W : CliHooks) (hookStack : Nat) :
-    HookSat (cliExternsPlaced mmpl W) "strlen" (strlenSpecROSat hookStack) :=
-  hookSat_strlenHook_ro_sat (cliExternsPlaced_strlen mmpl W)
 
 private theorem subroutine_ok_rocl_of_plain [LibsignalPlacement] {α : Type}
     {prog : Program} {entry : BitVec 64} {spec : Spec α}
@@ -521,12 +527,6 @@ theorem strlen_ro_sat_placed_ok_of_hooks [LibsignalPlacement]
     subroutine_ok (lsProg_617 H) (lsρ "strlen")
       (withLsRoCl lsmpl (strlenSpecROSat hookStack)) :=
   strlen_ro_sat_placed_ok_of_sat (hookSat_strlenHook_ro_sat hext)
-
-theorem strlen_ro_sat_placed_ok_cliExterns [LibsignalPlacement]
-    (mmpl : Obj.MultiPlacement) (W : CliHooks) (hookStack : Nat) :
-    subroutine_ok (lsProg_617 (cliExternsPlaced mmpl W)) (lsρ "strlen")
-      (withLsRoCl lsmpl (strlenSpecROSat hookStack)) :=
-  strlen_ro_sat_placed_ok_of_hooks (cliExternsPlaced_strlen mmpl W)
 
 /-- Real `musl` / `rustc 1.98.1` `libc.a` AArch64 `strlen` words (`muslStrlenWords`, 22 words = 88
 bytes) satisfy `strlenSpecROSat hookStack` on any hook-free program (re-exported from

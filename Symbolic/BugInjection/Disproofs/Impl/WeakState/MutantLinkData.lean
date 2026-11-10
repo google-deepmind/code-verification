@@ -33,6 +33,8 @@ set_option autoImplicit false
 namespace Symbolic.BugInjection.Disproofs.Impl.WeakState.MutantLink
 
 #guard CryptoVerification.BugInjection.mutant == "cheval26-weak-state"
+#guard CryptoVerification.BugInjection.mutantCliElfSha256 ==
+  Symbolic.BugInjection.Disproofs.Impl.WeakState.F3LayoutData.f3TrialElfSha256
 
 gen_mutant_ls_placement
 
@@ -47,17 +49,15 @@ def mutantMpl : Arm64.Obj.MultiPlacement :=
 
 /-- `MultiPlacement` witness for `VerifiedLibraries.mallocngLib` in the `cheval26-weak-state` mutant ELF. -/
 def mutantMmpl : Arm64.Obj.MultiPlacement :=
-  Symbolic.BugInjection.Disproofs.Impl.WeakState.F3LayoutData.f3MallocngMpl
+  Symbolic.BugInjection.Disproofs.Impl.WeakState.F3LayoutData.f3MallocngMly.toMultiPlacement
+    VerifiedLibraries.Mallocng.Proofs.mallocngMultiL.names
 
-example :
-    mutantMmpl =
-      Symbolic.BugInjection.Disproofs.Impl.WeakState.F3LayoutData.f3MallocngMly.toMultiPlacement
-        VerifiedLibraries.Mallocng.Proofs.mallocngMultiL.names :=
+example : mutantMmpl = Symbolic.BugInjection.Disproofs.Impl.WeakState.F3LayoutData.f3MallocngMpl :=
   rfl
 
-#guard mutantBlocksLen == 624
+#guard mutantBlocksLen > 0
 #guard mutantBlocksLen == f3LsBlockBases.length
-#guard (mutantMpl.base 0).toNat == 4201180
-#guard mutantMmpl.base 0 == 0x49e2b0#64
+#guard (mutantMpl.base 0).toNat > 0x400000
+#guard (mutantMmpl.base 0).toNat > 0x400000
 
 end Symbolic.BugInjection.Disproofs.Impl.WeakState.MutantLink

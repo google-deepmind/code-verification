@@ -356,9 +356,6 @@ def evictedHooks0 : CliHooks where
             rw [List.length_drop, compKyberEncaps_length]⟩)
       decaps := fun _ ct => ⟨compKyberDecaps ct.toList, compKyberDecaps_length ct.toList⟩
       K := evictedExecMlKem0 }
-  bcmp := compBcmp0
-  bcmp_ok := compBcmp0_ok
-  utf8Err := fun _ => (0#64, 0#16)
 
 def evictedRecordsI0 (w : PQXDHSpqrSetup) : ProtocolSetup :=
   { alice := "alice", bob := "bob", withOpk := false, regIdA := w.regIdA, regIdB := w.regIdB,

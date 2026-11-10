@@ -134,8 +134,8 @@ open LibsignalBinary.Proofs.SignalSession.Cli.Run.SkeletonPlacedBudget
   (RunHooksPlaced path_placed_ok reserve_placed_ok)
 open LibsignalBinary.Proofs.SignalSession.Cli.Run.Slots.CliHookSatPlacedBudget
   (CliAllocHooks CliGhostAllocHooks CliGhostSpqrAllocHooks allocContractsXCliPlaced_of_hooks
-   bumpGhost cliExternsPlaced_bcmp_budget_sat cliExternsPlaced_memcpyRegionRO_budget_sat
-   cliGhostAllocHooks_bumpGhost)
+   bumpGhost cliExternsPlaced_memcpyRegionRO_budget_sat cliGhostAllocHooks_bumpGhost
+   cliGhostExterns_bcmp_budget_sat)
 open LibsignalBinary.Proofs.SignalSession.Cli.SpecsPlacedBudget
   (AllocContractsXCliPlaced ReadFileRuleEnv addrTextSpecPlaced decimalSpecPlaced
    dirGetSpecPlaced dirPutSpecPlaced growOneDirSpecPlaced pathSpecPlaced readFileSpecPlaced
@@ -382,7 +382,7 @@ theorem SessKitHooksPlaced.of_runHooks [LibsignalPlacement] {M : AllocCostModel}
   alloc := hh.alloc
   panics := hh.panics
   memcpyRO := hh.memcpyRO
-  bcmp := hh.bcmp
+  bcmp := hh.bcmp.of_keepsFs
   fs := hh.fs
   reserve := fun hstk hi => reserve_placed_ok hh hstk hi
   path := fun hstk hi => path_placed_ok hh hstk hi
@@ -416,16 +416,21 @@ theorem SessKitHooksPlaced.cli [LibsignalPlacement] (mmpl : Obj.MultiPlacement)
     { alloc := halloc
       panics := hpan
       memcpyRO := hro
-      bcmp := cliGhostExterns_sat_of_cliExternsPlaced mmpl g W
-        (cliExternsPlaced_bcmp_budget_sat mmpl W)
+      bcmp := cliGhostExterns_bcmp_budget_sat g (cliExternsPlaced mmpl W) hG.extraOk
       fs := fun _ _ => traceFsSound_lsProg_cli_ghost mmpl g W
-        ⟨hG.alloc_fsT, hG.dealloc_fsT, hG.realloc_fsT, hAzFsT, hG.shim_eq ▸ hookNoop_fsT, hStrFsT,
-         by
-           obtain ⟨f₀, hf₀, _, _, _, _, _, _, hfsT⟩ := hG.memset
-           intro f hf; cases hf₀.symm.trans hf; exact hfsT,
-         by
-           obtain ⟨f₀, hf₀, _, _, _, _, _, _, _, _, hfsT⟩ := hG.memcpy
-           intro f hf; cases hf₀.symm.trans hf; exact hfsT⟩
+        { alloc_fsT := hG.alloc_fsT
+          dealloc_fsT := hG.dealloc_fsT
+          realloc_fsT := hG.realloc_fsT
+          allocZeroed_fsT := hAzFsT
+          shim_fsT := hG.shim_eq ▸ hookNoop_fsT
+          stringClone_fsT := hStrFsT
+          memset_fsT := by
+            obtain ⟨f₀, hf₀, _, _, _, _, _, _, hfsT⟩ := hG.memset
+            intro f hf; cases hf₀.symm.trans hf; exact hfsT
+          memcpy_fsT := by
+            obtain ⟨f₀, hf₀, _, _, _, _, _, _, _, _, hfsT⟩ := hG.memcpy
+            intro f hf; cases hf₀.symm.trans hf; exact hfsT
+          extra_fsT := hG.extraOk.fsT }
       reserve := fun hstk hi => hres hstk hi
       path := fun hstk hi =>
         path_placed_caller_ok_of_deps

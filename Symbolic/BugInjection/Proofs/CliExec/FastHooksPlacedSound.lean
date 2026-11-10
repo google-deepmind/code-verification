@@ -32,14 +32,13 @@ meta import Symbolic.BugInjection.Proofs.CliExec.FastHooksPlaced
 
 Proves `FastState.Agrees`, `Memory.KeepsFrozen`, and `symtab` soundness (`FastHookPost`) for
 `FastHooksPlaced.fastExecExternPlaced` and `FastHooksPlaced.hasCliHookPlaced` against
-`CryptoVerification.SignalSession.cliExternsPlacedSig mmpl W` (`37` rows in
+`CryptoVerification.SignalSession.cliExternsPlacedSig mmpl W` (`27` rows in
 `cliHookTablePlaced mmpl W` plus `isCliPanicSymbolPlaced`), including specialization to
 `CompHooks0Placed.compHooks0`:
 
 1. **17 PQXDH / SPQR rows**: reused directly from `FastHooksRows`.
-2. **17 pure libc / I/O / `core` / `std` / session / ratchet rows + `Arm64.Rust.panicked`**: proved
-   directly against `FastHooksPlaced` (`fastStrlen_post` and `fastFromUtf8_post` reused from
-   `FastHooksPlaced`) with zero fixed-image imports (`C1(b)`-clean).
+2. **7 pure I/O / `core` / `alloc` / session / ratchet rows + `Arm64.Rust.panicked`**: proved
+   directly against `FastHooksPlaced` with zero fixed-image imports (`C1(b)`-clean).
 3. **3 shared-pool `mallocng` rows (`aesEncHookMallocng`, `aesDecHookMallocng`,
    `libcruxHmacHookMallocng`)**: discharged via `SubroutineRunnerSound` and
    `SubroutineChoiceBridge` (`subroutineRunnerSound_of_subStepSound`).
@@ -108,7 +107,7 @@ open Symbolic.BugInjection.Proofs.CliExec.SubroutineChoiceBridge (
 
 #guard cliPanicSymbolsPlacedList.length == 18
 #guard cliPanicSymbolsPlacedList == cliPanicSymbolsPlaced
-#guard (fastHookTablePlaced (fun _ => none) {} compHooks0).length == 37
+#guard (fastHookTablePlaced (fun _ => none) {} compHooks0).length == 27
 
 theorem cliPanicSymbolsPlacedList_length : cliPanicSymbolsPlacedList.length = 18 := rfl
 theorem cliPanicSymbolsPlaced_length : cliPanicSymbolsPlaced.length = 18 := rfl
@@ -125,7 +124,7 @@ theorem fastHookTablePlaced_keys (subStep : FastState → Option FastState)
 
 theorem fastHookTablePlaced_length (subStep : FastState → Option FastState)
     (addrs : MallocngCallAddrs) (W : CliHooks) :
-    (fastHookTablePlaced subStep addrs W).length = 37 := rfl
+    (fastHookTablePlaced subStep addrs W).length = 27 := rfl
 
 private theorem congr3 {α β γ δ : Type} (f : α → β → γ → δ)
     {a1 a2 : α} {b1 b2 : β} {c1 c2 : γ} (ha : a1 = a2) (hb : b1 = b2) (hc : c1 = c2) :
@@ -1260,25 +1259,15 @@ theorem fastHookTablePlaced_rel {mmpl : MultiPlacement} {m0 : Memory}
     .cons ⟨rfl, liftPureHookPairSound (@fastMlkemDecaps_post W.Q.K)⟩ <|
     .cons ⟨rfl, liftPureHookPairSound (@fastMlkemValidatePk_post W.Q.K)⟩ <|
     .cons ⟨rfl, @fastLibcruxHmacMallocng_post mmpl m0 addrs subStep hrun hcl0 W.C.F⟩ <|
-    .cons ⟨rfl, liftPureHookPairSound (@fastMemmove_post)⟩ <|
-    .cons ⟨rfl, liftPureHookPairSound (@fastCliBcmp_post W.bcmp)⟩ <|
-    .cons ⟨rfl, liftPureHookPairSound (@fastStrlen_post)⟩ <|
     .cons ⟨rfl, liftPureHookPairSound (@fastWriteFile_post)⟩ <|
     .cons ⟨rfl, liftPureHookPairSound (@fastWriteStdout_post)⟩ <|
-    .cons ⟨rfl, liftPureHookPairSound (@fastMemrchr_post)⟩ <|
-    .cons ⟨rfl, liftPureHookPairSound (@fastFromUtf8_post W.utf8Err)⟩ <|
     .cons ⟨rfl, liftPureHookPairSound (@fastFmtWrite_post)⟩ <|
     .cons ⟨rfl, liftPureHookPairSound (@fastFormatInner_post)⟩ <|
-    .cons ⟨rfl, liftPureHookPairSound (@fastDurationSince_post)⟩ <|
-    .cons ⟨rfl, liftPureHookPairSound (@fastTimeAdd_post)⟩ <|
-    .cons ⟨rfl, liftPureHookPairSound (@fastBlackBox_post)⟩ <|
     .cons ⟨rfl, liftPureHookPairSound (@fastCompress256_post W.C.F)⟩ <|
     .cons ⟨rfl, @fastAesEncMallocng_post mmpl m0 addrs subStep hrun hcl0 W.C.E⟩ <|
     .cons ⟨rfl, @fastAesDecMallocng_post mmpl m0 addrs subStep hrun hcl0 W.C.D⟩ <|
     .cons ⟨rfl, liftPureHookPairSound (@fastPubFromSecret_post W.C.pubKey)⟩ <|
     .cons ⟨rfl, liftPureHookPairSound (@fastDiffieHellman_post W.C.X)⟩ <|
-    .cons ⟨rfl, liftPureHookPairSound (@fastZeroizeSecret_post)⟩ <|
-    .cons ⟨rfl, liftPureHookPairSound (@fastZeroizeSecret_post)⟩ <|
     .nil
 
 private theorem lookup_forall2_placed_sound {m0 : Memory}

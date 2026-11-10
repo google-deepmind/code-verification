@@ -367,7 +367,7 @@ private theorem h9g_toClosureRunHooksPlaced [LibsignalPlacement] {M : AllocCostM
   { alloc := hh.alloc, allocFs := hh.allocFs, panics := hh.panics, memcpyRO := hh.memcpyRO,
     bcmp := hh.bcmp, fs := hh.fs, utf8 := hh.utf8, memrchr := hh.memrchr,
     codecHooks := hh.codecHooks, allocZeroed := hh.allocZeroed, stringClone := hh.stringClone,
-    formatInner := hh.formatInner }
+    formatInner := hh.formatInner, blackBox := hh.blackBox }
 
 /-- Lifts `decPkPathBSlotOk_full_of_readEnv_placedBudget` to
 `(slotsOfSigPkFrozenPlaced …).decryptPrekey.OkPlaced` at `cliRunSemPathB X W`. -/

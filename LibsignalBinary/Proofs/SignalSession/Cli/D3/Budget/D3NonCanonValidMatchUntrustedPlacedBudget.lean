@@ -112,7 +112,7 @@ open LibsignalBinary.Proofs.SignalSession.Cli.KitInst.IdentityKitOkPlacedBudget 
 open LibsignalBinary.Proofs.SignalSession.Cli.KitInst.SessionKitOkCliPlacedBudget (cliSessKitOkSE_placed cliSessionKitDefaultBudgetEnv)
 open LibsignalBinary.Proofs.SignalSession.Cli.Run.Proofs.DecryptPrekey.Over.PollOverP4SpatialPlacedBudget (dpPollPost_of_slotTraceFT_placed)
 open LibsignalBinary.Proofs.SignalSession.Cli.Run.Proofs.DecryptPrekey.Poll.ClosureStageDefsPlacedBudget (StageP1UntrustedEnv)
-open LibsignalBinary.Proofs.SignalSession.Cli.Run.Slots.CliHookSatPlacedBudget (cliExternsPlaced_sessionMemcpy_budget_sat cliExternsPlaced_sessionMemcpyRegion_budget_sat cliExternsPlaced_sessionMemmove_budget_sat)
+open LibsignalBinary.Proofs.SignalSession.Cli.Run.Slots.CliHookSatPlacedBudget (cliExternsPlaced_sessionMemcpy_budget_sat cliExternsPlaced_sessionMemcpyRegion_budget_sat)
 open LibsignalBinary.Proofs.SignalSession.Cli.Run.Slots.DecryptPrekeySlotPlacedBudget (DpPollGhostStateBudget dpPollSpecStateBudget dpSlotPollKStatePlaced)
 open LibsignalBinary.Proofs.SignalSession.Cli.SpecsPlacedBudget (AllocContractsXCliPlaced readFileSpecPlaced sessDeserializeSpecPlaced)
 open LibsignalBinary.Proofs.SignalSession.Cli.Store.SerGlueXPlacedBudget (serializeCanonX_placed_ok_of_serContractsX)
@@ -212,12 +212,6 @@ private theorem saveUpd_own_placed (rd : ReadRule) (F0 : FsFiles) (g : IdGhost)
     (addr : AddrVal) (key : IdentityKey) :
     (CryptoVerification.SignalSession.Cli.IdGhost.saveUpd rd F0 g addr key).own = g.own := by
   unfold CryptoVerification.SignalSession.Cli.IdGhost.saveUpd; cases CryptoVerification.SignalSession.Cli.IdGhost.peer rd F0 g addr <;> rfl
-
-private theorem cliGhostExterns_blackBox_local (mmpl : Obj.MultiPlacement)
-    (g : CliGhostHooks) (W : CliHooks) :
-    cliGhostExterns g (cliExternsPlaced mmpl W) lsBlackBoxU8Sym =
-      some CryptoVerification.LibsignalSession.blackBoxHook :=
-  CryptoVerification.SignalSession.Cli.KitInst.IdKit.cliGhostExterns_blackBox mmpl g W
 
 private theorem sepWPp_intro_stageP1VtablesPlacedAt [LibsignalPlacement] {A : RustAlloc}
     {prog : Program} {target : BitVec 64} {s0 : State}

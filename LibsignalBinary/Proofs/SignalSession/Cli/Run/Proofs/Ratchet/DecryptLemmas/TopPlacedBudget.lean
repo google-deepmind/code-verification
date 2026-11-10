@@ -216,10 +216,6 @@ private theorem retag_decIdKitPlaced_traceOfWith_nil [LibsignalPlacement] (A A' 
 private def dummyCliHooks (P : PEParams) : CliHooks where
   C := P.C
   Q := P.Q
-  bcmp := fun a b => if a = b then 0#64 else 1#64
-  bcmp_ok := fun a b _ => by
-    by_cases h : a = b <;> simp [h]
-  utf8Err := fun _ => (0#64, 0#16)
 
 /-! ## Slot allocation envelope -/
 

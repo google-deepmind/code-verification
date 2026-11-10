@@ -79,7 +79,7 @@ open CryptoVerification.SignalSession.Cli.KitInst hiding
 open CryptoVerification.CodeLayout
 open CryptoVerification.CliHandshake.Placed CryptoVerification.CliHandshake.RespClosurePlaced
 open LibsignalBinary.Proofs.SignalSession.Cli.AllocGhostLinkTransfer
-  (CliGhostHooks cliGhostExterns cliGhostExterns_other)
+  (CliGhostHooks cliGhostExterns)
 
 /-! ## 1. `v4` Bad-KEM Message Condition & Store-Kit Event Lemmas -/
 
@@ -588,18 +588,6 @@ theorem initializeBobSession_badKem_errOwned_placed_ok_on_stageP1 [LibsignalPlac
     (fun _ _ _ _ hq => by
       rw [sepConj_assoc, satisfies_pure_sepConj] at hq
       exact hq.2)
-
-theorem cliIsSameAccount_placed_ok_on_stageP1_d3 [LibsignalPlacement]
-    (mmpl : Obj.MultiPlacement) (g : CliGhostHooks) (W : CliHooks) :
-    subroutine_ok (stageP1ProgPlaced (cliGhostExterns g (cliExternsPlaced mmpl W)))
-      (lsmpl.base 17)
-      (withLsCodeLoaded lsmpl
-        (CryptoVerification.E2E.Pqxdh.WireEntries.isSameAccountDistinctSpec E2E.HooksE.A0 uuidTryParse)) :=
-  Kits.isSameAccount_placed_ok_on_stageP1
-    ((cliGhostExterns_other g (cliExternsPlaced mmpl W)
-      (by decide) (by decide) (by decide) (by decide) (by decide) (by decide)).trans
-      (RunGlue.cliExternsPlaced_row mmpl W (Slots.blackBox_row_placed mmpl W)))
-    (cliUuidTryParse_placed_ok_d3 mmpl g W)
 
 theorem badKemSpeWords_entails_decResAt_anyHeap
     (A : RustAlloc) (out errTag w2 w3 w4 w5 w6 : BitVec 64)

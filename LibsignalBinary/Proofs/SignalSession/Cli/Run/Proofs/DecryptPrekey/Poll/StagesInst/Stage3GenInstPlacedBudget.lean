@@ -1153,14 +1153,14 @@ open CryptoVerification (
 open CryptoVerification.CliHandshake.RespClosurePlaced (instIsLsBlockProg_518)
 open CryptoVerification.E2E.Pqxdh.WireEntries (DistinctSid)
 open CryptoVerification.LibsignalPublicApiRepr (RecordGhost)
-open CryptoVerification.LibsignalTripleRatchet (SeedsLen32 SpqrModel extHookStack)
+open CryptoVerification.LibsignalTripleRatchet (SeedsLen32 SpqrModel)
 open CryptoVerification.LibsignalTripleRatchetRepr (UuidParser)
 open CryptoVerification.SignalSession (
   lsRustAllocSymCli lsRustDeallocSymCli lsRustNoAllocShimSymCli lsRustReallocSymCli
 )
 open CryptoVerification.SignalSession.Cli.RunGlue (cliExternsPlaced_row cliGhostExterns_shim)
 open CryptoVerification.SignalSession.Cli.Slots (
-  cliGhostExterns_panic_handle_error cliGhostExterns_sat_of_cliExternsPlaced
+  cliGhostExterns_panic_handle_error
 )
 open LibsignalBinary.Heap (
   rustCliAllocBudgetSpec rustCliDeallocBudgetSpec rustCliReallocBudgetSpec
@@ -1201,7 +1201,7 @@ open LibsignalBinary.Proofs.SignalSession.Cli.Run.Proofs.DecryptPrekey.Poll.Stag
 open LibsignalBinary.Proofs.SignalSession.Cli.Run.Slots.CliHookSatPlacedBudget (
   cliExternsPlaced_alloc_budget_sat cliExternsPlaced_dealloc_budget_sat
   cliExternsPlaced_framelessMemcpy_budget_sat cliExternsPlaced_realloc_budget_sat
-  cliExternsPlaced_sessionMemcpyRegion_budget_sat cliExternsPlaced_sessionMemmove_budget_sat
+  cliExternsPlaced_sessionMemcpyRegion_budget_sat
   cliExternsPlaced_shim_budget_sat
 )
 open LibsignalBinary.Proofs.TripleRatchet.Alloc.DefsBudget (framelessMemcpyBudgetSpec)
@@ -2285,8 +2285,6 @@ theorem cliVerNe1e04_full_placed_ok [LibsignalFullPlacement]
     ((show lsRustDeallocSymCli = lsRustDeallocSym by decide) ▸
       cliExternsPlaced_dealloc_budget_sat mmpl gh W hG)
     (cli_framelessMemcpy_sat_frz mmpl gh W hG)
-    (cliGhostExterns_sat_of_cliExternsPlaced mmpl gh W
-      (cliExternsPlaced_sessionMemmove_budget_sat mmpl W extHookStack))
     (cliGhostExterns_panic_handle_error mmpl gh W)
     (chainMerge5CroPlacedOkExt_cli mmpl gh W hG)
 

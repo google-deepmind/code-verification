@@ -15,7 +15,7 @@ public import LibsignalBinary.Proofs.SpecLemmas.SignalSession.ElfF3Relink.Startu
 public import LibsignalBinary.Proofs.SpecLemmas.SignalSession.ElfSlicesPqOomPlaced -- proof-setup: allow-public-import
 public import LibsignalBinary.Specifications.SignalSession.CliElf
 public import VerifiedLibraries.Mallocng.Spec
-import LibsignalBinary.Proofs.SpecLemmas.SignalSession.ElfMemsetEntryGuard
+import LibsignalBinary.Proofs.SpecLemmas.SignalSession.ElfSlicesPqOomC2EntryGuardLr
 
 /-!
 # Concrete `cliElfBytes` Guarded Route-2 Constructors (`ElfSlicesPqOomPlacedG`)
@@ -45,22 +45,22 @@ open LibsignalBinary.Proofs.SignalSession.Cli.F3.L4B.CliStrictPlaced2G
   (CliElfF3B2NeedLocksAssumptionsG MainOkCliF3PqB2NeedLocksPlacedAtG)
 open LibsignalBinary.Proofs.SpecLemmas.SignalSession.ElfF3Relink.StartupStatics
   (F3CodeOk cliElf_f3B2NeedLocksAssumptions)
-open LibsignalBinary.Proofs.SpecLemmas.SignalSession.ElfMemsetEntryGuard
-  (cliElf_f3MuslHarness_memsetMemcpyLrFalse_of_linkedAt)
+open LibsignalBinary.Proofs.SpecLemmas.SignalSession.ElfSlicesPqOomC2EntryGuardLr
+  (cliElf_f3MuslHarness_c2EntryGuard_of_linkedAt)
 open LibsignalBinary.Proofs.SpecLemmas.SignalSession.ElfSlicesPqOomPlaced
   (CliPqBinaryV2OomF3BytesPlaced)
 open VerifiedLibraries.Mallocng (mallocngAddrsOfPlacement)
 
 /-- Closed guarded F3 assumption bundle on `cliElfImage` for arbitrary `LinkedAt cliElfBytes`
 placements `(mpl, mmpl)`, discharging `harnessG` internally via
-`ElfMemsetEntryGuard.cliElf_f3MuslHarness_memsetMemcpyLrFalse_of_linkedAt` (`R2-G7`). -/
+`ElfSlicesPqOomC2EntryGuardLr.cliElf_f3MuslHarness_c2EntryGuard_of_linkedAt` (`R2-G7` / C2). -/
 theorem cliElf_f3B2NeedLocksAssumptionsG {mpl mmpl : Obj.MultiPlacement}
     (hls : libsignalSessionLib.LinkedAt cliElfBytes mpl)
     (hmng : VerifiedLibraries.mallocngLib.LinkedAt cliElfBytes mmpl) :
     CliElfF3B2NeedLocksAssumptionsG mpl mmpl 80
       (mallocngAddrsOfPlacement mmpl).libc cliMainStk (F3CodeOk mpl mmpl) cliElfImage :=
   { toCliElfExtB2NeedLocksAssumptions2 := cliElf_f3B2NeedLocksAssumptions hls hmng
-    harnessG := cliElf_f3MuslHarness_memsetMemcpyLrFalse_of_linkedAt hls hmng }
+    harnessG := cliElf_f3MuslHarness_c2EntryGuard_of_linkedAt hls hmng }
 
 /-- Guarded twin of `ElfSlicesPqOomPlaced.cliPqBinaryV2OomF3BytesPlaced_cliElf_of_main` concluding
 the unchanged `CliPqBinaryV2OomF3BytesPlaced cliElfBytes` (`R2-D4`). -/

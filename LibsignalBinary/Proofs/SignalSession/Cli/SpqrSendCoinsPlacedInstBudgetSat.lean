@@ -69,8 +69,8 @@ open CryptoVerification.SignalSession
    lsRustAllocZeroedSymCli lsRustDeallocSymCli lsRustNoAllocShimSymCli lsRustReallocSymCli
    lsStringCloneSym)
 open CryptoVerification.SignalSession.Cli.RunGlue
-  (CliGhostHooks cliExternsPlaced_row cliGhostExterns cliGhostExterns_other hookSat_of_eq
-   withPanics_cliGhostExterns)
+  (CliGhostHooks cliExternsPlaced_row cliExtraGhostSyms cliGhostExterns cliGhostExterns_other
+   hookSat_of_eq withPanics_cliGhostExterns)
 open CryptoVerification.SignalSession.Cli.Slots
   (cliExternsPlaced_panic_add_overflow cliExternsPlaced_panic_assert_jj
    cliExternsPlaced_panic_panic cliExternsPlaced_panic_result_unwrap_failed
@@ -190,9 +190,11 @@ private theorem r1sc_cliGhostExterns_eq_of_base
     (h7 : sym ≠ lsReadFileSym := by decide)
     (h8 : sym ≠ lsReadStdinSym := by decide)
     (h9 : sym ≠ lsMemsetSym := by decide)
-    (h10 : sym ≠ lsMemcpySym := by decide) :
+    (h10 : sym ≠ lsMemcpySym := by decide)
+    (hExtra : cliExtraGhostSyms.contains sym = false ∨ gh.extra.lookup sym = none := by
+      left; decide) :
     cliGhostExterns gh (cliExternsPlaced mmpl W) sym = v :=
-  (cliGhostExterns_other gh (cliExternsPlaced mmpl W) h1 h2 h3 h4 h5 h6 h7 h8 h9 h10).trans h
+  (cliGhostExterns_other gh (cliExternsPlaced mmpl W) h1 h2 h3 h4 h5 h6 h7 h8 h9 h10 hExtra).trans h
 
 private theorem r1sc_hExt_id
     (mmpl : Obj.MultiPlacement) (gh : CliGhostHooks) (W : CliHooks) :
@@ -298,7 +300,7 @@ theorem cliStatesPlacedSeamsExt_sat [LibsignalPlacement]
   exact statesPlacedSeams_of_hooks_sat
     (cliRecvCt2PlacedAllocExt mmpl gh W hA hExt)
     (hookSat_of_eq (hExtWP _ (by decide))
-      (cliExternsPlaced_sessionMemmove_allocVm_sat mmpl gh W))
+      (cliExternsPlaced_sessionMemmove_allocVm_sat mmpl gh W hA.extraOk))
     (hookSat_sessionMemsetRegionBudget_of_allocVm hAllocVm.memset)
     (hookSat_of_eq (hExtWP _ (by decide))
       (cliGhostExterns_sat_of_cliExternsPlaced mmpl gh W

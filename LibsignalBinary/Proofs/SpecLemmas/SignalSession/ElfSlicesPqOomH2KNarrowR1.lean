@@ -92,6 +92,9 @@ open LibsignalBinary.Proofs.SignalSession.Cli.HooksDehook.NarrowF3R1Witness (
 open LibsignalBinary.Proofs.SignalSession.Cli.HooksDehook.NarrowMemOpsR1 (
   narrowMemcpyGhostHook narrowMemsetGhostHook
 )
+open LibsignalBinary.Proofs.SignalSession.Cli.Run.Slots.ExtraGhostSpecs (
+  ExtraGhostTable cliExtraGhostSyms cliGhostExternsWithExtra
+)
 open LibsignalBinary.Proofs.SpecLemmas.SignalSession.ElfCodeMatchesData (
   f3LsSymAddrs lsInternedMultiLib lsSharedExterns ls_blockSymsMatch_ok
   ls_idsOk ls_names_nodup ls_sharedExterns_lt ls_toMultiPlacedLib_eq
@@ -106,8 +109,8 @@ open LibsignalBinary.Proofs.SpecLemmas.SignalSession.ElfSlicesPqOomH2KMemcpy (
   h2k_memcpyGhostHookNarrow_blk20TrapHook h2k_memcpyGhostHookNarrow_stub_replayOn_of_trap_ret
 )
 open LibsignalBinary.Proofs.SpecLemmas.SignalSession.ElfSlicesPqOomH2KMemset (
-  h2k_ghFixedK_blk21TrapHook h2k_keepSub_covers_blk21 h2k_memsetGhostHookNarrow
-  h2k_shimStub_not_in_blk21
+  h2k_extraStub_not_in_blk21 h2k_ghFixedK_blk21TrapHook h2k_keepSub_covers_blk21
+  h2k_memsetGhostHookNarrow h2k_shimStub_not_in_blk21
 )
 open LibsignalBinary.Proofs.SpecLemmas.SignalSession.ElfSlicesPqOomH2StepsLiftR2 (
   h2sl_realW_noExtern_keepSub
@@ -423,53 +426,112 @@ theorem h2k_memsetStub_not_in_blk20 {mpl mmpl : MultiPlacement}
   · rfl
   · rw [hb] at hpred; cases hpred.2
 
-private theorem cliGhostExterns_some_cases (g : CliGhostHooks)
-    (baseExt : String → Option (State → State)) {sym : String} {f : State → State}
-    (hext : cliGhostExterns g baseExt sym = some f) :
-    sym = lsRustNoAllocShimSymCli ∨
-      (sym ≠ lsRustNoAllocShimSymCli ∧ cliGhostExterns g (fun _ => none) sym = some f) ∨
+private theorem mem_of_contains_true {l : List String} {s : String}
+    (h : l.contains s = true) : s ∈ l := by
+  induction l with
+  | nil => cases h
+  | cons hd tl ih =>
+    simp only [List.contains, List.elem] at h
+    split at h
+    · rename_i heq; exact (beq_iff_eq.mp heq) ▸ List.Mem.head _
+    · exact List.Mem.tail _ (ih h)
+
+private noncomputable def h2k_extraDisjointBlk20B : Bool :=
+  cliExtraGhostSyms.all fun sym =>
+    lsSharedExterns.any fun idx =>
+      (lsInternedMultiLib.names.getD idx "" == sym) &&
+      !(keepMemcpyBlk20 f3MallocngMpl (f3LsSymAddrs.getD idx 0#64))
+
+set_option maxRecDepth 4000000 in
+private theorem h2k_extraDisjointBlk20_ok : h2k_extraDisjointBlk20B = true := by rfl_kernel
+
+/-- Every Cutover-2 `cliExtraGhostSyms` stub PC lies outside `keepMemcpyBlk20 mmpl`. -/
+theorem h2k_extraStub_not_in_blk20 {mpl mmpl : MultiPlacement}
+    (hLs : libsignalSessionLib.LinkedAt cliElfBytes mpl)
+    (hMm : mallocngLib.LinkedAt cliElfBytes mmpl)
+    {sym : String} (hsym : cliExtraGhostSyms.contains sym = true) :
+    keepMemcpyBlk20 mmpl (libsignalSessionLib.resolve mpl sym) = false := by
+  obtain ⟨idx, hidx, hpred⟩ :=
+    List.any_eq_true.mp (List.all_eq_true.mp h2k_extraDisjointBlk20_ok sym (mem_of_contains_true hsym))
+  simp only [Bool.and_eq_true, beq_iff_eq] at hpred
+  rw [keepMemcpyBlk20_eq_f3 hMm, ← hpred.1, resolve_idx_of_linkedAt hLs hidx]
+  cases hb : keepMemcpyBlk20 f3MallocngMpl (f3LsSymAddrs.getD idx 0#64)
+  · rfl
+  · rw [hb] at hpred; cases hpred.2
+
+private theorem cliGhostExternsWithExtra_some_cases_nil (g : CliGhostHooks)
+    (extra : ExtraGhostTable) (baseExt : String → Option (State → State))
+    {sym : String} {f : State → State}
+    (hext : cliGhostExternsWithExtra g extra baseExt sym = some f) :
+    (cliExtraGhostSyms.contains sym = true ∧ extra.lookup sym = some f) ∨
+      sym = lsRustNoAllocShimSymCli ∨
+      (sym ≠ lsRustNoAllocShimSymCli ∧
+        cliGhostExternsWithExtra g [] (fun _ => none) sym = some f) ∨
       baseExt sym = some f := by
   by_cases h5 : sym = lsRustNoAllocShimSymCli
-  · exact Or.inl h5
-  · refine Or.inr ?_
-    unfold cliGhostExterns at hext ⊢
+  · exact Or.inr (Or.inl h5)
+  · unfold cliGhostExternsWithExtra at hext ⊢
+    dsimp only [List.lookup]
+    simp only [ite_self]
     by_cases h1 : sym == lsRustAllocSymCli
-    · simp only [h1, ↓reduceIte] at hext ⊢; exact Or.inl ⟨h5, hext⟩
+    · simp only [h1, ↓reduceIte] at hext ⊢; exact Or.inr (Or.inr (Or.inl ⟨h5, hext⟩))
     · by_cases h2 : sym == lsRustDeallocSymCli
-      · simp only [h1, h2, Bool.false_eq_true, ↓reduceIte] at hext ⊢; exact Or.inl ⟨h5, hext⟩
+      · simp only [h1, h2, Bool.false_eq_true, ↓reduceIte] at hext ⊢
+        exact Or.inr (Or.inr (Or.inl ⟨h5, hext⟩))
       · by_cases h3 : sym == lsRustReallocSymCli
-        · simp only [h1, h2, h3, Bool.false_eq_true, ↓reduceIte] at hext ⊢; exact Or.inl ⟨h5, hext⟩
+        · simp only [h1, h2, h3, Bool.false_eq_true, ↓reduceIte] at hext ⊢
+          exact Or.inr (Or.inr (Or.inl ⟨h5, hext⟩))
         · by_cases h4 : sym == lsRustAllocZeroedSymCli
           · simp only [h1, h2, h3, h4, Bool.false_eq_true, ↓reduceIte] at hext ⊢
-            exact Or.inl ⟨h5, hext⟩
+            exact Or.inr (Or.inr (Or.inl ⟨h5, hext⟩))
           · have h5b : (sym == lsRustNoAllocShimSymCli) = false := beq_eq_false_iff_ne.mpr h5
             simp only [h1, h2, h3, h4, h5b, Bool.false_eq_true, ↓reduceIte] at hext ⊢
             by_cases h6 : sym == lsStringCloneSym
             · cases hsc : g.stringClone <;> simp only [h6, hsc, ↓reduceIte] at hext ⊢
-              · exact Or.inr hext
-              · exact Or.inl ⟨h5, hext⟩
+              · exact Or.inr (Or.inr (Or.inr hext))
+              · exact Or.inr (Or.inr (Or.inl ⟨h5, hext⟩))
             · by_cases h7 : sym == lsReadFileSym
               · cases hrf : g.readFile <;>
                   simp only [h6, h7, hrf, Bool.false_eq_true, ↓reduceIte] at hext ⊢
-                · exact Or.inr hext
-                · exact Or.inl ⟨h5, hext⟩
+                · exact Or.inr (Or.inr (Or.inr hext))
+                · exact Or.inr (Or.inr (Or.inl ⟨h5, hext⟩))
               · by_cases h8 : sym == lsReadStdinSym
                 · cases hrs : g.readStdin <;>
                     simp only [h6, h7, h8, hrs, Bool.false_eq_true, ↓reduceIte] at hext ⊢
-                  · exact Or.inr hext
-                  · exact Or.inl ⟨h5, hext⟩
+                  · exact Or.inr (Or.inr (Or.inr hext))
+                  · exact Or.inr (Or.inr (Or.inl ⟨h5, hext⟩))
                 · by_cases h9 : sym == lsMemsetSym
                   · cases hms : g.memset <;>
                       simp only [h6, h7, h8, h9, hms, Bool.false_eq_true, ↓reduceIte] at hext ⊢
-                    · exact Or.inr hext
-                    · exact Or.inl ⟨h5, hext⟩
+                    · exact Or.inr (Or.inr (Or.inr hext))
+                    · exact Or.inr (Or.inr (Or.inl ⟨h5, hext⟩))
                   · by_cases h10 : sym == lsMemcpySym
                     · cases hmc : g.memcpy <;>
                         simp only [h6, h7, h8, h9, h10, hmc, Bool.false_eq_true, ↓reduceIte] at hext ⊢
-                      · exact Or.inr hext
-                      · exact Or.inl ⟨h5, hext⟩
+                      · exact Or.inr (Or.inr (Or.inr hext))
+                      · exact Or.inr (Or.inr (Or.inl ⟨h5, hext⟩))
                     · simp only [h6, h7, h8, h9, h10, Bool.false_eq_true, ↓reduceIte] at hext
-                      exact Or.inr hext
+                      cases hex : cliExtraGhostSyms.contains sym
+                      · simp only [hex, Bool.false_eq_true, ↓reduceIte] at hext
+                        exact Or.inr (Or.inr (Or.inr hext))
+                      · simp only [hex, ↓reduceIte] at hext
+                        cases hlk : extra.lookup sym with
+                        | some f' =>
+                          rw [hlk] at hext; injection hext with hfeq; subst hfeq
+                          exact Or.inl ⟨rfl, rfl⟩
+                        | none =>
+                          rw [hlk] at hext
+                          exact Or.inr (Or.inr (Or.inr hext))
+
+private theorem cliGhostExterns_some_cases (g : CliGhostHooks)
+    (baseExt : String → Option (State → State)) {sym : String} {f : State → State}
+    (hext : cliGhostExterns g baseExt sym = some f) :
+    (cliExtraGhostSyms.contains sym = true ∧ g.extra.lookup sym = some f) ∨
+      sym = lsRustNoAllocShimSymCli ∨
+      (sym ≠ lsRustNoAllocShimSymCli ∧
+        cliGhostExternsWithExtra g [] (fun _ => none) sym = some f) ∨
+      baseExt sym = some f :=
+  cliGhostExternsWithExtra_some_cases_nil g g.extra baseExt hext
 
 /-- **Closed `P_ghost` `blk21` trap-or-`none` discharger for `h2k_ghFixedK` (`R2-T1`):**
     for every `pc` with `keepMemsetBlk21 mmpl pc = true`, the Block-617 ghost program
@@ -504,7 +566,9 @@ theorem h2k_ghFixedK_blk21_ext_trap [LibsignalPlacement]
       rw [hres_eq] at hsym_ite; simp only [↓reduceIte] at hsym_ite
       have hres : libsignalSessionLib.resolve mpl sym = pc := beq_iff_eq.mp hres_eq
       rcases cliGhostExterns_some_cases (h2k_ghFixedK mpl mmpl) (cliExternsPlaced mmpl W) hsym_ite with
-        rfl | ⟨hne, hgh⟩ | hbase
+        ⟨hex, _⟩ | rfl | ⟨hne, hgh⟩ | hbase
+      · exfalso; have hns := h2k_extraStub_not_in_blk21 hLs hMm hex
+        rw [hres, hpc] at hns; exact Bool.noConfusion hns
       · exfalso; have hns := h2k_shimStub_not_in_blk21 hLs hMm
         rw [hres, hpc] at hns; exact Bool.noConfusion hns
       · exact h2k_ghFixedK_blk21TrapHook mpl hMm hgh hne
@@ -548,7 +612,9 @@ theorem h2k_ghFixedK_blk20_ext_trap [LibsignalPlacement]
       rw [hres_eq] at hsym_ite; simp only [↓reduceIte] at hsym_ite
       have hres : libsignalSessionLib.resolve mpl sym = pc := beq_iff_eq.mp hres_eq
       rcases cliGhostExterns_some_cases (h2k_ghFixedK mpl mmpl) (cliExternsPlaced mmpl W) hsym_ite with
-        rfl | ⟨hne, hgh⟩ | hbase
+        ⟨hex, _⟩ | rfl | ⟨hne, hgh⟩ | hbase
+      · exfalso; have hns := h2k_extraStub_not_in_blk20 hLs hMm hex
+        rw [hres, hpc] at hns; exact Bool.noConfusion hns
       · exfalso; have hns := h2k_shimStub_not_in_blk20 hLs hMm
         rw [hres, hpc] at hns; exact Bool.noConfusion hns
       · exact h2k_ghFixedK_blk20TrapHook mpl hMm hgh hne
@@ -560,8 +626,9 @@ theorem h2k_ghFixedK_blk20_ext_trap [LibsignalPlacement]
         rw [hres_eq, hbase] at hcell; cases hcell
 
 /-- **Compositional ghost-side `hblk20_ext` on 39-row `cliElfBytes`:** combines
-    `h2k_ghFixedK_blk20TrapHook` (7 K ghosts), `h2k_memcpyGhostHookNarrow_blk20TrapHook`
+    `h2k_ghFixedK_blk20TrapHook` (9 non-shim named ghosts), `h2k_memcpyGhostHookNarrow_blk20TrapHook`
     (`"memcpy"`), `h2k_memsetStub_not_in_blk20` (`"memset"`), `h2k_shimStub_not_in_blk20` (`shim`),
+    `h2k_extraStub_not_in_blk20` (`cliExtraGhostSyms`),
     and `h2sl_realW_noExtern_keepSub` on any base map `baseExt ⊆ cliExternsPlaced mmpl` (proof
     shape intended to carry over to 37-row stock-lld where `resolve mpl "memcpy" = mmpl.base 20`;
     re-proved at re-key). -/
@@ -605,7 +672,9 @@ theorem h2k_cliGhostExterns_ghFixedK_blk20_ext [LibsignalPlacement]
           rw [hres, hpc] at hns; exact Bool.noConfusion hns
         · simp only [hms, Bool.false_eq_true, ↓reduceIte] at hsym_ite
           rcases cliGhostExterns_some_cases (h2k_ghFixedK mpl mmpl) (baseExt W) hsym_ite with
-            rfl | ⟨hne, hgh⟩ | hbase
+            ⟨hex, _⟩ | rfl | ⟨hne, hgh⟩ | hbase
+          · exfalso; have hns := h2k_extraStub_not_in_blk20 hLs hMm hex
+            rw [hres, hpc] at hns; exact Bool.noConfusion hns
           · exfalso; have hns := h2k_shimStub_not_in_blk20 hLs hMm
             rw [hres, hpc] at hns; exact Bool.noConfusion hns
           · exact h2k_ghFixedK_blk20TrapHook mpl hMm hgh hne

@@ -45,11 +45,11 @@ open CryptoVerification.LibsignalTripleRatchet (extHookStack)
 open CryptoVerification.LibsignalPublicApi.StoreKit
   (subroutine_ok_rocl_of_withLsCodeRoLoaded subroutine_ok_withLsCodeRoLoaded_of_plain withLsRoCl)
 open CryptoVerification.SignalSession
-  (CliHooks cliExternsPlaced lsMemrchrSym memrchrHook unmodelled)
+  (lsMemrchrSym memrchrHook unmodelled)
 open CryptoVerification.SignalSession.Cli.Placed (lsProg_580)
 open CryptoVerification.SignalSession.Cli.Main.Placed (lsProg_617)
 open CryptoVerification.SignalSession.Cli.MainHops
-  (cliExternsPlaced_memrchr memrchrHook_ok memrchrSpec)
+  (memrchrHook_ok memrchrSpec)
 open LibsignalBinary.Heap (AllocCostModel BudgetLimits RustCliAllocBudget VmPreserved)
 open LibsignalBinary.Heap.SpecBudget (hookSat_withVmPreserved withVmPreserved)
 open LibsignalBinary.Proofs.Placed.BudgetVmSteps
@@ -129,15 +129,5 @@ theorem address_placed_ok_a1_rocl_of_hooks [LibsignalPlacement] {prog : Program}
     dsimp only [lsProg_580]
     exact ls_hook_ok_ultra_of_mem hsat_vm (by decide)
   exact subroutine_ok_rocl_of_plain hplain
-
-theorem address_placed_ok_a1 [LibsignalPlacement]
-    {M : AllocCostModel} {A : RustCliAllocBudget M} {lim : BudgetLimits}
-    (mmpl : Obj.MultiPlacement) (W : CliHooks)
-    (hFs : AllocContractsFsPlaced A lim (cliExternsPlaced mmpl W))
-    {resStack : Nat}
-    (hres : 0xB0 + extHookStack ≤ resStack) (hres64 : resStack ≤ 2 ^ 63) :
-    subroutine_ok (lsProg_617 (cliExternsPlaced mmpl W)) (lsmpl.base 580)
-      (withLsRoCl lsmpl (addressSpec A lim uuidTryParse resStack)) :=
-  address_placed_ok_a1_of_hooks hFs (cliExternsPlaced_memrchr mmpl W) hres hres64
 
 end LibsignalBinary.Proofs.SignalSession.Cli.Main.Proofs.AddressA1PlacedBudget

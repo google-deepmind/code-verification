@@ -18,6 +18,7 @@ public import LibsignalBinary.Proofs.SignalSession.Cli.Pub.BundleRead.Placed
 public import LibsignalBinary.Proofs.SignalSession.Cli.Pub.SplitId.Placed
 public import LibsignalBinary.Proofs.SignalSession.Cli.Pub.SplitSigned.Placed
 public import LibsignalBinary.Proofs.SignalSession.Cli.Pub.DropSpe.ProofPlaced
+public import LibsignalBinary.Proofs.SignalSession.Cli.Run.Slots.ExtraGhostSpecs
 import Arm64.Trusted.Spec.Hoare
 import Arm64.Trusted.Spec.SepLogic
 import LibsignalBinary.Proofs.SignalSession.Cli.Run.Slots.KemDeserializeSlot
@@ -55,12 +56,16 @@ open CryptoVerification.SignalSession.Cli.RunRefine
 open CryptoVerification.SignalSession.Cli.RunProofs
 open LibsignalBinary.Proofs.SignalSession.Cli.AllocGhostLinkTransfer
   (CliGhostHooks cliGhostExterns)
+open LibsignalBinary.Proofs.SignalSession.Cli.Run.Slots.ExtraGhostSpecs (ExtraSpecOk)
 
 /-- Hook bundle for `main` (Block `617`) under `cliHookTablePlaced mmpl W` and `CliGhostHooks`. -/
 structure CliA0MainHooks [LibsignalPlacement] (mmpl : Obj.MultiPlacement)
     (gh : CliGhostHooks) (W : CliHooks) : Prop where
   allocFs : AllocContractsFsPlaced E2E.HooksE.A0
     (cliGhostExterns gh (cliExternsPlaced mmpl W))
+  extraOk : ExtraSpecOk gh
+  strlen : HookSat (cliGhostExterns gh (cliExternsPlaced mmpl W)) "strlen"
+    (strlenSpec cliHookStack)
   readStdin : subroutine_ok (lsProg_617 (cliGhostExterns gh (cliExternsPlaced mmpl W)))
     (lsρ lsReadStdinSym)
     (withLsRoCl lsmpl (readStdinSpecPlaced cliIo E2E.HooksE.A0 cliHookStack))
@@ -72,12 +77,16 @@ theorem CliA0MainHooks.of_hookSat [LibsignalPlacement] (mmpl : Obj.MultiPlacemen
     (gh : CliGhostHooks) (W : CliHooks)
     (hAllocFs : AllocContractsFsPlaced E2E.HooksE.A0
       (cliGhostExterns gh (cliExternsPlaced mmpl W)))
+    (hExtra : ExtraSpecOk gh)
+    (hStrlen : HookSat (cliGhostExterns gh (cliExternsPlaced mmpl W)) "strlen"
+      (strlenSpec cliHookStack))
     (hReadStdin : HookSat (cliGhostExterns gh (cliExternsPlaced mmpl W)) lsReadStdinSym
       (readStdinSpecPlaced cliIo E2E.HooksE.A0 cliHookStack))
     (hReadFile : HookSat (cliGhostExterns gh (cliExternsPlaced mmpl W)) lsReadFileSym
       (readFileLitSpecPlaced cliIo E2E.HooksE.A0 cliHookStack)) :
     CliA0MainHooks mmpl gh W :=
-  ⟨hAllocFs, readStdin_rocl_ok_of_hookSat hReadStdin, readFile_rocl_ok_of_hookSat hReadFile⟩
+  ⟨hAllocFs, hExtra, hStrlen, readStdin_rocl_ok_of_hookSat hReadStdin,
+    readFile_rocl_ok_of_hookSat hReadFile⟩
 
 /-- Hook and `read_file` bundle for `run` (Block `579`) under `cliHookTablePlaced mmpl W` and `CliGhostHooks`. -/
 structure CliA0RunHooks [LibsignalPlacement] (mmpl : Obj.MultiPlacement)
@@ -626,8 +635,8 @@ theorem main_ok_cli_placed_of_runTight [LibsignalPlacement]
     subroutine_ok (mProgPlaced (cliGhostExterns gh (cliExternsPlaced mmpl W))) (lsmpl.base 617)
       (mainSpecTightPlaced CodeOk E2E.HooksE.A0 cliMainStk cliStaticsPlaced
         (runRel (cliRunSem_placed X W decPk decPkOk pksmParse))) :=
-  main_ok_a1_tight_placed mmpl gh W hMainHooks.allocFs hMainHooks.readStdin hMainHooks.readFile
-    hrun (fun _ _ hr => RunCompose.runRel_dom hr)
+  main_ok_a1_tight_placed mmpl gh W hMainHooks.allocFs hMainHooks.extraOk hMainHooks.strlen
+    hMainHooks.readStdin hMainHooks.readFile hrun (fun _ _ hr => RunCompose.runRel_dom hr)
 
 /-- Tightened `main` subroutine contract on Block `617` instantiated with `hrun_cli_placed`. -/
 theorem main_ok_cli_tight_placed [LibsignalPlacement] (mmpl : Obj.MultiPlacement)

@@ -53,7 +53,7 @@ open LibsignalBinary.Proofs.TripleRatchet.Wire.NewPureBudget (framelessMemcpyBud
 open CryptoVerification.SignalSession (
   CliHooks cliElfBytes cliExternsPlaced libsignalSessionLib lsRustNoAllocShimSymCli
 )
-open CryptoVerification.SignalSession.Cli.RunGlue (IsFsC cliGhostExterns)
+open CryptoVerification.SignalSession.Cli.RunGlue (IsFsC)
 open CryptoVerification.SignalSession.CliExt (memcpyROSpec memcpySpec)
 open LibsignalBinary.Heap (OomPreserved PoolPreserved VmPreserved allocMemcpyVmSpec)
 open LibsignalBinary.Heap.SpecBudget (withVmPreserved)
@@ -80,6 +80,9 @@ open LibsignalBinary.Proofs.SignalSession.Cli.HooksDehook.MemsetGhostK (
 )
 open LibsignalBinary.Proofs.SignalSession.Cli.HooksDehook.MemsetLrTrapRet (
   Blk21TrapHook blk21TrapHook_of_exception_on_keepLr
+)
+open LibsignalBinary.Proofs.SignalSession.Cli.Run.Slots.ExtraGhostSpecs (
+  cliGhostExternsWithExtra
 )
 open LibsignalBinary.Proofs.SignalSession.Cli.HooksDehook.MemcpyCode (
   mallocngBlockProg20_externAt_none mallocngBlockProg20_hasWords
@@ -1647,26 +1650,27 @@ private theorem f3EmptyMemsetGhostHookNarrow_blk20TrapHook (mmpl : MultiPlacemen
       LibsignalBinary.Proofs.SignalSession.Cli.AllocGhostLinkTransfer.linkedCallHook
     simp [hAct]
 
-/-- **Concrete `(A2)` mixed-pass `Blk20TrapHook` theorem for all 7 K-narrowed F3 ghosts in
+/-- **Concrete `(A2)` mixed-pass `Blk20TrapHook` theorem for all 9 non-shim F3 ghosts in
     `h2k_ghFixedK`:**
-    Every non-shim ghost hook `f` in `cliGhostExterns (h2k_ghFixedK mpl mmpl) (fun _ => none)`
+    Every non-shim named ghost hook `f` in
+    `cliGhostExternsWithExtra (h2k_ghFixedK mpl mmpl) [] (fun _ => none)`
     satisfies `∀ L, keepMemcpyBlk20 mmpl L = true → Blk20TrapHook L f`. -/
 theorem h2k_ghFixedK_blk20TrapHook [LibsignalPlacement]
     (mpl : MultiPlacement) {mmpl : MultiPlacement}
     (hMm : mallocngLib.LinkedAt cliElfBytes mmpl)
     {sym : String} {f : State → State}
-    (hext : cliGhostExterns (h2k_ghFixedK mpl mmpl) (fun _ => none) sym = some f)
+    (hext : cliGhostExternsWithExtra (h2k_ghFixedK mpl mmpl) [] (fun _ => none) sym = some f)
     (hnoShim : sym ≠ lsRustNoAllocShimSymCli) :
     ∀ L : BitVec 64, keepMemcpyBlk20 mmpl L = true → Blk20TrapHook L f := by
   intro L hL
   by_cases hmc : sym = CryptoVerification.SignalSession.lsMemcpySym
   · subst hmc
     have hsome :
-        cliGhostExterns (h2k_ghFixedK mpl mmpl) (fun _ => none)
+        cliGhostExternsWithExtra (h2k_ghFixedK mpl mmpl) [] (fun _ => none)
             CryptoVerification.SignalSession.lsMemcpySym =
           some (LibsignalBinary.Proofs.SignalSession.Cli.HooksDehook.NarrowF3R1Witness.f3EmptyMemcpyGhostHookNarrow
-            mmpl) := by
-      simp (config := { decide := true }) only [cliGhostExterns, h2k_ghFixedK, ↓reduceIte]
+            mmpl) :=
+      rfl
     rw [hsome] at hext
     injection hext with hfeq
     subst hfeq
@@ -1677,11 +1681,11 @@ theorem h2k_ghFixedK_blk20TrapHook [LibsignalPlacement]
   · by_cases hms : sym = CryptoVerification.SignalSession.lsMemsetSym
     · subst hms
       have hsome :
-          cliGhostExterns (h2k_ghFixedK mpl mmpl) (fun _ => none)
+          cliGhostExternsWithExtra (h2k_ghFixedK mpl mmpl) [] (fun _ => none)
               CryptoVerification.SignalSession.lsMemsetSym =
             some (LibsignalBinary.Proofs.SignalSession.Cli.HooksDehook.NarrowF3R1Witness.f3EmptyMemsetGhostHookNarrow
-              mmpl) := by
-        simp (config := { decide := true }) only [cliGhostExterns, h2k_ghFixedK, ↓reduceIte]
+              mmpl) :=
+        rfl
       rw [hsome] at hext
       injection hext with hfeq
       subst hfeq

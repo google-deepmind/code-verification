@@ -1450,6 +1450,7 @@ theorem _root_.CryptoVerification.Cli.LibsignalSpqrV1.recordDecryptV1_placed_reg
     [LibsignalPlacement] (mmpl : Obj.MultiPlacement) (gh : RunGlue.CliGhostHooks)
     (W : CliHooks) (ctl : BitVec 64)
     (hG : Slots.CliGhostA0Hooks CryptoVerification.E2E.HooksE.A0 gh)
+    (hMv : gh.extra.lookup "memmove" = some hookMemmove)
     (hAesDec : HookSat (RunGlue.cliGhostExterns gh (cliExternsPlaced mmpl W)) lsAesDecSym
       (aesDecSpec W.C.D CryptoVerification.E2E.HooksE.A0))
     (hSpqr : SpqrV1PlacedSeams mmpl gh W)
@@ -1472,7 +1473,7 @@ theorem _root_.CryptoVerification.Cli.LibsignalSpqrV1.recordDecryptV1_placed_reg
     (Slots.cliExternsPlaced_dealloc_sat mmpl gh W hG)
     (Slots.cliExternsPlaced_sessionMemcpyRegion_sat mmpl gh W hG)
     (Slots.cliGhostExterns_panic_handle_error mmpl gh W)
-    (tryDecryptV1_placed_ok_PTight_cli mmpl gh W ctl hG hAesDec hSpqr)
+    (tryDecryptV1_placed_ok_PTight_cli mmpl gh W ctl hG hMv hAesDec hSpqr)
     hclosure
 
 private theorem rdp_region_reaches_full_placed_TPTight [LibsignalFullPlacement]
@@ -1645,6 +1646,7 @@ theorem _root_.CryptoVerification.Cli.LibsignalSpqrV1.recordDecryptV1_full_place
     [LibsignalFullPlacement] (mmpl : Obj.MultiPlacement) (gh : RunGlue.CliGhostHooks)
     (W : CliHooks) (ctl : BitVec 64)
     (hG : Slots.CliGhostA0Hooks CryptoVerification.E2E.HooksE.A0 gh)
+    (hMv : gh.extra.lookup "memmove" = some hookMemmove)
     (hAesDec : HookSat (RunGlue.cliGhostExterns gh (cliExternsPlaced mmpl W)) lsAesDecSym
       (aesDecSpec W.C.D CryptoVerification.E2E.HooksE.A0))
     (hSpqr : SpqrV1PlacedSeams mmpl gh W) :
@@ -1663,6 +1665,6 @@ theorem _root_.CryptoVerification.Cli.LibsignalSpqrV1.recordDecryptV1_full_place
     (Slots.cliExternsPlaced_dealloc_sat mmpl gh W hG)
     (Slots.cliExternsPlaced_sessionMemcpyRegion_sat mmpl gh W hG)
     (Slots.cliGhostExterns_panic_handle_error mmpl gh W)
-    (tryDecryptV1_placed_ok_PTight_cli mmpl gh W ctl hG hAesDec hSpqr)
+    (tryDecryptV1_placed_ok_PTight_cli mmpl gh W ctl hG hMv hAesDec hSpqr)
 
 end CryptoVerification.Cli.LibsignalSpqrV1.M4

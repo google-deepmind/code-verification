@@ -94,6 +94,7 @@ open LibsignalBinary.Proofs.ConsumeMessageKey.StoreLoopProofs.DefsBudget (
   cmkLoopAdvanceEvs_nonempty
 )
 open LibsignalBinary.Proofs.SignalSession.Cli.Run.Slots.CliHookSatPlacedBudget (CliGhostAllocHooks)
+open LibsignalBinary.Proofs.SignalSession.Cli.Run.Slots.ExtraGhostSpecs (ExtraSpecOk)
 open LibsignalBinary.Proofs.SignalSession.Cli.SpqrV1PlacedSeamsBudget (
   SpqrRecvBytesEnv SpqrV1PlacedSeams SpqrV1PlacedSeamsOfEnv spqrRecvBytesEnv_nonempty
 )
@@ -169,12 +170,13 @@ theorem aesDecrypt_507_cli [LibsignalPlacement] {M : AllocCostModel}
 theorem s0_507_cli [LibsignalPlacement] {M : AllocCostModel}
     {A : RustCliAllocBudget M} {lim : BudgetLimits}
     (mmpl : Obj.MultiPlacement) (g : CliGhostHooks) (W : CliHooks)
+    (hOk : ExtraSpecOk g)
     (ctl : BitVec 64) (S : SpqrModel)
     (tdEnv : TryDecryptEnvArgs → List AllocEvent → Prop) :
     S0PSeamPlaced
       ((blkPC_508).rebase (blkPl_508).base (cliGhostExterns g (cliExternsPlaced mmpl W)))
       (blkPl_508).base W.C A lim ctl uuidTryParse S tdEnv :=
-  RootTrapPlacedBudgetPart2.s0_507_cli mmpl g W ctl S tdEnv
+  RootTrapPlacedBudgetPart2.s0_507_cli mmpl g W hOk ctl S tdEnv
 
 theorem s1_pinned_507_cli [LibsignalPlacement] {M : AllocCostModel}
     {A : RustCliAllocBudget M} {lim : BudgetLimits}
@@ -198,11 +200,12 @@ theorem s1_507_cli [LibsignalPlacement] {M : AllocCostModel}
 
 theorem s2_507_cli [LibsignalPlacement] {M : AllocCostModel}
     {A : RustCliAllocBudget M} {lim : BudgetLimits}
-    (mmpl : Obj.MultiPlacement) (g : CliGhostHooks) (W : CliHooks) (ctl : BitVec 64) :
+    (mmpl : Obj.MultiPlacement) (g : CliGhostHooks) (W : CliHooks)
+    (hOk : ExtraSpecOk g) (ctl : BitVec 64) :
     S2SeamPlaced
       ((blkPC_508).rebase (blkPl_508).base (cliGhostExterns g (cliExternsPlaced mmpl W)))
       (blkPl_508).base A lim ctl :=
-  RootTrapPlacedBudgetPart2.s2_507_cli mmpl g W ctl
+  RootTrapPlacedBudgetPart2.s2_507_cli mmpl g W hOk ctl
 
 theorem s6_507_cli [LibsignalPlacement] {M : AllocCostModel}
     {A : RustCliAllocBudget M} {lim : BudgetLimits}
@@ -434,9 +437,9 @@ theorem tryDecryptPqV1_placed_ok_PTight_cli_of_tdEnv [LibsignalPlacement] {M : A
       rw [fromS2_envArgsToGhost_eq]
       exact hseq))
     (cliSeamEnvs_inhabited W.C (spqrV1 W.C.F W.Q.K) hRecv_ne hFmtWrite_ne hFmtInner_ne)
-    (s0_507_cli mmpl g W ctl (spqrV1 W.C.F W.Q.K) tdEnv)
+    (s0_507_cli mmpl g W hG.extraOk ctl (spqrV1 W.C.F W.Q.K) tdEnv)
     (s1_pinned_507_cli mmpl g W hG ctl (spqrV1 W.C.F W.Q.K) tdEnv)
-    (s2_507_cli mmpl g W ctl)
+    (s2_507_cli mmpl g W hG.extraOk ctl)
     (dhStep_pinned_507_cli mmpl g W hG ctl (spqrV1 W.C.F W.Q.K))
     (s4_507_cli_ofEnv mmpl g W hG hFmtWrite ctl (spqrV1 W.C.F W.Q.K))
     (pqRecv_507_cli_ofEnv mmpl g W hG hSpqr hFmtInner ctl)
@@ -507,10 +510,10 @@ theorem tryDecryptPqV1_placed_ok_PTight_cli [LibsignalPlacement] {M : AllocCostM
     (cliSeamEnvs_inhabited (fmtWriteEnv := FmtWriteEnv) (fmtEnv := FormatInnerEnv)
       W.C (spqrV1 W.C.F W.Q.K)
       spqrRecvBytesEnv_nonempty ⟨[], rfl⟩ ⟨[], rfl⟩)
-    (s0_507_cli mmpl g W ctl (spqrV1 W.C.F W.Q.K) (TryDecryptCliEnv W.C (spqrV1 W.C.F W.Q.K)))
+    (s0_507_cli mmpl g W hG.extraOk ctl (spqrV1 W.C.F W.Q.K) (TryDecryptCliEnv W.C (spqrV1 W.C.F W.Q.K)))
     (s1_pinned_507_cli mmpl g W hG ctl (spqrV1 W.C.F W.Q.K)
       (TryDecryptCliEnv W.C (spqrV1 W.C.F W.Q.K)))
-    (s2_507_cli mmpl g W ctl)
+    (s2_507_cli mmpl g W hG.extraOk ctl)
     (dhStep_pinned_507_cli mmpl g W hG ctl (spqrV1 W.C.F W.Q.K))
     (s4_507_cli mmpl g W hG ctl (spqrV1 W.C.F W.Q.K))
     (pqRecv_507_cli mmpl g W hG hSpqr ctl)

@@ -39,12 +39,15 @@ public import LibsignalBinary.Proofs.SignalSession.Cli.Run.Slots.CliHookSatPlace
 public import LibsignalBinary.Proofs.SignalSession.Cli.SpqrV1PlacedSeamsBudget
 import Arm64.Trusted.Spec.Hoare
 import Arm64.Trusted.Spec.SepLogic
+import LibsignalBinary.Proofs.Cli.E2E.Pqxdh.ResponderClosure.Kits.StageP2PurePlacedBudgetSat
 import LibsignalBinary.Proofs.Common.SharedHelpers
 meta import LibsignalBinary.Proofs.Common.SharedHelpers -- shake: keep
 import LibsignalBinary.Proofs.SignalSession.Cli.Run.Proofs.DecryptPrekey.Poll.ClosureSpeOwned
 import LibsignalBinary.Proofs.SignalSession.Cli.Run.Proofs.DecryptPrekey.Poll.ClosureStmts
 import LibsignalBinary.Proofs.SignalSession.Cli.Run.Proofs.DecryptPrekey.Poll.InitInv
 import LibsignalBinary.Proofs.SignalSession.Cli.Run.Proofs.DecryptPrekey.Poll.StagesInst.ResponderCanonicalPlacedBudget
+import LibsignalBinary.Proofs.SignalSession.Cli.Run.Proofs.DecryptPrekey.Poll.StagesInst.ResponderCanonicalPlacedBudgetSat
+import LibsignalBinary.Proofs.SignalSession.Cli.Run.Proofs.DecryptPrekey.Poll.StagesInst.Stage2V1BasePlacedBudgetBbSat
 import ProofLib.SepLogic.WPp
 
 /-!
@@ -1412,11 +1415,8 @@ private theorem cliStageP2BaseCalleesPlaced4K [LibsignalPlacement] {M : AllocCos
     hh.codecHooks.alloc
     hh.codecHooks.dealloc
     (hookSat_sessionMemcpyBudget_of_codec CryptoVerification.RustHeap.allocHookStack hh.codecHooks.memcpy)
-    (LibsignalBinary.Proofs.Cli.E2E.Pqxdh.ResponderClosure.Kits.StageP2PurePlacedBudget.isSameAccount_4k_placed_ok_on_stageP1
-      ((CryptoVerification.SignalSession.Cli.RunGlue.cliGhostExterns_other gh _
-          (by decide) (by decide) (by decide) (by decide) (by decide) (by decide)).trans
-        (CryptoVerification.SignalSession.Cli.RunGlue.cliExternsPlaced_row mmpl W
-          (CryptoVerification.SignalSession.Cli.Slots.blackBox_row_placed mmpl W)))
+    (LibsignalBinary.Proofs.Cli.E2E.Pqxdh.ResponderClosure.Kits.StageP2PurePlacedBudgetSat.isSameAccount_4k_placed_ok_on_stageP1_sat
+      hh.blackBox
       (LibsignalBinary.Proofs.SignalSession.Cli.Run.Proofs.DecryptPrekey.Over.Stage2OverInstPlacedBudgetAux.uuidTryParse_placed_vm_code_ok
         (cliGhostExterns gh (cliExternsPlaced mmpl W))))
 
@@ -1438,12 +1438,15 @@ private theorem cliInitBobV1FrozenOkPlaced4K [LibsignalFullPlacement] {M : Alloc
     hh.codecHooks.dealloc
     (LibsignalBinary.Proofs.SignalSession.Cli.Run.Slots.CliHookSatPlacedBudget.cliExternsPlaced_sessionMemcpyRegion_budget_sat
       mmpl gh W hG)
-    (LibsignalBinary.Proofs.SignalSession.Cli.Run.Proofs.DecryptPrekey.Poll.StagesInst.ResponderCanonicalPlacedBudget.pqxdhAccept_opt_fields_responder_full_placed_ok_of_block
+    (LibsignalBinary.Proofs.SignalSession.Cli.Run.Proofs.DecryptPrekey.Poll.StagesInst.ResponderCanonicalPlacedBudgetSat.pqxdhAccept_opt_fields_responder_full_placed_ok_of_block_bb_sat
       (callerProg := lsProg_75 (cliGhostExterns gh (cliExternsPlaced mmpl W))) (i := 75)
       (cliModelPrims_structural X W)
       (CryptoVerification.SignalSession.Cli.RunProofs.Poll.cliModelPrims_matchCrypto X W)
-      (LibsignalBinary.Proofs.SignalSession.Cli.Run.Proofs.DecryptPrekey.Poll.StagesInst.Stage2V1BasePlacedBudget.cliResponderPqxdhHookContractsPlaced_of_hookSat
-        X mmpl gh W hG hh.codecHooks.alloc hh.codecHooks.dealloc
+      (LibsignalBinary.Proofs.SignalSession.Cli.Run.Proofs.DecryptPrekey.Poll.StagesInst.Stage2V1BasePlacedBudgetBbSat.cliResponderPqxdhHookContractsPlaced_of_hookSat_bb_sat
+        X mmpl gh W hG
+        (LibsignalBinary.Proofs.SignalSession.Cli.Run.Slots.CliHookSatPlacedBudget.cliExternsPlaced_sessionMemsetRegion_budget_sat
+          mmpl gh W hG)
+        hh.blackBox hh.codecHooks.alloc hh.codecHooks.dealloc
         (hookSat_noAllocShimBudget_of_withVmPreserved hh.codecHooks.shim))
       (hookSat_framelessMemcpy_of_vm
         (LibsignalBinary.Proofs.SignalSession.Cli.Run.Slots.CliHookSatPlacedBudget.cliExternsPlaced_framelessMemcpy_budget_sat
@@ -1466,12 +1469,15 @@ private theorem cliInitBobErrOwnedFrozen4K_ok [LibsignalFullPlacement] {M : Allo
         (AcceptOptFieldsEnv (ofSignalPqxdhPrimitives (modelPrims X ⟨W.C, W.Q⟩)))) := by
   have h75 :=
     LibsignalBinary.Proofs.E2E.Pqxdh.ResponderCore.InitBobErrOwnedPlacedBudget.initializeBobSession_err_owned_frozen_placed_ok_of_accept
-      (LibsignalBinary.Proofs.SignalSession.Cli.Run.Proofs.DecryptPrekey.Poll.StagesInst.ResponderCanonicalPlacedBudget.pqxdhAccept_err_owned_responder_full_placed_ok_of_block
+      (LibsignalBinary.Proofs.SignalSession.Cli.Run.Proofs.DecryptPrekey.Poll.StagesInst.ResponderCanonicalPlacedBudgetSat.pqxdhAccept_err_owned_responder_full_placed_ok_of_block_bb_sat
         (callerProg := lsProg_75 (cliGhostExterns gh (cliExternsPlaced mmpl W))) (i := 75)
         (cliModelPrims_structural X W)
         (CryptoVerification.SignalSession.Cli.RunProofs.Poll.cliModelPrims_matchCrypto X W)
-        (LibsignalBinary.Proofs.SignalSession.Cli.Run.Proofs.DecryptPrekey.Poll.StagesInst.Stage2V1BasePlacedBudget.cliResponderPqxdhHookContractsPlaced_of_hookSat
-          X mmpl gh W hG hh.codecHooks.alloc hh.codecHooks.dealloc
+        (LibsignalBinary.Proofs.SignalSession.Cli.Run.Proofs.DecryptPrekey.Poll.StagesInst.Stage2V1BasePlacedBudgetBbSat.cliResponderPqxdhHookContractsPlaced_of_hookSat_bb_sat
+          X mmpl gh W hG
+          (LibsignalBinary.Proofs.SignalSession.Cli.Run.Slots.CliHookSatPlacedBudget.cliExternsPlaced_sessionMemsetRegion_budget_sat
+            mmpl gh W hG)
+          hh.blackBox hh.codecHooks.alloc hh.codecHooks.dealloc
           (hookSat_noAllocShimBudget_of_withVmPreserved hh.codecHooks.shim))
         (hookSat_framelessMemcpy_of_vm
           (LibsignalBinary.Proofs.SignalSession.Cli.Run.Slots.CliHookSatPlacedBudget.cliExternsPlaced_framelessMemcpy_budget_sat

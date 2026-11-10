@@ -25,7 +25,7 @@ set_option autoImplicit false
 **Where the file comes from.** It is not committed (`.GeneratedLean/` is gitignored).
 `scripts/cli-elf-stock --stdbin --build` builds it from source with stock LLVM `ld.lld`
 (`-static -no-pie --no-relax --gc-sections`, linker script
-`third_party/libsignal/libsignal-session/cli-elf/stock.ld`, load base `0x400000`), with the
+`third_party/libsignal/libsignal-session/cli-elf/stock/stock_c2.ld`, base `0x400000`), with the
 `libsignal` revision, `rustc` `1.98.1` (and its `aarch64-unknown-linux-musl` `self-contained/` CRT
 objects and `libc.a`), `zig` (for `rdl_shim.S`), `ld.lld` version prefix, `std-main` entry crate,
 and `arm64-semantics` commit pinned in
@@ -54,7 +54,7 @@ contains it, and the binary-level verification claim refers to a `main` commit S
 The pin is the only place where a byte of the ELF is named. Every address the statement uses comes
 from the ELF itself (`ElfImage.parse`, `loadState`) or from `libsignalSessionLib` and
 `VerifiedLibraries.mallocngLib` under kernel-checked `MultiPlacement`s `mpl` and `mmpl`
-(`CliBinaryPq.lean`, stock `ld.lld` link under `stock.ld` at base `0x400000`; name labels:
+(`CliBinaryPq.lean`, stock `ld.lld` link under `stock/stock_c2.ld` at base `0x400000`; name labels:
 `CliLabelsFromObjects` (`CliLabels.lean`)).
 
 ## Main definitions
@@ -70,6 +70,6 @@ set_option maxRecDepth 4000000 in
 pinned digest by `file_bytes%`. -/
 noncomputable def cliElfBytes : List (BitVec 8) :=
   file_bytes% "../../../.GeneratedLean/cli-elf/libsignal-cli.elf"
-    sha256 "2f20c836342437a882b5882c34eab604e4f23b2b388c2b2a0696eeda51cddc7e"
+    sha256 "50066cbd732256eb5f19f93d1d98800914336b7926225de3ebfa0bb37eca98ce"
 
 end CryptoVerification.SignalSession

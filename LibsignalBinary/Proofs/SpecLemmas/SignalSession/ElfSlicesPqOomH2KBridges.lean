@@ -41,7 +41,7 @@ to plain (`h2k_withKeepLrFalse`-free) `HookSat` contracts for the six non-`readF
 2. Plain `HookSat` bridges at `cliGhostExterns (h2k_ghFixedK mpl mmpl) base` for `alloc`,
    `dealloc`, `realloc`, `allocZeroed`, `readStdin`, and `stringClone` (`NoOom` and `Budget`).
 3. Closed non-`readFile` fields of `F3CliElfGhostWitness` (`hGSpqr`, `hFs`, `hghNoAlloc`,
-   12-field `RunHooksPlaced`, and non-`readFile` `MainIoOfPlaced`) plus split constructors
+   13-field `RunHooksPlaced`, and non-`readFile` `MainIoOfPlaced`) plus split constructors
    assembling `F3CliElfGhostWitness` from the remaining `readFile` and transfer obligations.
 -/
 
@@ -649,6 +649,7 @@ theorem h2kb_hole2_hGSpqr
       memcpy := hK.memcpy
       memcpy_exact := hK.memcpy_exact
       memset_acp := hK.memset_acp
+      extraOk := hK.extraOk
       allocZeroed := h2kb_hookOk_allocZeroed_of_sat mpl mmpl hLs hMm γ tp
       allocZeroed_fs := hK.allocZeroed_fs
       allocZeroed_fsT := hK.allocZeroed_fsT }
@@ -681,7 +682,7 @@ theorem h2kb_hole2_hghNoAlloc
     ExternNoAllocFailed (cliGhostExterns (h2k_ghFixedK mpl mmpl) (fun _ => none)) :=
   h2k_hole2_hghNoAllocK mpl mmpl hLs hMm
 
-/-- Closes the 12-field `RunHooksPlaced` half of `CliRunHooksBundle` at `h2k_ghFixedK`. -/
+/-- Closes the 13-field `RunHooksPlaced` half of `CliRunHooksBundle` at `h2k_ghFixedK`. -/
 theorem h2kb_hole2_runHooksPlaced
     (mpl mmpl : MultiPlacement)
     (hLs : libsignalSessionLib.LinkedAt cliElfBytes mpl)

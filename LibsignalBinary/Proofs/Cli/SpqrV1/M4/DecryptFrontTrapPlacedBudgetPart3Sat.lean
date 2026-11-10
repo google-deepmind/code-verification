@@ -32,7 +32,7 @@ import LibsignalBinary.Proofs.SpqrV1.Poly.EncodeBytes.DefsBudget
 import LibsignalBinary.Proofs.TripleRatchet.Alloc.PublicKeySerializeBudget
 import LibsignalBinary.Proofs.TripleRatchet.ConsumeMessageKeyTransfer.NewFromSlice
 import LibsignalBinary.Proofs.TripleRatchet.InImageCallees.CallsBudget
-import LibsignalBinary.Proofs.TripleRatchet.Mac.VerifyBudget
+import LibsignalBinary.Proofs.TripleRatchet.Mac.VerifyBudgetSat
 import ProofLib.SepLogic.Entry
 
 /-!
@@ -103,7 +103,7 @@ open LibsignalBinary.Proofs.SignalSession.Cli.HooksDehook.MemcpyExactCore
 open LibsignalBinary.Proofs.SignalSession.Cli.Main.Proofs.CliSlotCalleesInstPlacedBudgetUuid
   (uuidTryParse_placed_vm_ok)
 open LibsignalBinary.Proofs.SignalSession.Cli.Run.Slots.CliHookSatPlacedBudget
-  (CliGhostAllocHooks cliExternsPlaced_alloc_budget_sat cliExternsPlaced_blackBox_budget_sat
+  (CliGhostAllocHooks cliExternsPlaced_alloc_budget_sat cliGhostExterns_blackBoxSat_budget_sat
    cliExternsPlaced_compress256Multi_budget_sat cliExternsPlaced_dealloc_budget_sat
    cliExternsPlaced_exactMemcpy_sat cliExternsPlaced_noAllocShim_budget_sat
    cliExternsPlaced_sessionMemcpyRegion_budget_sat cliExternsPlaced_sessionMemsetRegion_budget_sat
@@ -117,7 +117,7 @@ open LibsignalBinary.Proofs.TripleRatchet.InImageCallees.CallsBudget (parse_sid_
 open LibsignalBinary.Proofs.TripleRatchet.InImageCallees.DefsBudget
   (parseSidCodeBudgetSpec uuidTryParseCodeBudgetSpec)
 open LibsignalBinary.Proofs.TripleRatchet.Mac.ComputeBudgetAux (newFromSliceBudgetSpec)
-open LibsignalBinary.Proofs.TripleRatchet.Mac.VerifyBudget (verifyMacWithAddresses_placed_cro_ok)
+open LibsignalBinary.Proofs.TripleRatchet.Mac.VerifyBudgetSat (verifyMacWithAddresses_placed_cro_ok_sat)
 open Obj (MultiPlacedLib MultiPlacement PlacedLib)
 open VerifiedLibraries.RustStd (blockProgram_rebase_allInstrs_not_isSvc0)
 
@@ -786,9 +786,10 @@ private theorem cliGhost_row (mmpl : Obj.MultiPlacement) (g : CliGhostHooks) (W 
     (h5 : sym ≠ lsRustNoAllocShimSymCli := by decide) (h6 : sym ≠ lsStringCloneSym := by decide)
     (h7 : sym ≠ CryptoVerification.SignalSession.lsReadFileSym := by decide)
     (h8 : sym ≠ CryptoVerification.SignalSession.lsReadStdinSym := by decide)
-    (h9 : sym ≠ lsMemsetSym := by decide) (h10 : sym ≠ lsMemcpySym := by decide) :
+    (h9 : sym ≠ lsMemsetSym := by decide) (h10 : sym ≠ lsMemcpySym := by decide)
+    (hExtra : CryptoVerification.SignalSession.Cli.RunGlue.cliExtraGhostSyms.contains sym = false := by decide) :
     cliGhostExterns g (cliExternsPlaced mmpl W) sym = some f :=
-  (cliGhostExterns_other g _ h1 h2 h3 h4 h5 h6 h7 h8 h9 h10).trans (cliExternsPlaced_row mmpl W hrow)
+  (cliGhostExterns_other g _ h1 h2 h3 h4 h5 h6 h7 h8 h9 h10 (Or.inl hExtra)).trans (cliExternsPlaced_row mmpl W hrow)
 
 private theorem stripS_mem (p : BitVec 64 → Bool) (s : State) :
     (ProofLib.stripS p s).mem = ProofLib.stripExecOutside p s.mem := by cases s; rfl
@@ -1003,12 +1004,10 @@ theorem s7_433_cli_of_hMs [LibsignalPlacement] {M : AllocCostModel}
         (public_key_serialize_placed_ok
           ⟨hookNoop, (cliGhostExterns_shim g _).trans (congrArg some hG.shim_eq), noAllocShim_hookOk⟩
           (cliExternsPlaced_alloc_budget_sat mmpl g W hG))))
-  have hvmac62 := verifyMacWithAddresses_placed_cro_ok W.C M A lim uuidTryParse H
+  have hvmac62 := verifyMacWithAddresses_placed_cro_ok_sat W.C M A lim uuidTryParse H
     (parseSid_61_ok H)
     (new_from_slice_60_cro_ok mmpl g W hG) hpk60
-    (ls_hook_ok_ultra_of_mem
-      (cliGhostExterns_sat_of_cliExternsPlaced mmpl g W
-        (cliExternsPlaced_blackBox_budget_sat mmpl W)))
+    (cliGhostExterns_blackBoxSat_budget_sat g (cliExternsPlaced mmpl W) hG.extraOk)
     (cliExternsPlaced_noAllocShim_budget_sat mmpl g W hG.shim_eq)
     (cliExternsPlaced_alloc_budget_sat mmpl g W hG)
     (cliExternsPlaced_dealloc_budget_sat mmpl g W hG)

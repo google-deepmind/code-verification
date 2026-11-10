@@ -39,7 +39,7 @@ open CryptoVerification.RecordCodecsBinary (CodecHooksPlaced)
 open CryptoVerification.RustHeap
   (RustAlloc rustAllocSpec rustDeallocSpec)
 open CryptoVerification.SignalSession
-  (CliHooks cliPanicSymbolsPlaced durationSinceExactHook lsBlackBoxSym lsDiffieHellmanSym
+  (CliHooks cliPanicSymbolsPlaced lsBlackBoxSym lsDiffieHellmanSym
    lsDurationSinceSym lsFormatInnerSym lsPubFromSecretSym lsRustAllocSymCli lsRustAllocZeroedSymCli
    lsRustDeallocSymCli lsRustNoAllocShimSymCli lsSharedSecretDropSym lsStaticSecretDropSym
    lsStringCloneSym)
@@ -47,9 +47,11 @@ open CryptoVerification.SignalSession.Cli (cliBcmpName cliBcmpSpec)
 open CryptoVerification.SignalSession.Cli.MainHops
   (AllocContractsFsPlaced AllocContractsXCliPlaced)
 open CryptoVerification.SignalSession.Cli.RunProofs.Initiate (RunHooksPlaced lsKemEncapsSym)
+open CryptoVerification.SignalSession.Cli.Slots (durationSinceEpochAllocSpec)
 open CryptoVerification.SpqrV1.Alloc (sessionMemcpyRegionROSpec)
 open LibsignalBinary.Proofs.ConsumeMessageKey.FindIndexProofs.CtEqSat
-  (blackBoxSpecSat hookSat_blackBox_of_eq)
+  (blackBoxSpecSat)
+open LibsignalBinary.Proofs.SignalSession.Cli.HooksDehook.WithLsRet (withLsRet)
 open Proofs.libsignal.Hooks2 (SerContractsXPlaced)
 
 /-- `HookSat` `black_box` sibling of `Initiate.RunHooksPlaced` (`HooksPlaced.lean:138`),
@@ -78,13 +80,13 @@ structure RunHooksPlacedSat [LibsignalPlacement] (W : CliHooks) (A : RustAlloc)
   blackBox : HookSat H lsBlackBoxSym blackBoxSpecSat
   hkdf : HkdfPlacedHooks W.C.F H
   kemEncaps : H lsKemEncapsSym = some (kemEncapsHook W.Q.encaps)
-  durationSince : H lsDurationSinceSym = some durationSinceExactHook
+  durationSince : HookSat H lsDurationSinceSym (withLsRet durationSinceEpochAllocSpec)
   panic_alloc : H "_RNvNtCs69KKACWg7bl_5alloc5alloc18handle_alloc_error" = some Rust.panicked
   panic_raw : H "_RNvNtCs69KKACWg7bl_5alloc7raw_vec12handle_error" = some Rust.panicked
   panic_sym : ∀ s, s ∈ cliPanicSymbolsPlaced → H s = some Rust.panicked
   fs : ∀ {prog : Program} {i : Nat} [IsLsBlockProg prog i H], TraceFsSound prog
 
-/-- Coercion `RunHooksPlaced → RunHooksPlacedSat` via `hookSat_blackBox_of_eq`. -/
+/-- Identity coercion `RunHooksPlaced → RunHooksPlacedSat`. -/
 theorem RunHooksPlaced.toSat [LibsignalPlacement] {W : CliHooks} {A : RustAlloc}
     {H : LibsignalHooks} (h : RunHooksPlaced W A H) :
     RunHooksPlacedSat W A H where
@@ -107,7 +109,7 @@ theorem RunHooksPlaced.toSat [LibsignalPlacement] {W : CliHooks} {A : RustAlloc}
   dh := h.dh
   sharedDrop := h.sharedDrop
   staticDrop := h.staticDrop
-  blackBox := hookSat_blackBox_of_eq h.blackBox
+  blackBox := h.blackBox
   hkdf := h.hkdf
   kemEncaps := h.kemEncaps
   durationSince := h.durationSince

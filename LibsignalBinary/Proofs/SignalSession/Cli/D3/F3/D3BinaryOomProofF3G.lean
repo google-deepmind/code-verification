@@ -17,6 +17,7 @@ public import LibsignalBinary.Proofs.SignalSession.Cli.F3.L4B.CliStrictPlaced2 -
 public import LibsignalBinary.Proofs.SignalSession.Cli.F3.L4B.CliStrictPlaced2G -- proof-setup: allow-public-import
 public import LibsignalBinary.Proofs.SignalSession.Cli.F3.L4B.F3HarnessPlaced -- proof-setup: allow-public-import
 public import LibsignalBinary.Proofs.SignalSession.Cli.HooksDehook.Block617TransferG -- proof-setup: allow-public-import
+public import LibsignalBinary.Proofs.SignalSession.Cli.HooksDehook.C2EntryGuard -- proof-setup: allow-public-import
 public import LibsignalBinary.Proofs.SignalSession.Cli.Parity.F3.BundleInitElfF3 -- proof-setup: allow-public-import
 public import LibsignalBinary.Specifications.SignalSession.CliBinaryPq
 import Arm64.Trusted.Spec.Hoare
@@ -33,7 +34,7 @@ import LibsignalBinary.Proofs.SpecLemmas.SignalSession.Process
   Route-2 (`w2_c12_route2_stmts.md` §3.2 `R2-D1..D4`) entry-guarded siblings of the D3 / flat-bundle
   `init` `MainOk*` arm specifications and whole-process `D3BinaryOomProofF3` / `ElfSlicesPqOomPlaced`
   constructors. Each `MainOk*G` predicate wraps the `b2MainSpecTightNeedLocksFineAt` subroutine
-  specification in `withEntryGuard (F3MemsetMemcpyEntryLrFalse mmpl)` and eliminates the guard
+  specification in `withEntryGuard (F3C2EntryGuard mpl mmpl)` and eliminates the guard
   internally at the process harness boundary via `CliStrictPlaced2G` (`R2-G4`), concluding the
   unchanged guard-free `cliRunPlacedSig = some …`, `OutcomeOrExcusedAbort …`, `≠ none`,
   `CliPqBinaryV2OomF3Placed`, `LibsignalCliPqBinaryV2OomF3PlacedAt`, and
@@ -87,7 +88,7 @@ open LibsignalBinary.Proofs.SignalSession.Cli.D3.F3.D3UntypedElfF3
 open LibsignalBinary.Proofs.SignalSession.Cli.F3.L4B.CliStrictPlaced2
   (b2MainSpecTightNeedLocksFineAt cliBudgetLimits cliRunPlacedSig_eq_on_input_of_progEq2)
 open LibsignalBinary.Proofs.SignalSession.Cli.F3.L4B.CliStrictPlaced2G
-  (CliElfF3B2NeedLocksAssumptionsG F3MemsetMemcpyEntryLrFalse MainOkCliF3OverB2NeedLocksPlacedAtG
+  (CliElfF3B2NeedLocksAssumptionsG MainOkCliF3OverB2NeedLocksPlacedAtG
    MainOkCliF3PqB2NeedLocksPlacedAtG cliPqxdhElfCorrectPlaced_of_f3B2NeedLocksG
    cliRunExtOnInputsSigAt_of_strict_b2_needLocks_guarded_call_obs
    cliRunExtOnInputsSigAt_of_strict_b2_needLocks_guarded_call_pred
@@ -99,6 +100,7 @@ open LibsignalBinary.Proofs.SignalSession.Cli.F3.L4B.F3HarnessPlaced
 open LibsignalBinary.Proofs.SignalSession.Cli.F3.L4B.PlacedOomRecovery2
   (outcomeOrExcusedAbort_of_eq)
 open LibsignalBinary.Proofs.SignalSession.Cli.HooksDehook.Block617TransferG (withEntryGuard)
+open LibsignalBinary.Proofs.SignalSession.Cli.HooksDehook.C2EntryGuard (F3C2EntryGuard)
 open LibsignalBinary.Proofs.SignalSession.Cli.Parity
   (BundleReadWithinCap InputsEquivRaw fileStep_entries filesFold_entries_eq_or
    filesFold_eq_foldl_fileStep parseBundleDir)
@@ -120,7 +122,7 @@ empty-or-matching session pre-key `recv` on arbitrary valid wire payloads `body`
     ∃ Run : Inputs → RunAnswer → Prop,
       (∀ (γ : GhostName) (tp : BitVec 64),
         subroutine_ok (cliProgExtPlacedAt mpl (cliExternsPlaced mmpl) 617 W) (mpl.base 617)
-          (withEntryGuard (F3MemsetMemcpyEntryLrFalse mmpl)
+          (withEntryGuard (F3C2EntryGuard mpl mmpl)
             (b2MainSpecTightNeedLocksFineAt libcAddr CodeOk
               (fineHookRustCliAllocBudget γ mmpl tp brkStart)
               cliBudgetLimits fineCostModel.init stk (cliStaticsPlacedAt mpl)
@@ -150,7 +152,7 @@ session pre-key `recv` on both arbitrary parsed wire payloads `body` (`validOver
     ∃ Run : Inputs → RunAnswer → Prop,
       (∀ (γ : GhostName) (tp : BitVec 64),
         subroutine_ok (cliProgExtPlacedAt mpl (cliExternsPlaced mmpl) 617 W) (mpl.base 617)
-          (withEntryGuard (F3MemsetMemcpyEntryLrFalse mmpl)
+          (withEntryGuard (F3C2EntryGuard mpl mmpl)
             (b2MainSpecTightNeedLocksFineAt libcAddr CodeOk
               (fineHookRustCliAllocBudget γ mmpl tp brkStart)
               cliBudgetLimits fineCostModel.init stk (cliStaticsPlacedAt mpl)
@@ -208,7 +210,7 @@ rejection (`R2-D1`). -/
     ∃ Run : Inputs → RunAnswer → Prop,
       (∀ (γ : GhostName) (tp : BitVec 64),
         subroutine_ok (cliProgExtPlacedAt mpl (cliExternsPlaced mmpl) 617 W) (mpl.base 617)
-          (withEntryGuard (F3MemsetMemcpyEntryLrFalse mmpl)
+          (withEntryGuard (F3C2EntryGuard mpl mmpl)
             (b2MainSpecTightNeedLocksFineAt libcAddr CodeOk
               (fineHookRustCliAllocBudget γ mmpl tp brkStart)
               cliBudgetLimits fineCostModel.init stk (cliStaticsPlacedAt mpl)
@@ -228,7 +230,7 @@ private theorem mainOkParseNoneD3F3G_of_runSem
     (hS_pksm : ∀ W, (SOf W).pksmParse = pksmParse)
     (hmainS : mpl.base 547 ≠ 0#64 → ∀ W : CliHooks, ∀ (γ : GhostName) (tp : BitVec 64),
       subroutine_ok (cliProgExtPlacedAt mpl (cliExternsPlaced mmpl) 617 W) (mpl.base 617)
-        (withEntryGuard (F3MemsetMemcpyEntryLrFalse mmpl)
+        (withEntryGuard (F3C2EntryGuard mpl mmpl)
           (b2MainSpecTightNeedLocksFineAt libcAddr CodeOk
             (fineHookRustCliAllocBudget γ mmpl tp brkStart)
             cliBudgetLimits fineCostModel.init stk (cliStaticsPlacedAt mpl)
@@ -250,7 +252,7 @@ untyped / bad-KEM PreKey rejection (`R2-D1`). -/
   ∀ W : CliHooks,
     ∀ (γ : GhostName) (tp : BitVec 64),
       subroutine_ok (cliProgExtPlacedAt mpl (cliExternsPlaced mmpl) 617 W) (mpl.base 617)
-        (withEntryGuard (F3MemsetMemcpyEntryLrFalse mmpl)
+        (withEntryGuard (F3C2EntryGuard mpl mmpl)
           (b2MainSpecTightNeedLocksFineAt libcAddr CodeOk
             (fineHookRustCliAllocBudget γ mmpl tp brkStart)
             cliBudgetLimits fineCostModel.init stk (cliStaticsPlacedAt mpl)
@@ -274,7 +276,7 @@ matching-session Path-B pre-key `recv` (`R2-D1`). -/
   ∀ (X : UnreachedPqxdhPrimitives) (W : CliHooks),
     ∀ (γ : GhostName) (tp : BitVec 64),
       subroutine_ok (cliProgExtPlacedAt mpl (cliExternsPlaced mmpl) 617 W) (mpl.base 617)
-        (withEntryGuard (F3MemsetMemcpyEntryLrFalse mmpl)
+        (withEntryGuard (F3C2EntryGuard mpl mmpl)
           (b2MainSpecTightNeedLocksFineAt libcAddr CodeOk
             (fineHookRustCliAllocBudget γ mmpl tp brkStart)
             cliBudgetLimits fineCostModel.init stk (cliStaticsPlacedAt mpl)
@@ -291,7 +293,7 @@ matching-session Path-B pre-key `recv` (`R2-D1`). -/
       InitRunSemOk S X ⟨W.C, W.Q⟩ ∧
       ∀ (γ : GhostName) (tp : BitVec 64),
         subroutine_ok (cliProgExtPlacedAt mpl (cliExternsPlaced mmpl) 617 W) (mpl.base 617)
-          (withEntryGuard (F3MemsetMemcpyEntryLrFalse mmpl)
+          (withEntryGuard (F3C2EntryGuard mpl mmpl)
             (b2MainSpecTightNeedLocksFineAt libcAddr CodeOk
               (fineHookRustCliAllocBudget γ mmpl tp brkStart)
               cliBudgetLimits fineCostModel.init stk (cliStaticsPlacedAt mpl)
@@ -309,7 +311,7 @@ private theorem pqRecv_strict_obs_of_f3B2NeedLocksG
     (H : CliElfF3B2NeedLocksAssumptionsG mpl mmpl exitStk libcAddr stk CodeOk elf)
     (hmainW : ∀ (γ : GhostName) (tp : BitVec 64),
       subroutine_ok (cliProgExtPlacedAt mpl (cliExternsPlaced mmpl) 617 W) (mpl.base 617)
-        (withEntryGuard (F3MemsetMemcpyEntryLrFalse mmpl)
+        (withEntryGuard (F3C2EntryGuard mpl mmpl)
           (b2MainSpecTightNeedLocksFineAt libcAddr CodeOk
             (fineHookRustCliAllocBudget γ mmpl tp elf.brkStart)
             cliBudgetLimits fineCostModel.init stk (cliStaticsPlacedAt mpl) Run cliProcessInputs)))

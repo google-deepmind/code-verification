@@ -15,10 +15,11 @@ public import LibsignalBinary.Heap.IfaceBudgetBase
 public import LibsignalBinary.Heap.IfaceBudgetBaseBridges
 public import LibsignalBinary.Proofs.PeakBudget.CliKitEnvFits
 public import LibsignalBinary.Proofs.PeakBudget.CliMainIoCredit
-public import LibsignalBinary.Proofs.PeakBudget.CliNoOomOfFitsEnv
+public import LibsignalBinary.Proofs.PeakBudget.CliNoOomOfFitsEnvGhostSat
 public import LibsignalBinary.Proofs.PeakBudget.RealCliRunEnvMemFixed
 public import LibsignalBinary.Proofs.PeakBudget.RealMainEnvAdapter
 public import LibsignalBinary.Proofs.SignalSession.Cli.AllocGhostLinkTransfer
+public import LibsignalBinary.Proofs.SignalSession.Cli.M24.CliStrictPlacedPadSat
 public import LibsignalBinary.Proofs.SignalSession.Cli.Run.Compose.RunOkPlacedBudget
 public import LibsignalBinary.Proofs.SignalSession.Cli.F3.HRead.ReadFileBudgetPlaced
 public import LibsignalBinary.Proofs.SignalSession.Cli.F3.HRead.F3ReadFileGhostHook
@@ -30,7 +31,9 @@ public import LibsignalBinary.Proofs.SignalSession.Cli.F3.L4B.CliStrictPlaced2
 public import LibsignalBinary.Proofs.SignalSession.Cli.F3.L4B.M24L4BEquiv
 public import LibsignalBinary.Proofs.SignalSession.Cli.F3.L4B.PlacedOomRecovery2
 public import LibsignalBinary.Proofs.SignalSession.Cli.F3.L4A.T2Strict2Bridge
+public import LibsignalBinary.Proofs.SignalSession.Cli.HooksDehook.ExtraGhostReplay
 public import LibsignalBinary.Proofs.SignalSession.Cli.HooksDehook.MemcpyExactCore
+public import LibsignalBinary.Proofs.SignalSession.Cli.Run.Slots.ExtraGhostSpecs
 
 /-!
 # Whole-program `FitsEnv` to `MainOk`, strict placed ELF correctness, and `¬ CliReachesOOMPlaced`
@@ -73,7 +76,8 @@ open CryptoVerification.SignalSession.Cli.MainHops
   (LsCodeInv RunCall cliIo cliMainStk cliResStack cliRunBudgets cliWrOk inputOf mProgPlaced
    mainFrameSize parseArgs)
 open CryptoVerification.SignalSession.Cli.RunCompose (PksmGhost runRel)
-open CryptoVerification.SignalSession.Cli.RunGlue (CliGhostHooks IsFsC cliGhostExterns)
+open CryptoVerification.SignalSession.Cli.RunGlue
+  (CliGhostHooks ExtraGhostTable IsFsC cliExtraGhostSyms cliGhostExterns)
 open VerifiedLibraries (mallocngLib)
 open VerifiedLibraries.Mallocng (mallocngAddrsOfPlacement)
 open LibsignalBinary.Heap
@@ -100,14 +104,14 @@ open LibsignalBinary.Proofs.PeakBudget.RealCliRunEnvMemFixed
    runEnvFixed_sub_realCliRunBinaryKitEnvOfFixed_canonOrFallback
    runEnvFixed_sub_realCliRunBinaryKitEnvOfFixed_canonSlice)
 open LibsignalBinary.Proofs.PeakBudget.WirePksmTightCredit (PksmCanonSliceEnv)
-open LibsignalBinary.Proofs.PeakBudget.CliNoOomOfFitsEnv
-  (mainOkCliExtOverB2NeedLocksPlacedAt_cliGhostExterns_cliBudgetLimits_of_kitEnvFits_and_runTightOf
-   mainOkCliExtPqB2NeedLocksPlacedAt_cliGhostExterns_cliBudgetLimits_of_kitEnvFits_and_runTightOf)
+open LibsignalBinary.Proofs.PeakBudget.CliNoOomOfFitsEnvGhostSat
+  (mainOkCliExtOverB2NeedLocksPadPlacedAt_cliGhostExterns_cliBudgetLimits_of_kitEnvFits_and_runTightOf
+   mainOkCliExtPqB2NeedLocksPadPlacedAt_cliGhostExterns_cliBudgetLimits_of_kitEnvFits_and_runTightOf)
 open LibsignalBinary.Proofs.SignalSession.Cli.AllocGhostLinkTransfer
   (ExecFrozen StubReachesTarget)
 open LibsignalBinary.Proofs.SignalSession.Cli.M24.B2MainFrameComposeBudget (libsignalPlacementOf)
-open LibsignalBinary.Proofs.SignalSession.Cli.M24.CliStrictPlaced
-  (MainOkCliExtOverB2NeedLocksPlacedAt MainOkCliExtPqB2NeedLocksPlacedAt)
+open LibsignalBinary.Proofs.SignalSession.Cli.M24.CliStrictPlacedPadSat
+  (MainOkCliExtOverB2NeedLocksPadPlacedAt MainOkCliExtPqB2NeedLocksPadPlacedAt)
 open LibsignalBinary.Proofs.SignalSession.Cli.M24.MainOkCliExtB2NeedLocksInst (cliRunSemD2c_placed)
 open LibsignalBinary.Proofs.SignalSession.Cli.Main.HopsPlacedBudget (runSpecTightPlaced)
 open LibsignalBinary.Proofs.SignalSession.Cli.F3.HRead.ReadFileBudgetPlaced
@@ -146,7 +150,10 @@ open LibsignalBinary.Proofs.SignalSession.Cli.F3.L4B.M24L4BEquiv
   (mainOkCliExtOverB2NeedLocksPlacedAt_iff mainOkCliExtPqB2NeedLocksPlacedAt_iff)
 open LibsignalBinary.Proofs.SignalSession.Cli.F3.L4A.T2Strict2Bridge
   (hAlloc_of_cliPqxdhElfCorrectStrictPlaced2 not_cliReachesOOMPlaced_of_strict2)
+open LibsignalBinary.Proofs.SignalSession.Cli.HooksDehook.ExtraGhostReplay
+  (GhostSymActive_iff_named_or_extra)
 open LibsignalBinary.Proofs.SignalSession.Cli.HooksDehook.MemcpyExactCore (HookExactMemcpy)
+open LibsignalBinary.Proofs.SignalSession.Cli.Run.Slots.ExtraGhostSpecs (ExtraFullListSpecOk)
 
 /-! ## `ReadFileRuleEnvFixed cliIo.rd` ⊆ `BoundedReadFileEnv` -/
 
@@ -168,7 +175,7 @@ theorem boundedReadFileEnv_of_readFileRuleEnvFixed_cliIo
 
 /-! ## Ghost-hook and subroutine replay bundle (`F3FixedHookHyp`) -/
 
-/-- Ghost-hook, subroutine-correctness, and Block-`617` replay hypotheses for `f3CliGhostHooksFixed` (including `fMemset` and `fMemcpy`). -/
+/-- Ghost-hook, subroutine-correctness, and Block-`617` replay hypotheses for `f3CliGhostHooksFixed` (including `fMemset`, `fMemcpy`, and Cutover-2 `extra`). -/
 structure F3FixedHookHyp
     (mpl mmpl : MultiPlacement)
     (CodeOk_ghost CodeOk_real : Memory → Prop)
@@ -178,7 +185,8 @@ structure F3FixedHookHyp
     (P_real P_sub : Program)
     (T : F3GhostEntryTargets)
     (hookStack : Nat)
-    (fMemset fMemcpy : Option (State → State)) : Prop where
+    (fMemset fMemcpy : Option (State → State))
+    (extra : ExtraGhostTable) : Prop where
   hPl_ls : libsignalSessionLib.Placeable mpl
   hblk : ∀ i, i < libsignalSessionLib.blocks.length → (i ∈ libsignalMutatedBlocks) = false →
     (libsignalSessionLib.blockLib i).Placeable (libsignalSessionLib.blockPlacement mpl i)
@@ -236,6 +244,7 @@ structure F3FixedHookHyp
   hMemcpyExact : ∀ f, fMemcpy = some f → HookExactMemcpy f
   hMemsetAcp : ∀ f, fMemset = some f →
     ∀ s : State, (f s).sigActions = s.sigActions ∧ (f s).oracle = s.oracle
+  hExtraOk : @ExtraFullListSpecOk (libsignalPlacementOf mpl hblk hext_nodup) extra
   hStubAlloc : StubReachesTarget P_real (libsignalSessionLib.resolve mpl lsRustAllocSymCli) T.alloc
   hStubDealloc : StubReachesTarget P_real (libsignalSessionLib.resolve mpl lsRustDeallocSymCli) T.dealloc
   hStubRealloc : StubReachesTarget P_real (libsignalSessionLib.resolve mpl lsRustReallocSymCli) T.realloc
@@ -253,7 +262,7 @@ structure F3FixedHookHyp
   hGhostCL : ∀ (W : CliHooks) (m : Memory), CodeOk_ghost m →
     (cliProgExtPlacedAt mpl
       (fun W' => cliGhostExterns
-        (@f3CliGhostHooksFixed (libsignalPlacementOf mpl hblk hext_nodup) keep P_real P_sub T mmpl brkStart cliBudgetLimits hookStack fMemset fMemcpy)
+        (@f3CliGhostHooksFixed (libsignalPlacementOf mpl hblk hext_nodup) keep P_real P_sub T mmpl brkStart cliBudgetLimits hookStack fMemset fMemcpy extra)
         (cliExternsPlaced mmpl W')) 617 W).CodeLoaded m
   hFr0 : ∀ m : Memory, CodeOk_real m → ExecFrozen m
   hInv0 : ∀ m : Memory, CodeOk_real m → InvMem m
@@ -261,7 +270,7 @@ structure F3FixedHookHyp
   hInvCodeSub : ∀ m : Memory, ExecFrozen m → InvMem m → P_sub.CodeLoaded (stripExecOutside keep m)
   hRealNone : ∀ (W : CliHooks) (sym : String) (f : State → State),
     GhostSymActive
-      (@f3CliGhostHooksFixed (libsignalPlacementOf mpl hblk hext_nodup) keep P_real P_sub T mmpl brkStart cliBudgetLimits hookStack fMemset fMemcpy) sym f →
+      (@f3CliGhostHooksFixed (libsignalPlacementOf mpl hblk hext_nodup) keep P_real P_sub T mmpl brkStart cliBudgetLimits hookStack fMemset fMemcpy extra) sym f →
     (cliProgExtPlacedAt mpl (cliExternsPlaced mmpl) 617 W).externAt?
       (libsignalSessionLib.resolve mpl sym) = none
   hStepsReal : ∀ (W : CliHooks) (u v : State),
@@ -269,7 +278,7 @@ structure F3FixedHookHyp
   hReplayMemset : ∀ (W : CliHooks) (i : Inputs) (s0 sf u : State) (f : State → State),
     let P_ghost := cliProgExtPlacedAt mpl
       (fun W' => cliGhostExterns
-        (@f3CliGhostHooksFixed (libsignalPlacementOf mpl hblk hext_nodup) keep P_real P_sub T mmpl brkStart cliBudgetLimits hookStack fMemset fMemcpy)
+        (@f3CliGhostHooksFixed (libsignalPlacementOf mpl hblk hext_nodup) keep P_real P_sub T mmpl brkStart cliBudgetLimits hookStack fMemset fMemcpy extra)
         (cliExternsPlaced mmpl W')) 617 W
     let P_real_W := cliProgExtPlacedAt mpl (cliExternsPlaced mmpl) 617 W
     fMemset = some f →
@@ -293,7 +302,7 @@ structure F3FixedHookHyp
   hReplayMemcpy : ∀ (W : CliHooks) (i : Inputs) (s0 sf u : State) (f : State → State),
     let P_ghost := cliProgExtPlacedAt mpl
       (fun W' => cliGhostExterns
-        (@f3CliGhostHooksFixed (libsignalPlacementOf mpl hblk hext_nodup) keep P_real P_sub T mmpl brkStart cliBudgetLimits hookStack fMemset fMemcpy)
+        (@f3CliGhostHooksFixed (libsignalPlacementOf mpl hblk hext_nodup) keep P_real P_sub T mmpl brkStart cliBudgetLimits hookStack fMemset fMemcpy extra)
         (cliExternsPlaced mmpl W')) 617 W
     let P_real_W := cliProgExtPlacedAt mpl (cliExternsPlaced mmpl) 617 W
     fMemcpy = some f →
@@ -314,10 +323,36 @@ structure F3FixedHookHyp
     InvMem u.mem →
     FdsGe3Closed u.fs →
     Steps P_real_W u (f u) ∧ ExecFrozen (f u).mem ∧ FdsGe3Closed (f u).fs
+  hReplayExtra : ∀ (W : CliHooks) (i : Inputs) (s0 sf u : State)
+      (sym : String) (f : State → State),
+    let P_ghost := cliProgExtPlacedAt mpl
+      (fun W' => cliGhostExterns
+        (@f3CliGhostHooksFixed (libsignalPlacementOf mpl hblk hext_nodup) keep P_real P_sub T mmpl brkStart cliBudgetLimits hookStack fMemset fMemcpy extra)
+        (cliExternsPlaced mmpl W')) 617 W
+    let P_real_W := cliProgExtPlacedAt mpl (cliExternsPlaced mmpl) 617 W
+    cliExtraGhostSyms.contains sym = true →
+    extra.lookup sym = some f →
+    CodeOk_real s0.mem →
+    s0.pc = mpl.base 617 →
+    s0.fs = initFsState (cliProcessInputs i) →
+    s0.trace = [] →
+    Steps P_ghost s0 u →
+    Steps P_ghost (f u) sf →
+    (∀ msg, sf.status ≠ .Exception msg) →
+    sf.status ≠ .Halted →
+    u.pc = libsignalSessionLib.resolve mpl sym →
+    u.status = .Running →
+    (∀ msg, (f u).status ≠ .Exception msg) →
+    u.mem.KeepsFrozen (f u).mem →
+    ExecFrozen u.mem →
+    keep (u.readReg64 .lr) = false →
+    InvMem u.mem →
+    FdsGe3Closed u.fs →
+    Steps P_real_W u (f u) ∧ ExecFrozen (f u).mem ∧ FdsGe3Closed (f u).fs
   hMallocngFds : ∀ (W : CliHooks) (i : Inputs) (s0 sf u : State) (f : State → State),
     let P_ghost := cliProgExtPlacedAt mpl
       (fun W' => cliGhostExterns
-        (@f3CliGhostHooksFixed (libsignalPlacementOf mpl hblk hext_nodup) keep P_real P_sub T mmpl brkStart cliBudgetLimits hookStack fMemset fMemcpy)
+        (@f3CliGhostHooksFixed (libsignalPlacementOf mpl hblk hext_nodup) keep P_real P_sub T mmpl brkStart cliBudgetLimits hookStack fMemset fMemcpy extra)
         (cliExternsPlaced mmpl W')) 617 W
     CodeOk_real s0.mem →
     s0.pc = mpl.base 617 →
@@ -338,7 +373,7 @@ structure F3FixedHookHyp
   hSvcFds : ∀ (W : CliHooks) (i : Inputs) (s0 sf u : State),
     let P_ghost := cliProgExtPlacedAt mpl
       (fun W' => cliGhostExterns
-        (@f3CliGhostHooksFixed (libsignalPlacementOf mpl hblk hext_nodup) keep P_real P_sub T mmpl brkStart cliBudgetLimits hookStack fMemset fMemcpy)
+        (@f3CliGhostHooksFixed (libsignalPlacementOf mpl hblk hext_nodup) keep P_real P_sub T mmpl brkStart cliBudgetLimits hookStack fMemset fMemcpy extra)
         (cliExternsPlaced mmpl W')) 617 W
     CodeOk_real s0.mem →
     s0.pc = mpl.base 617 →
@@ -358,7 +393,7 @@ structure F3FixedHookHyp
   hLrCalls : ∀ (W : CliHooks) (i : Inputs) (s0 sf u : State),
     let P_ghost := cliProgExtPlacedAt mpl
       (fun W' => cliGhostExterns
-        (@f3CliGhostHooksFixed (libsignalPlacementOf mpl hblk hext_nodup) keep P_real P_sub T mmpl brkStart cliBudgetLimits hookStack fMemset fMemcpy)
+        (@f3CliGhostHooksFixed (libsignalPlacementOf mpl hblk hext_nodup) keep P_real P_sub T mmpl brkStart cliBudgetLimits hookStack fMemset fMemcpy extra)
         (cliExternsPlaced mmpl W')) 617 W
     let P_real_W := cliProgExtPlacedAt mpl (cliExternsPlaced mmpl) 617 W
     CodeOk_real s0.mem →
@@ -373,9 +408,9 @@ structure F3FixedHookHyp
     P_ghost.externAt? u.pc ≠ P_real_W.externAt? u.pc →
     keep (u.readReg64 .lr) = false
 
-/-! ## Ghost-externs `MainOkCliExt{Pq,Over}B2NeedLocksPlacedAt` -/
+/-! ## Ghost-externs `MainOkCliExt{Pq,Over}B2NeedLocksPadPlacedAt` -/
 
-/-- Whole-program ghost-externs `MainOkCliExtPqB2NeedLocksPlacedAt` under `cliBudgetLimits`,
+/-- Whole-program ghost-externs `MainOkCliExtPqB2NeedLocksPadPlacedAt` under `cliBudgetLimits`,
     `f3CliGhostHooksFixed`, `ReadFileRuleEnvFixed cliIo.rd`, and
     `mkBinaryKitRealCalleeEnvsFixed img (cliRunSemD2c_placed X W) X W`. -/
 theorem mainOkCliExtPqB2NeedLocksPlacedAt_f3Fixed
@@ -385,8 +420,9 @@ theorem mainOkCliExtPqB2NeedLocksPlacedAt_f3Fixed
     {keep : BitVec 64 → Bool} {InvMem : Memory → Prop}
     {P_real P_sub : Program} {T : F3GhostEntryTargets} {hookStack : Nat}
     {fMemset fMemcpy : Option (State → State)}
+    {extra : ExtraGhostTable}
     (HF : F3FixedHookHyp mpl mmpl CodeOk_ghost CodeOk_real libcAddr brkStart
-      keep InvMem P_real P_sub T hookStack fMemset fMemcpy)
+      keep InvMem P_real P_sub T hookStack fMemset fMemcpy extra)
     (img : Image)
     (RunEnv : UnreachedPqxdhPrimitives → CliHooks → GhostName → BitVec 64 →
       RunCall → List AllocEvent → Prop)
@@ -411,7 +447,7 @@ theorem mainOkCliExtPqB2NeedLocksPlacedAt_f3Fixed
         @subroutine_ok _
           (@mProgPlaced (libsignalPlacementOf mpl HF.hblk HF.hext_nodup)
             (cliGhostExterns
-              (@f3CliGhostHooksFixed (libsignalPlacementOf mpl HF.hblk HF.hext_nodup) keep P_real P_sub T mmpl brkStart cliBudgetLimits hookStack fMemset fMemcpy)
+              (@f3CliGhostHooksFixed (libsignalPlacementOf mpl HF.hblk HF.hext_nodup) keep P_real P_sub T mmpl brkStart cliBudgetLimits hookStack fMemset fMemcpy extra)
               (cliExternsPlaced mmpl W)))
           (mpl.base 579)
           (@runSpecTightPlaced
@@ -421,14 +457,14 @@ theorem mainOkCliExtPqB2NeedLocksPlacedAt_f3Fixed
             (RunEnv X W γ tp) uuidTryParse
             (runRel (cliRunSemD2c_placed X W))
             cliWrOk cliResStack)) :
-    MainOkCliExtPqB2NeedLocksPlacedAt mpl mmpl
+    MainOkCliExtPqB2NeedLocksPadPlacedAt mpl mmpl
       (fun W => cliGhostExterns
-        (@f3CliGhostHooksFixed (libsignalPlacementOf mpl HF.hblk HF.hext_nodup) keep P_real P_sub T mmpl brkStart cliBudgetLimits hookStack fMemset fMemcpy)
+        (@f3CliGhostHooksFixed (libsignalPlacementOf mpl HF.hblk HF.hext_nodup) keep P_real P_sub T mmpl brkStart cliBudgetLimits hookStack fMemset fMemcpy extra)
         (cliExternsPlaced mmpl W))
       617 cliProcessInputs CodeOk_ghost libcAddr brkStart cliMainStk cliBudgetLimits :=
-  mainOkCliExtPqB2NeedLocksPlacedAt_cliGhostExterns_cliBudgetLimits_of_kitEnvFits_and_runTightOf
+  mainOkCliExtPqB2NeedLocksPadPlacedAt_cliGhostExterns_cliBudgetLimits_of_kitEnvFits_and_runTightOf
     HF.hblk HF.hext_nodup HF.hCI
-    (fun _ => @f3CliGhostHooksFixed (libsignalPlacementOf mpl HF.hblk HF.hext_nodup) keep P_real P_sub T mmpl brkStart cliBudgetLimits hookStack fMemset fMemcpy)
+    (fun _ => @f3CliGhostHooksFixed (libsignalPlacementOf mpl HF.hblk HF.hext_nodup) keep P_real P_sub T mmpl brkStart cliBudgetLimits hookStack fMemset fMemcpy extra)
     (fun X W => @mkBinaryKitRealCalleeEnvsFixed (libsignalPlacementOf mpl HF.hblk HF.hext_nodup)
       img (cliRunSemD2c_placed X W) X W)
     RunEnv HF.hlibc
@@ -440,10 +476,10 @@ theorem mainOkCliExtPqB2NeedLocksPlacedAt_f3Fixed
         (subroutine_ok_rustCliAllocBudget_of_base (HF.hAlloc γ tp))
         (subroutine_ok_rustCliDeallocBudget_of_base (HF.hDealloc γ tp))
         (subroutine_ok_rustCliReallocBudget_of_base (HF.hRealloc γ tp))
-        HF.hMemset HF.hMemcpy HF.hMemcpyExact HF.hMemsetAcp)
+        HF.hMemset HF.hMemcpy HF.hMemcpyExact HF.hMemsetAcp HF.hExtraOk)
     (fun W γ tp => @mainIoOfPlaced_f3CliGhostHooksFixed
       (libsignalPlacementOf mpl HF.hblk HF.hext_nodup)
-      keep P_real P_sub T mmpl W brkStart cliBudgetLimits hookStack fMemset fMemcpy
+      keep P_real P_sub T mmpl W brkStart cliBudgetLimits hookStack fMemset fMemcpy extra
       HF.hsvc_real HF.hsvc_sub HF.hreal_no HF.hsub_no HF.hPl_mng HF.hKeepMallocng
       HF.hHookStack HF.hReadFileCond HF.hReadStdinCond γ tp)
     (fun files path _ h => boundedReadFileEnv_of_readFileRuleEnvFixed_cliIo files path h)
@@ -452,7 +488,7 @@ theorem mainOkCliExtPqB2NeedLocksPlacedAt_f3Fixed
     hRunSub
     hrun
 
-/-- Overcap-arm ghost-externs `MainOkCliExtOverB2NeedLocksPlacedAt` under `cliBudgetLimits`,
+/-- Overcap-arm ghost-externs `MainOkCliExtOverB2NeedLocksPadPlacedAt` under `cliBudgetLimits`,
     `f3CliGhostHooksFixed`, `ReadFileRuleEnvFixed cliIo.rd`, and
     `mkBinaryKitRealCalleeEnvsFixed img (cliRunSemD2c_placed X W) X W`. -/
 theorem mainOkCliExtOverB2NeedLocksPlacedAt_f3Fixed
@@ -462,8 +498,9 @@ theorem mainOkCliExtOverB2NeedLocksPlacedAt_f3Fixed
     {keep : BitVec 64 → Bool} {InvMem : Memory → Prop}
     {P_real P_sub : Program} {T : F3GhostEntryTargets} {hookStack : Nat}
     {fMemset fMemcpy : Option (State → State)}
+    {extra : ExtraGhostTable}
     (HF : F3FixedHookHyp mpl mmpl CodeOk_ghost CodeOk_real libcAddr brkStart
-      keep InvMem P_real P_sub T hookStack fMemset fMemcpy)
+      keep InvMem P_real P_sub T hookStack fMemset fMemcpy extra)
     (img : Image)
     (RunEnv : UnreachedPqxdhPrimitives → CliHooks → GhostName → BitVec 64 →
       RunCall → List AllocEvent → Prop)
@@ -488,7 +525,7 @@ theorem mainOkCliExtOverB2NeedLocksPlacedAt_f3Fixed
         @subroutine_ok _
           (@mProgPlaced (libsignalPlacementOf mpl HF.hblk HF.hext_nodup)
             (cliGhostExterns
-              (@f3CliGhostHooksFixed (libsignalPlacementOf mpl HF.hblk HF.hext_nodup) keep P_real P_sub T mmpl brkStart cliBudgetLimits hookStack fMemset fMemcpy)
+              (@f3CliGhostHooksFixed (libsignalPlacementOf mpl HF.hblk HF.hext_nodup) keep P_real P_sub T mmpl brkStart cliBudgetLimits hookStack fMemset fMemcpy extra)
               (cliExternsPlaced mmpl W)))
           (mpl.base 579)
           (@runSpecTightPlaced
@@ -498,14 +535,14 @@ theorem mainOkCliExtOverB2NeedLocksPlacedAt_f3Fixed
             (RunEnv X W γ tp) uuidTryParse
             (runRel (cliRunSemD2c_placed X W))
             cliWrOk cliResStack)) :
-    MainOkCliExtOverB2NeedLocksPlacedAt mpl mmpl
+    MainOkCliExtOverB2NeedLocksPadPlacedAt mpl mmpl
       (fun W => cliGhostExterns
-        (@f3CliGhostHooksFixed (libsignalPlacementOf mpl HF.hblk HF.hext_nodup) keep P_real P_sub T mmpl brkStart cliBudgetLimits hookStack fMemset fMemcpy)
+        (@f3CliGhostHooksFixed (libsignalPlacementOf mpl HF.hblk HF.hext_nodup) keep P_real P_sub T mmpl brkStart cliBudgetLimits hookStack fMemset fMemcpy extra)
         (cliExternsPlaced mmpl W))
       617 cliProcessInputs CodeOk_ghost libcAddr brkStart cliMainStk cliBudgetLimits :=
-  mainOkCliExtOverB2NeedLocksPlacedAt_cliGhostExterns_cliBudgetLimits_of_kitEnvFits_and_runTightOf
+  mainOkCliExtOverB2NeedLocksPadPlacedAt_cliGhostExterns_cliBudgetLimits_of_kitEnvFits_and_runTightOf
     HF.hblk HF.hext_nodup HF.hCI
-    (fun _ => @f3CliGhostHooksFixed (libsignalPlacementOf mpl HF.hblk HF.hext_nodup) keep P_real P_sub T mmpl brkStart cliBudgetLimits hookStack fMemset fMemcpy)
+    (fun _ => @f3CliGhostHooksFixed (libsignalPlacementOf mpl HF.hblk HF.hext_nodup) keep P_real P_sub T mmpl brkStart cliBudgetLimits hookStack fMemset fMemcpy extra)
     (fun X W => @mkBinaryKitRealCalleeEnvsFixed (libsignalPlacementOf mpl HF.hblk HF.hext_nodup)
       img (cliRunSemD2c_placed X W) X W)
     RunEnv HF.hlibc
@@ -517,10 +554,10 @@ theorem mainOkCliExtOverB2NeedLocksPlacedAt_f3Fixed
         (subroutine_ok_rustCliAllocBudget_of_base (HF.hAlloc γ tp))
         (subroutine_ok_rustCliDeallocBudget_of_base (HF.hDealloc γ tp))
         (subroutine_ok_rustCliReallocBudget_of_base (HF.hRealloc γ tp))
-        HF.hMemset HF.hMemcpy HF.hMemcpyExact HF.hMemsetAcp)
+        HF.hMemset HF.hMemcpy HF.hMemcpyExact HF.hMemsetAcp HF.hExtraOk)
     (fun W γ tp => @mainIoOfPlaced_f3CliGhostHooksFixed
       (libsignalPlacementOf mpl HF.hblk HF.hext_nodup)
-      keep P_real P_sub T mmpl W brkStart cliBudgetLimits hookStack fMemset fMemcpy
+      keep P_real P_sub T mmpl W brkStart cliBudgetLimits hookStack fMemset fMemcpy extra
       HF.hsvc_real HF.hsvc_sub HF.hreal_no HF.hsub_no HF.hPl_mng HF.hKeepMallocng
       HF.hHookStack HF.hReadFileCond HF.hReadStdinCond γ tp)
     (fun files path _ h => boundedReadFileEnv_of_readFileRuleEnvFixed_cliIo files path h)
@@ -574,7 +611,7 @@ private theorem blockProgram_externAt?_some_exists
   exact findSome?_table_exists _ _ h
 
 /-- Internal Block-`617` ghost-to-real transfer for `f3CliGhostHooksFixed` via
-`Ghost617Transfer.block617TransferFixed_of_replaysOn`, the `f3*GhostHookFine_steps_of_call` replay lemmas, `hookNoop`, and `HF.hReplay{Memset,Memcpy}`. -/
+`Ghost617Transfer.block617TransferFixed_of_replaysOn`, the `f3*GhostHookFine_steps_of_call` replay lemmas, `hookNoop`, and `HF.hReplay{Memset,Memcpy,Extra}`. -/
 private theorem block617TransferFixed_f3CliGhostHooksFixed
     {mpl mmpl : MultiPlacement}
     {CodeOk_ghost CodeOk_real : Memory → Prop}
@@ -582,14 +619,15 @@ private theorem block617TransferFixed_f3CliGhostHooksFixed
     {keep : BitVec 64 → Bool} {InvMem : Memory → Prop}
     {P_real P_sub : Program} {T : F3GhostEntryTargets} {hookStack : Nat}
     {fMemset fMemcpy : Option (State → State)}
+    {extra : ExtraGhostTable}
     (HF : F3FixedHookHyp mpl mmpl CodeOk_ghost CodeOk_real libcAddr brkStart
-      keep InvMem P_real P_sub T hookStack fMemset fMemcpy) :
+      keep InvMem P_real P_sub T hookStack fMemset fMemcpy extra) :
     Block617TransferFixedHyp mpl mmpl
-      (@f3CliGhostHooksFixed (libsignalPlacementOf mpl HF.hblk HF.hext_nodup) keep P_real P_sub T mmpl brkStart cliBudgetLimits hookStack fMemset fMemcpy)
+      (@f3CliGhostHooksFixed (libsignalPlacementOf mpl HF.hblk HF.hext_nodup) keep P_real P_sub T mmpl brkStart cliBudgetLimits hookStack fMemset fMemcpy extra)
       CodeOk_ghost CodeOk_real libcAddr brkStart cliMainStk := by
   let : LibsignalPlacement := libsignalPlacementOf mpl HF.hblk HF.hext_nodup
   let ghFixed := @f3CliGhostHooksFixed (libsignalPlacementOf mpl HF.hblk HF.hext_nodup)
-    keep P_real P_sub T mmpl brkStart cliBudgetLimits hookStack fMemset fMemcpy
+    keep P_real P_sub T mmpl brkStart cliBudgetLimits hookStack fMemset fMemcpy extra
   refine block617TransferFixed_of_replaysOn keep InvMem FdsGe3Closed
     HF.hCode HF.hGhostCL HF.hFr0 HF.hInv0 HF.hInvStable
     (fun i => fdsGe3Closed_initFsState (cliProcessInputs i)) ?_
@@ -618,7 +656,12 @@ private theorem block617TransferFixed_f3CliGhostHooksFixed
       suffices Steps (cliProgExtPlacedAt mpl (cliExternsPlaced mmpl) 617 W) u (f u) ∧
           ExecFrozen (f u).mem ∧ FdsGe3Closed (f u).fs by
         exact ⟨this.1, this.2.1, HF.hInvStable u.mem _ hinv hkf, this.2.2⟩
-      rcases hAct with
+      rcases (GhostSymActive_iff_named_or_extra ghFixed sym f).mp hAct with hNamed | ⟨hDom, hLook⟩
+      swap
+      · dsimp only [ghFixed, f3CliGhostHooksFixed] at hLook
+        exact HF.hReplayExtra W i s0 sf u sym f hDom hLook hReal0 hpc0 hfs0 htr0 hpre hpost
+          hnoex_sf hnhalt_sf hpc hrun hnoex hkf hfr hlr hinv hfs
+      rcases hNamed with
         ⟨rfl, rfl⟩ | ⟨rfl, rfl⟩ | ⟨rfl, rfl⟩ | ⟨rfl, rfl⟩ | ⟨rfl, rfl⟩ |
         ⟨rfl, hsc⟩ | ⟨rfl, h, hrf⟩ | ⟨rfl, h, hrs⟩ | ⟨rfl, hms⟩ | ⟨rfl, hmc⟩
       · dsimp only [ghFixed, f3CliGhostHooksFixed] at hnoex ⊢
@@ -693,8 +736,9 @@ theorem mainOkCliF3Pq_of_f3Fixed
     {keep : BitVec 64 → Bool} {InvMem : Memory → Prop}
     {P_real P_sub : Program} {T : F3GhostEntryTargets} {hookStack : Nat}
     {fMemset fMemcpy : Option (State → State)}
+    {extra : ExtraGhostTable}
     (HF : F3FixedHookHyp mpl mmpl CodeOk_ghost CodeOk_real libcAddr brkStart
-      keep InvMem P_real P_sub T hookStack fMemset fMemcpy)
+      keep InvMem P_real P_sub T hookStack fMemset fMemcpy extra)
     (img : Image)
     (RunEnv : UnreachedPqxdhPrimitives → CliHooks → GhostName → BitVec 64 →
       RunCall → List AllocEvent → Prop)
@@ -719,7 +763,7 @@ theorem mainOkCliF3Pq_of_f3Fixed
         @subroutine_ok _
           (@mProgPlaced (libsignalPlacementOf mpl HF.hblk HF.hext_nodup)
             (cliGhostExterns
-              (@f3CliGhostHooksFixed (libsignalPlacementOf mpl HF.hblk HF.hext_nodup) keep P_real P_sub T mmpl brkStart cliBudgetLimits hookStack fMemset fMemcpy)
+              (@f3CliGhostHooksFixed (libsignalPlacementOf mpl HF.hblk HF.hext_nodup) keep P_real P_sub T mmpl brkStart cliBudgetLimits hookStack fMemset fMemcpy extra)
               (cliExternsPlaced mmpl W)))
           (mpl.base 579)
           (@runSpecTightPlaced
@@ -734,7 +778,7 @@ theorem mainOkCliF3Pq_of_f3Fixed
     (block617TransferFixed_f3CliGhostHooksFixed HF)
     ((mainOkCliExtPqB2NeedLocksPlacedAt_iff mpl mmpl
       (fun W => cliGhostExterns
-        (@f3CliGhostHooksFixed (libsignalPlacementOf mpl HF.hblk HF.hext_nodup) keep P_real P_sub T mmpl brkStart cliBudgetLimits hookStack fMemset fMemcpy)
+        (@f3CliGhostHooksFixed (libsignalPlacementOf mpl HF.hblk HF.hext_nodup) keep P_real P_sub T mmpl brkStart cliBudgetLimits hookStack fMemset fMemcpy extra)
         (cliExternsPlaced mmpl W))
       617 cliProcessInputs CodeOk_ghost libcAddr brkStart cliMainStk cliBudgetLimits).mp
       (mainOkCliExtPqB2NeedLocksPlacedAt_f3Fixed HF img RunEnv hKitFits hRunSub hrun))
@@ -748,8 +792,9 @@ theorem mainOkCliF3Over_of_f3Fixed
     {keep : BitVec 64 → Bool} {InvMem : Memory → Prop}
     {P_real P_sub : Program} {T : F3GhostEntryTargets} {hookStack : Nat}
     {fMemset fMemcpy : Option (State → State)}
+    {extra : ExtraGhostTable}
     (HF : F3FixedHookHyp mpl mmpl CodeOk_ghost CodeOk_real libcAddr brkStart
-      keep InvMem P_real P_sub T hookStack fMemset fMemcpy)
+      keep InvMem P_real P_sub T hookStack fMemset fMemcpy extra)
     (img : Image)
     (RunEnv : UnreachedPqxdhPrimitives → CliHooks → GhostName → BitVec 64 →
       RunCall → List AllocEvent → Prop)
@@ -774,7 +819,7 @@ theorem mainOkCliF3Over_of_f3Fixed
         @subroutine_ok _
           (@mProgPlaced (libsignalPlacementOf mpl HF.hblk HF.hext_nodup)
             (cliGhostExterns
-              (@f3CliGhostHooksFixed (libsignalPlacementOf mpl HF.hblk HF.hext_nodup) keep P_real P_sub T mmpl brkStart cliBudgetLimits hookStack fMemset fMemcpy)
+              (@f3CliGhostHooksFixed (libsignalPlacementOf mpl HF.hblk HF.hext_nodup) keep P_real P_sub T mmpl brkStart cliBudgetLimits hookStack fMemset fMemcpy extra)
               (cliExternsPlaced mmpl W)))
           (mpl.base 579)
           (@runSpecTightPlaced
@@ -789,7 +834,7 @@ theorem mainOkCliF3Over_of_f3Fixed
     (block617TransferFixed_f3CliGhostHooksFixed HF)
     ((mainOkCliExtOverB2NeedLocksPlacedAt_iff mpl mmpl
       (fun W => cliGhostExterns
-        (@f3CliGhostHooksFixed (libsignalPlacementOf mpl HF.hblk HF.hext_nodup) keep P_real P_sub T mmpl brkStart cliBudgetLimits hookStack fMemset fMemcpy)
+        (@f3CliGhostHooksFixed (libsignalPlacementOf mpl HF.hblk HF.hext_nodup) keep P_real P_sub T mmpl brkStart cliBudgetLimits hookStack fMemset fMemcpy extra)
         (cliExternsPlaced mmpl W))
       617 cliProcessInputs CodeOk_ghost libcAddr brkStart cliMainStk cliBudgetLimits).mp
       (mainOkCliExtOverB2NeedLocksPlacedAt_f3Fixed HF img RunEnv hKitFits hRunSub hrun))
@@ -805,9 +850,10 @@ theorem cliPqxdhElfCorrectStrictPlaced2_of_f3Fixed
     {keep : BitVec 64 → Bool} {InvMem : Memory → Prop}
     {P_real P_sub : Program} {T : F3GhostEntryTargets} {hookStack : Nat}
     {fMemset fMemcpy : Option (State → State)}
+    {extra : ExtraGhostTable}
     (H : CliElfF3B2NeedLocksAssumptions mpl mmpl exitStk libcAddr cliMainStk CodeOk_real elf)
     (HF : F3FixedHookHyp mpl mmpl CodeOk_ghost CodeOk_real libcAddr elf.brkStart
-      keep InvMem P_real P_sub T hookStack fMemset fMemcpy)
+      keep InvMem P_real P_sub T hookStack fMemset fMemcpy extra)
     (img : Image)
     (RunEnvPq RunEnvOver : UnreachedPqxdhPrimitives → CliHooks → GhostName → BitVec 64 →
       RunCall → List AllocEvent → Prop)
@@ -842,7 +888,7 @@ theorem cliPqxdhElfCorrectStrictPlaced2_of_f3Fixed
         @subroutine_ok _
           (@mProgPlaced (libsignalPlacementOf mpl HF.hblk HF.hext_nodup)
             (cliGhostExterns
-              (@f3CliGhostHooksFixed (libsignalPlacementOf mpl HF.hblk HF.hext_nodup) keep P_real P_sub T mmpl elf.brkStart cliBudgetLimits hookStack fMemset fMemcpy)
+              (@f3CliGhostHooksFixed (libsignalPlacementOf mpl HF.hblk HF.hext_nodup) keep P_real P_sub T mmpl elf.brkStart cliBudgetLimits hookStack fMemset fMemcpy extra)
               (cliExternsPlaced mmpl W)))
           (mpl.base 579)
           (@runSpecTightPlaced
@@ -857,7 +903,7 @@ theorem cliPqxdhElfCorrectStrictPlaced2_of_f3Fixed
         @subroutine_ok _
           (@mProgPlaced (libsignalPlacementOf mpl HF.hblk HF.hext_nodup)
             (cliGhostExterns
-              (@f3CliGhostHooksFixed (libsignalPlacementOf mpl HF.hblk HF.hext_nodup) keep P_real P_sub T mmpl elf.brkStart cliBudgetLimits hookStack fMemset fMemcpy)
+              (@f3CliGhostHooksFixed (libsignalPlacementOf mpl HF.hblk HF.hext_nodup) keep P_real P_sub T mmpl elf.brkStart cliBudgetLimits hookStack fMemset fMemcpy extra)
               (cliExternsPlaced mmpl W)))
           (mpl.base 579)
           (@runSpecTightPlaced
@@ -881,9 +927,10 @@ theorem cliPqxdhElfCorrectPlaced_of_f3Fixed
     {keep : BitVec 64 → Bool} {InvMem : Memory → Prop}
     {P_real P_sub : Program} {T : F3GhostEntryTargets} {hookStack : Nat}
     {fMemset fMemcpy : Option (State → State)}
+    {extra : ExtraGhostTable}
     (H : CliElfF3B2NeedLocksAssumptions mpl mmpl exitStk libcAddr cliMainStk CodeOk_real elf)
     (HF : F3FixedHookHyp mpl mmpl CodeOk_ghost CodeOk_real libcAddr elf.brkStart
-      keep InvMem P_real P_sub T hookStack fMemset fMemcpy)
+      keep InvMem P_real P_sub T hookStack fMemset fMemcpy extra)
     (img : Image)
     (RunEnvPq RunEnvOver : UnreachedPqxdhPrimitives → CliHooks → GhostName → BitVec 64 →
       RunCall → List AllocEvent → Prop)
@@ -918,7 +965,7 @@ theorem cliPqxdhElfCorrectPlaced_of_f3Fixed
         @subroutine_ok _
           (@mProgPlaced (libsignalPlacementOf mpl HF.hblk HF.hext_nodup)
             (cliGhostExterns
-              (@f3CliGhostHooksFixed (libsignalPlacementOf mpl HF.hblk HF.hext_nodup) keep P_real P_sub T mmpl elf.brkStart cliBudgetLimits hookStack fMemset fMemcpy)
+              (@f3CliGhostHooksFixed (libsignalPlacementOf mpl HF.hblk HF.hext_nodup) keep P_real P_sub T mmpl elf.brkStart cliBudgetLimits hookStack fMemset fMemcpy extra)
               (cliExternsPlaced mmpl W)))
           (mpl.base 579)
           (@runSpecTightPlaced
@@ -933,7 +980,7 @@ theorem cliPqxdhElfCorrectPlaced_of_f3Fixed
         @subroutine_ok _
           (@mProgPlaced (libsignalPlacementOf mpl HF.hblk HF.hext_nodup)
             (cliGhostExterns
-              (@f3CliGhostHooksFixed (libsignalPlacementOf mpl HF.hblk HF.hext_nodup) keep P_real P_sub T mmpl elf.brkStart cliBudgetLimits hookStack fMemset fMemcpy)
+              (@f3CliGhostHooksFixed (libsignalPlacementOf mpl HF.hblk HF.hext_nodup) keep P_real P_sub T mmpl elf.brkStart cliBudgetLimits hookStack fMemset fMemcpy extra)
               (cliExternsPlaced mmpl W)))
           (mpl.base 579)
           (@runSpecTightPlaced
@@ -959,9 +1006,10 @@ theorem hAlloc_of_f3Fixed
     {keep : BitVec 64 → Bool} {InvMem : Memory → Prop}
     {P_real P_sub : Program} {T : F3GhostEntryTargets} {hookStack : Nat}
     {fMemset fMemcpy : Option (State → State)}
+    {extra : ExtraGhostTable}
     (H : CliElfF3B2NeedLocksAssumptions mpl mmpl exitStk libcAddr cliMainStk CodeOk_real elf)
     (HF : F3FixedHookHyp mpl mmpl CodeOk_ghost CodeOk_real libcAddr elf.brkStart
-      keep InvMem P_real P_sub T hookStack fMemset fMemcpy)
+      keep InvMem P_real P_sub T hookStack fMemset fMemcpy extra)
     (img : Image)
     (RunEnvPq RunEnvOver : UnreachedPqxdhPrimitives → CliHooks → GhostName → BitVec 64 →
       RunCall → List AllocEvent → Prop)
@@ -996,7 +1044,7 @@ theorem hAlloc_of_f3Fixed
         @subroutine_ok _
           (@mProgPlaced (libsignalPlacementOf mpl HF.hblk HF.hext_nodup)
             (cliGhostExterns
-              (@f3CliGhostHooksFixed (libsignalPlacementOf mpl HF.hblk HF.hext_nodup) keep P_real P_sub T mmpl elf.brkStart cliBudgetLimits hookStack fMemset fMemcpy)
+              (@f3CliGhostHooksFixed (libsignalPlacementOf mpl HF.hblk HF.hext_nodup) keep P_real P_sub T mmpl elf.brkStart cliBudgetLimits hookStack fMemset fMemcpy extra)
               (cliExternsPlaced mmpl W)))
           (mpl.base 579)
           (@runSpecTightPlaced
@@ -1011,7 +1059,7 @@ theorem hAlloc_of_f3Fixed
         @subroutine_ok _
           (@mProgPlaced (libsignalPlacementOf mpl HF.hblk HF.hext_nodup)
             (cliGhostExterns
-              (@f3CliGhostHooksFixed (libsignalPlacementOf mpl HF.hblk HF.hext_nodup) keep P_real P_sub T mmpl elf.brkStart cliBudgetLimits hookStack fMemset fMemcpy)
+              (@f3CliGhostHooksFixed (libsignalPlacementOf mpl HF.hblk HF.hext_nodup) keep P_real P_sub T mmpl elf.brkStart cliBudgetLimits hookStack fMemset fMemcpy extra)
               (cliExternsPlaced mmpl W)))
           (mpl.base 579)
           (@runSpecTightPlaced
@@ -1037,9 +1085,10 @@ theorem not_cliReachesOOMPlaced_of_f3Fixed
     {keep : BitVec 64 → Bool} {InvMem : Memory → Prop}
     {P_real P_sub : Program} {T : F3GhostEntryTargets} {hookStack : Nat}
     {fMemset fMemcpy : Option (State → State)}
+    {extra : ExtraGhostTable}
     (H : CliElfF3B2NeedLocksAssumptions mpl mmpl exitStk libcAddr cliMainStk CodeOk_real elf)
     (HF : F3FixedHookHyp mpl mmpl CodeOk_ghost CodeOk_real libcAddr elf.brkStart
-      keep InvMem P_real P_sub T hookStack fMemset fMemcpy)
+      keep InvMem P_real P_sub T hookStack fMemset fMemcpy extra)
     (img : Image)
     (RunEnvPq RunEnvOver : UnreachedPqxdhPrimitives → CliHooks → GhostName → BitVec 64 →
       RunCall → List AllocEvent → Prop)
@@ -1074,7 +1123,7 @@ theorem not_cliReachesOOMPlaced_of_f3Fixed
         @subroutine_ok _
           (@mProgPlaced (libsignalPlacementOf mpl HF.hblk HF.hext_nodup)
             (cliGhostExterns
-              (@f3CliGhostHooksFixed (libsignalPlacementOf mpl HF.hblk HF.hext_nodup) keep P_real P_sub T mmpl elf.brkStart cliBudgetLimits hookStack fMemset fMemcpy)
+              (@f3CliGhostHooksFixed (libsignalPlacementOf mpl HF.hblk HF.hext_nodup) keep P_real P_sub T mmpl elf.brkStart cliBudgetLimits hookStack fMemset fMemcpy extra)
               (cliExternsPlaced mmpl W)))
           (mpl.base 579)
           (@runSpecTightPlaced
@@ -1089,7 +1138,7 @@ theorem not_cliReachesOOMPlaced_of_f3Fixed
         @subroutine_ok _
           (@mProgPlaced (libsignalPlacementOf mpl HF.hblk HF.hext_nodup)
             (cliGhostExterns
-              (@f3CliGhostHooksFixed (libsignalPlacementOf mpl HF.hblk HF.hext_nodup) keep P_real P_sub T mmpl elf.brkStart cliBudgetLimits hookStack fMemset fMemcpy)
+              (@f3CliGhostHooksFixed (libsignalPlacementOf mpl HF.hblk HF.hext_nodup) keep P_real P_sub T mmpl elf.brkStart cliBudgetLimits hookStack fMemset fMemcpy extra)
               (cliExternsPlaced mmpl W)))
           (mpl.base 579)
           (@runSpecTightPlaced
@@ -1117,16 +1166,16 @@ theorem cliPqxdhBinaryCorrectStrictPlaced2_of_f3Fixed
         (CodeOk_ghost CodeOk_real : Memory → Prop)
         (keep : BitVec 64 → Bool) (InvMem : Memory → Prop)
         (P_real P_sub : Program) (T : F3GhostEntryTargets) (hookStack : Nat)
-        (fMemset fMemcpy : Option (State → State)),
+        (fMemset fMemcpy : Option (State → State)) (extra : ExtraGhostTable),
         CliElfF3B2NeedLocksAssumptions mpl mmpl exitStk libcAddr cliMainStk CodeOk_real elf ∧
         MainOkCliF3PqB2NeedLocksPlacedAt mpl mmpl CodeOk_real libcAddr elf.brkStart cliMainStk ∧
         MainOkCliF3OverB2NeedLocksPlacedAt mpl mmpl CodeOk_real libcAddr elf.brkStart cliMainStk ∧
         F3FixedHookHyp mpl mmpl CodeOk_ghost CodeOk_real libcAddr elf.brkStart
-          keep InvMem P_real P_sub T hookStack fMemset fMemcpy) :
+          keep InvMem P_real P_sub T hookStack fMemset fMemcpy extra) :
     CliPqxdhBinaryCorrectStrictPlaced2 bytes := by
   refine cliPqxdhBinaryCorrectStrictPlaced2_of_f3B2NeedLocks' hparse ?_
   intro mpl mmpl hls hmng
-  obtain ⟨exitStk, libcAddr, _, CodeOk_real, _, _, _, _, _, _, _, _, H, hmain, hover, _⟩ :=
+  obtain ⟨exitStk, libcAddr, _, CodeOk_real, _, _, _, _, _, _, _, _, _, H, hmain, hover, _⟩ :=
     hAssump mpl mmpl hls hmng
   exact ⟨exitStk, libcAddr, cliMainStk, CodeOk_real, H, hmain, hover⟩
 
@@ -1141,16 +1190,16 @@ theorem cliPqxdhBinaryCorrectPlaced_of_f3Fixed
         (CodeOk_ghost CodeOk_real : Memory → Prop)
         (keep : BitVec 64 → Bool) (InvMem : Memory → Prop)
         (P_real P_sub : Program) (T : F3GhostEntryTargets) (hookStack : Nat)
-        (fMemset fMemcpy : Option (State → State)),
+        (fMemset fMemcpy : Option (State → State)) (extra : ExtraGhostTable),
         CliElfF3B2NeedLocksAssumptions mpl mmpl exitStk libcAddr cliMainStk CodeOk_real elf ∧
         MainOkCliF3PqB2NeedLocksPlacedAt mpl mmpl CodeOk_real libcAddr elf.brkStart cliMainStk ∧
         MainOkCliF3OverB2NeedLocksPlacedAt mpl mmpl CodeOk_real libcAddr elf.brkStart cliMainStk ∧
         F3FixedHookHyp mpl mmpl CodeOk_ghost CodeOk_real libcAddr elf.brkStart
-          keep InvMem P_real P_sub T hookStack fMemset fMemcpy) :
+          keep InvMem P_real P_sub T hookStack fMemset fMemcpy extra) :
     CliPqxdhBinaryCorrectPlaced bytes := by
   refine cliPqxdhBinaryCorrectPlaced_of_f3B2NeedLocks' hparse ?_
   intro mpl mmpl hls hmng
-  obtain ⟨exitStk, libcAddr, _, CodeOk_real, _, _, _, _, _, _, _, _, H, hmain, hover, _⟩ :=
+  obtain ⟨exitStk, libcAddr, _, CodeOk_real, _, _, _, _, _, _, _, _, _, H, hmain, hover, _⟩ :=
     hAssump mpl mmpl hls hmng
   exact ⟨exitStk, libcAddr, cliMainStk, CodeOk_real, H, hmain, hover⟩
 
@@ -1191,7 +1240,7 @@ abbrev canonOrFallbackRunEnvFixed
       (CanonicalOrFallbackPksmEnv FallbackEnv)
       (cliRunSemD2c_placed X W))
 
-/-- Ghost-externs `MainOkCliExtPqB2NeedLocksPlacedAt` with `hKitFits` discharged via
+/-- Ghost-externs `MainOkCliExtPqB2NeedLocksPadPlacedAt` with `hKitFits` discharged via
     `CliKitEnvFits.realCliMainBinaryKitEnvOfFixed_fitsEnv_cliBudgetLimits`. -/
 theorem mainOkCliExtPqB2NeedLocksPlacedAt_of_cliKitEnvFits
     {mpl mmpl : MultiPlacement}
@@ -1200,8 +1249,9 @@ theorem mainOkCliExtPqB2NeedLocksPlacedAt_of_cliKitEnvFits
     {keep : BitVec 64 → Bool} {InvMem : Memory → Prop}
     {P_real P_sub : Program} {T : F3GhostEntryTargets} {hookStack : Nat}
     {fMemset fMemcpy : Option (State → State)}
+    {extra : ExtraGhostTable}
     (HF : F3FixedHookHyp mpl mmpl CodeOk_ghost CodeOk_real libcAddr brkStart
-      keep InvMem P_real P_sub T hookStack fMemset fMemcpy)
+      keep InvMem P_real P_sub T hookStack fMemset fMemcpy extra)
     (img : Image)
     (RunEnv : UnreachedPqxdhPrimitives → CliHooks → GhostName → BitVec 64 →
       RunCall → List AllocEvent → Prop)
@@ -1220,7 +1270,7 @@ theorem mainOkCliExtPqB2NeedLocksPlacedAt_of_cliKitEnvFits
         @subroutine_ok _
           (@mProgPlaced (libsignalPlacementOf mpl HF.hblk HF.hext_nodup)
             (cliGhostExterns
-              (@f3CliGhostHooksFixed (libsignalPlacementOf mpl HF.hblk HF.hext_nodup) keep P_real P_sub T mmpl brkStart cliBudgetLimits hookStack fMemset fMemcpy)
+              (@f3CliGhostHooksFixed (libsignalPlacementOf mpl HF.hblk HF.hext_nodup) keep P_real P_sub T mmpl brkStart cliBudgetLimits hookStack fMemset fMemcpy extra)
               (cliExternsPlaced mmpl W)))
           (mpl.base 579)
           (@runSpecTightPlaced
@@ -1230,9 +1280,9 @@ theorem mainOkCliExtPqB2NeedLocksPlacedAt_of_cliKitEnvFits
             (RunEnv X W γ tp) uuidTryParse
             (runRel (cliRunSemD2c_placed X W))
             cliWrOk cliResStack)) :
-    MainOkCliExtPqB2NeedLocksPlacedAt mpl mmpl
+    MainOkCliExtPqB2NeedLocksPadPlacedAt mpl mmpl
       (fun W => cliGhostExterns
-        (@f3CliGhostHooksFixed (libsignalPlacementOf mpl HF.hblk HF.hext_nodup) keep P_real P_sub T mmpl brkStart cliBudgetLimits hookStack fMemset fMemcpy)
+        (@f3CliGhostHooksFixed (libsignalPlacementOf mpl HF.hblk HF.hext_nodup) keep P_real P_sub T mmpl brkStart cliBudgetLimits hookStack fMemset fMemcpy extra)
         (cliExternsPlaced mmpl W))
       617 cliProcessInputs CodeOk_ghost libcAddr brkStart cliMainStk cliBudgetLimits :=
   mainOkCliExtPqB2NeedLocksPlacedAt_f3Fixed HF img RunEnv
@@ -1242,7 +1292,7 @@ theorem mainOkCliExtPqB2NeedLocksPlacedAt_of_cliKitEnvFits
         img (cliRunSemD2c_placed X W) X W i hi)
     hRunSub hrun
 
-/-- Ghost-externs `MainOkCliExtOverB2NeedLocksPlacedAt` with `hKitFits` discharged via
+/-- Ghost-externs `MainOkCliExtOverB2NeedLocksPadPlacedAt` with `hKitFits` discharged via
     `CliKitEnvFits.realCliMainBinaryKitEnvOfFixed_fitsEnv_cliBudgetLimits`. -/
 theorem mainOkCliExtOverB2NeedLocksPlacedAt_of_cliKitEnvFits
     {mpl mmpl : MultiPlacement}
@@ -1251,8 +1301,9 @@ theorem mainOkCliExtOverB2NeedLocksPlacedAt_of_cliKitEnvFits
     {keep : BitVec 64 → Bool} {InvMem : Memory → Prop}
     {P_real P_sub : Program} {T : F3GhostEntryTargets} {hookStack : Nat}
     {fMemset fMemcpy : Option (State → State)}
+    {extra : ExtraGhostTable}
     (HF : F3FixedHookHyp mpl mmpl CodeOk_ghost CodeOk_real libcAddr brkStart
-      keep InvMem P_real P_sub T hookStack fMemset fMemcpy)
+      keep InvMem P_real P_sub T hookStack fMemset fMemcpy extra)
     (img : Image)
     (RunEnv : UnreachedPqxdhPrimitives → CliHooks → GhostName → BitVec 64 →
       RunCall → List AllocEvent → Prop)
@@ -1271,7 +1322,7 @@ theorem mainOkCliExtOverB2NeedLocksPlacedAt_of_cliKitEnvFits
         @subroutine_ok _
           (@mProgPlaced (libsignalPlacementOf mpl HF.hblk HF.hext_nodup)
             (cliGhostExterns
-              (@f3CliGhostHooksFixed (libsignalPlacementOf mpl HF.hblk HF.hext_nodup) keep P_real P_sub T mmpl brkStart cliBudgetLimits hookStack fMemset fMemcpy)
+              (@f3CliGhostHooksFixed (libsignalPlacementOf mpl HF.hblk HF.hext_nodup) keep P_real P_sub T mmpl brkStart cliBudgetLimits hookStack fMemset fMemcpy extra)
               (cliExternsPlaced mmpl W)))
           (mpl.base 579)
           (@runSpecTightPlaced
@@ -1281,9 +1332,9 @@ theorem mainOkCliExtOverB2NeedLocksPlacedAt_of_cliKitEnvFits
             (RunEnv X W γ tp) uuidTryParse
             (runRel (cliRunSemD2c_placed X W))
             cliWrOk cliResStack)) :
-    MainOkCliExtOverB2NeedLocksPlacedAt mpl mmpl
+    MainOkCliExtOverB2NeedLocksPadPlacedAt mpl mmpl
       (fun W => cliGhostExterns
-        (@f3CliGhostHooksFixed (libsignalPlacementOf mpl HF.hblk HF.hext_nodup) keep P_real P_sub T mmpl brkStart cliBudgetLimits hookStack fMemset fMemcpy)
+        (@f3CliGhostHooksFixed (libsignalPlacementOf mpl HF.hblk HF.hext_nodup) keep P_real P_sub T mmpl brkStart cliBudgetLimits hookStack fMemset fMemcpy extra)
         (cliExternsPlaced mmpl W))
       617 cliProcessInputs CodeOk_ghost libcAddr brkStart cliMainStk cliBudgetLimits :=
   mainOkCliExtOverB2NeedLocksPlacedAt_f3Fixed HF img RunEnv
@@ -1303,8 +1354,9 @@ theorem mainOkCliF3Pq_of_cliKitEnvFits
     {keep : BitVec 64 → Bool} {InvMem : Memory → Prop}
     {P_real P_sub : Program} {T : F3GhostEntryTargets} {hookStack : Nat}
     {fMemset fMemcpy : Option (State → State)}
+    {extra : ExtraGhostTable}
     (HF : F3FixedHookHyp mpl mmpl CodeOk_ghost CodeOk_real libcAddr brkStart
-      keep InvMem P_real P_sub T hookStack fMemset fMemcpy)
+      keep InvMem P_real P_sub T hookStack fMemset fMemcpy extra)
     (img : Image)
     (RunEnv : UnreachedPqxdhPrimitives → CliHooks → GhostName → BitVec 64 →
       RunCall → List AllocEvent → Prop)
@@ -1323,7 +1375,7 @@ theorem mainOkCliF3Pq_of_cliKitEnvFits
         @subroutine_ok _
           (@mProgPlaced (libsignalPlacementOf mpl HF.hblk HF.hext_nodup)
             (cliGhostExterns
-              (@f3CliGhostHooksFixed (libsignalPlacementOf mpl HF.hblk HF.hext_nodup) keep P_real P_sub T mmpl brkStart cliBudgetLimits hookStack fMemset fMemcpy)
+              (@f3CliGhostHooksFixed (libsignalPlacementOf mpl HF.hblk HF.hext_nodup) keep P_real P_sub T mmpl brkStart cliBudgetLimits hookStack fMemset fMemcpy extra)
               (cliExternsPlaced mmpl W)))
           (mpl.base 579)
           (@runSpecTightPlaced
@@ -1351,8 +1403,9 @@ theorem mainOkCliF3Over_of_cliKitEnvFits
     {keep : BitVec 64 → Bool} {InvMem : Memory → Prop}
     {P_real P_sub : Program} {T : F3GhostEntryTargets} {hookStack : Nat}
     {fMemset fMemcpy : Option (State → State)}
+    {extra : ExtraGhostTable}
     (HF : F3FixedHookHyp mpl mmpl CodeOk_ghost CodeOk_real libcAddr brkStart
-      keep InvMem P_real P_sub T hookStack fMemset fMemcpy)
+      keep InvMem P_real P_sub T hookStack fMemset fMemcpy extra)
     (img : Image)
     (RunEnv : UnreachedPqxdhPrimitives → CliHooks → GhostName → BitVec 64 →
       RunCall → List AllocEvent → Prop)
@@ -1371,7 +1424,7 @@ theorem mainOkCliF3Over_of_cliKitEnvFits
         @subroutine_ok _
           (@mProgPlaced (libsignalPlacementOf mpl HF.hblk HF.hext_nodup)
             (cliGhostExterns
-              (@f3CliGhostHooksFixed (libsignalPlacementOf mpl HF.hblk HF.hext_nodup) keep P_real P_sub T mmpl brkStart cliBudgetLimits hookStack fMemset fMemcpy)
+              (@f3CliGhostHooksFixed (libsignalPlacementOf mpl HF.hblk HF.hext_nodup) keep P_real P_sub T mmpl brkStart cliBudgetLimits hookStack fMemset fMemcpy extra)
               (cliExternsPlaced mmpl W)))
           (mpl.base 579)
           (@runSpecTightPlaced
@@ -1398,15 +1451,16 @@ theorem mainOkCliF3Pq_of_cliKitEnvFits_canonSlice
     {keep : BitVec 64 → Bool} {InvMem : Memory → Prop}
     {P_real P_sub : Program} {T : F3GhostEntryTargets} {hookStack : Nat}
     {fMemset fMemcpy : Option (State → State)}
+    {extra : ExtraGhostTable}
     (HF : F3FixedHookHyp mpl mmpl CodeOk_ghost CodeOk_real libcAddr brkStart
-      keep InvMem P_real P_sub T hookStack fMemset fMemcpy)
+      keep InvMem P_real P_sub T hookStack fMemset fMemcpy extra)
     (img : Image)
     (hrun : mpl.base 547 ≠ 0#64 →
       ∀ (X : UnreachedPqxdhPrimitives) (W : CliHooks) (γ : GhostName) (tp : BitVec 64),
         @subroutine_ok _
           (@mProgPlaced (libsignalPlacementOf mpl HF.hblk HF.hext_nodup)
             (cliGhostExterns
-              (@f3CliGhostHooksFixed (libsignalPlacementOf mpl HF.hblk HF.hext_nodup) keep P_real P_sub T mmpl brkStart cliBudgetLimits hookStack fMemset fMemcpy)
+              (@f3CliGhostHooksFixed (libsignalPlacementOf mpl HF.hblk HF.hext_nodup) keep P_real P_sub T mmpl brkStart cliBudgetLimits hookStack fMemset fMemcpy extra)
               (cliExternsPlaced mmpl W)))
           (mpl.base 579)
           (@runSpecTightPlaced
@@ -1436,15 +1490,16 @@ theorem mainOkCliF3Over_of_cliKitEnvFits_canonSlice
     {keep : BitVec 64 → Bool} {InvMem : Memory → Prop}
     {P_real P_sub : Program} {T : F3GhostEntryTargets} {hookStack : Nat}
     {fMemset fMemcpy : Option (State → State)}
+    {extra : ExtraGhostTable}
     (HF : F3FixedHookHyp mpl mmpl CodeOk_ghost CodeOk_real libcAddr brkStart
-      keep InvMem P_real P_sub T hookStack fMemset fMemcpy)
+      keep InvMem P_real P_sub T hookStack fMemset fMemcpy extra)
     (img : Image)
     (hrun : mpl.base 547 ≠ 0#64 →
       ∀ (X : UnreachedPqxdhPrimitives) (W : CliHooks) (γ : GhostName) (tp : BitVec 64),
         @subroutine_ok _
           (@mProgPlaced (libsignalPlacementOf mpl HF.hblk HF.hext_nodup)
             (cliGhostExterns
-              (@f3CliGhostHooksFixed (libsignalPlacementOf mpl HF.hblk HF.hext_nodup) keep P_real P_sub T mmpl brkStart cliBudgetLimits hookStack fMemset fMemcpy)
+              (@f3CliGhostHooksFixed (libsignalPlacementOf mpl HF.hblk HF.hext_nodup) keep P_real P_sub T mmpl brkStart cliBudgetLimits hookStack fMemset fMemcpy extra)
               (cliExternsPlaced mmpl W)))
           (mpl.base 579)
           (@runSpecTightPlaced
@@ -1473,16 +1528,17 @@ theorem mainOkCliF3Pq_of_cliKitEnvFits_canonOrFallback
     {keep : BitVec 64 → Bool} {InvMem : Memory → Prop}
     {P_real P_sub : Program} {T : F3GhostEntryTargets} {hookStack : Nat}
     {fMemset fMemcpy : Option (State → State)}
+    {extra : ExtraGhostTable}
     (FallbackEnv : PksmGhost → List AllocEvent → Prop)
     (HF : F3FixedHookHyp mpl mmpl CodeOk_ghost CodeOk_real libcAddr brkStart
-      keep InvMem P_real P_sub T hookStack fMemset fMemcpy)
+      keep InvMem P_real P_sub T hookStack fMemset fMemcpy extra)
     (img : Image)
     (hrun : mpl.base 547 ≠ 0#64 →
       ∀ (X : UnreachedPqxdhPrimitives) (W : CliHooks) (γ : GhostName) (tp : BitVec 64),
         @subroutine_ok _
           (@mProgPlaced (libsignalPlacementOf mpl HF.hblk HF.hext_nodup)
             (cliGhostExterns
-              (@f3CliGhostHooksFixed (libsignalPlacementOf mpl HF.hblk HF.hext_nodup) keep P_real P_sub T mmpl brkStart cliBudgetLimits hookStack fMemset fMemcpy)
+              (@f3CliGhostHooksFixed (libsignalPlacementOf mpl HF.hblk HF.hext_nodup) keep P_real P_sub T mmpl brkStart cliBudgetLimits hookStack fMemset fMemcpy extra)
               (cliExternsPlaced mmpl W)))
           (mpl.base 579)
           (@runSpecTightPlaced
@@ -1512,16 +1568,17 @@ theorem mainOkCliF3Over_of_cliKitEnvFits_canonOrFallback
     {keep : BitVec 64 → Bool} {InvMem : Memory → Prop}
     {P_real P_sub : Program} {T : F3GhostEntryTargets} {hookStack : Nat}
     {fMemset fMemcpy : Option (State → State)}
+    {extra : ExtraGhostTable}
     (FallbackEnv : PksmGhost → List AllocEvent → Prop)
     (HF : F3FixedHookHyp mpl mmpl CodeOk_ghost CodeOk_real libcAddr brkStart
-      keep InvMem P_real P_sub T hookStack fMemset fMemcpy)
+      keep InvMem P_real P_sub T hookStack fMemset fMemcpy extra)
     (img : Image)
     (hrun : mpl.base 547 ≠ 0#64 →
       ∀ (X : UnreachedPqxdhPrimitives) (W : CliHooks) (γ : GhostName) (tp : BitVec 64),
         @subroutine_ok _
           (@mProgPlaced (libsignalPlacementOf mpl HF.hblk HF.hext_nodup)
             (cliGhostExterns
-              (@f3CliGhostHooksFixed (libsignalPlacementOf mpl HF.hblk HF.hext_nodup) keep P_real P_sub T mmpl brkStart cliBudgetLimits hookStack fMemset fMemcpy)
+              (@f3CliGhostHooksFixed (libsignalPlacementOf mpl HF.hblk HF.hext_nodup) keep P_real P_sub T mmpl brkStart cliBudgetLimits hookStack fMemset fMemcpy extra)
               (cliExternsPlaced mmpl W)))
           (mpl.base 579)
           (@runSpecTightPlaced
@@ -1553,9 +1610,10 @@ theorem cliPqxdhElfCorrectStrictPlaced2_of_cliKitEnvFits
     {keep : BitVec 64 → Bool} {InvMem : Memory → Prop}
     {P_real P_sub : Program} {T : F3GhostEntryTargets} {hookStack : Nat}
     {fMemset fMemcpy : Option (State → State)}
+    {extra : ExtraGhostTable}
     (H : CliElfF3B2NeedLocksAssumptions mpl mmpl exitStk libcAddr cliMainStk CodeOk_real elf)
     (HF : F3FixedHookHyp mpl mmpl CodeOk_ghost CodeOk_real libcAddr elf.brkStart
-      keep InvMem P_real P_sub T hookStack fMemset fMemcpy)
+      keep InvMem P_real P_sub T hookStack fMemset fMemcpy extra)
     (img : Image)
     (RunEnvPq RunEnvOver : UnreachedPqxdhPrimitives → CliHooks → GhostName → BitVec 64 →
       RunCall → List AllocEvent → Prop)
@@ -1584,7 +1642,7 @@ theorem cliPqxdhElfCorrectStrictPlaced2_of_cliKitEnvFits
         @subroutine_ok _
           (@mProgPlaced (libsignalPlacementOf mpl HF.hblk HF.hext_nodup)
             (cliGhostExterns
-              (@f3CliGhostHooksFixed (libsignalPlacementOf mpl HF.hblk HF.hext_nodup) keep P_real P_sub T mmpl elf.brkStart cliBudgetLimits hookStack fMemset fMemcpy)
+              (@f3CliGhostHooksFixed (libsignalPlacementOf mpl HF.hblk HF.hext_nodup) keep P_real P_sub T mmpl elf.brkStart cliBudgetLimits hookStack fMemset fMemcpy extra)
               (cliExternsPlaced mmpl W)))
           (mpl.base 579)
           (@runSpecTightPlaced
@@ -1599,7 +1657,7 @@ theorem cliPqxdhElfCorrectStrictPlaced2_of_cliKitEnvFits
         @subroutine_ok _
           (@mProgPlaced (libsignalPlacementOf mpl HF.hblk HF.hext_nodup)
             (cliGhostExterns
-              (@f3CliGhostHooksFixed (libsignalPlacementOf mpl HF.hblk HF.hext_nodup) keep P_real P_sub T mmpl elf.brkStart cliBudgetLimits hookStack fMemset fMemcpy)
+              (@f3CliGhostHooksFixed (libsignalPlacementOf mpl HF.hblk HF.hext_nodup) keep P_real P_sub T mmpl elf.brkStart cliBudgetLimits hookStack fMemset fMemcpy extra)
               (cliExternsPlaced mmpl W)))
           (mpl.base 579)
           (@runSpecTightPlaced
@@ -1624,16 +1682,17 @@ theorem cliPqxdhElfCorrectStrictPlaced2_of_cliKitEnvFits_canonSlice
     {keep : BitVec 64 → Bool} {InvMem : Memory → Prop}
     {P_real P_sub : Program} {T : F3GhostEntryTargets} {hookStack : Nat}
     {fMemset fMemcpy : Option (State → State)}
+    {extra : ExtraGhostTable}
     (H : CliElfF3B2NeedLocksAssumptions mpl mmpl exitStk libcAddr cliMainStk CodeOk_real elf)
     (HF : F3FixedHookHyp mpl mmpl CodeOk_ghost CodeOk_real libcAddr elf.brkStart
-      keep InvMem P_real P_sub T hookStack fMemset fMemcpy)
+      keep InvMem P_real P_sub T hookStack fMemset fMemcpy extra)
     (img : Image)
     (hrun : mpl.base 547 ≠ 0#64 →
       ∀ (X : UnreachedPqxdhPrimitives) (W : CliHooks) (γ : GhostName) (tp : BitVec 64),
         @subroutine_ok _
           (@mProgPlaced (libsignalPlacementOf mpl HF.hblk HF.hext_nodup)
             (cliGhostExterns
-              (@f3CliGhostHooksFixed (libsignalPlacementOf mpl HF.hblk HF.hext_nodup) keep P_real P_sub T mmpl elf.brkStart cliBudgetLimits hookStack fMemset fMemcpy)
+              (@f3CliGhostHooksFixed (libsignalPlacementOf mpl HF.hblk HF.hext_nodup) keep P_real P_sub T mmpl elf.brkStart cliBudgetLimits hookStack fMemset fMemcpy extra)
               (cliExternsPlaced mmpl W)))
           (mpl.base 579)
           (@runSpecTightPlaced
@@ -1658,9 +1717,10 @@ theorem cliPqxdhElfCorrectPlaced_of_cliKitEnvFits
     {keep : BitVec 64 → Bool} {InvMem : Memory → Prop}
     {P_real P_sub : Program} {T : F3GhostEntryTargets} {hookStack : Nat}
     {fMemset fMemcpy : Option (State → State)}
+    {extra : ExtraGhostTable}
     (H : CliElfF3B2NeedLocksAssumptions mpl mmpl exitStk libcAddr cliMainStk CodeOk_real elf)
     (HF : F3FixedHookHyp mpl mmpl CodeOk_ghost CodeOk_real libcAddr elf.brkStart
-      keep InvMem P_real P_sub T hookStack fMemset fMemcpy)
+      keep InvMem P_real P_sub T hookStack fMemset fMemcpy extra)
     (img : Image)
     (RunEnvPq RunEnvOver : UnreachedPqxdhPrimitives → CliHooks → GhostName → BitVec 64 →
       RunCall → List AllocEvent → Prop)
@@ -1689,7 +1749,7 @@ theorem cliPqxdhElfCorrectPlaced_of_cliKitEnvFits
         @subroutine_ok _
           (@mProgPlaced (libsignalPlacementOf mpl HF.hblk HF.hext_nodup)
             (cliGhostExterns
-              (@f3CliGhostHooksFixed (libsignalPlacementOf mpl HF.hblk HF.hext_nodup) keep P_real P_sub T mmpl elf.brkStart cliBudgetLimits hookStack fMemset fMemcpy)
+              (@f3CliGhostHooksFixed (libsignalPlacementOf mpl HF.hblk HF.hext_nodup) keep P_real P_sub T mmpl elf.brkStart cliBudgetLimits hookStack fMemset fMemcpy extra)
               (cliExternsPlaced mmpl W)))
           (mpl.base 579)
           (@runSpecTightPlaced
@@ -1704,7 +1764,7 @@ theorem cliPqxdhElfCorrectPlaced_of_cliKitEnvFits
         @subroutine_ok _
           (@mProgPlaced (libsignalPlacementOf mpl HF.hblk HF.hext_nodup)
             (cliGhostExterns
-              (@f3CliGhostHooksFixed (libsignalPlacementOf mpl HF.hblk HF.hext_nodup) keep P_real P_sub T mmpl elf.brkStart cliBudgetLimits hookStack fMemset fMemcpy)
+              (@f3CliGhostHooksFixed (libsignalPlacementOf mpl HF.hblk HF.hext_nodup) keep P_real P_sub T mmpl elf.brkStart cliBudgetLimits hookStack fMemset fMemcpy extra)
               (cliExternsPlaced mmpl W)))
           (mpl.base 579)
           (@runSpecTightPlaced
@@ -1727,16 +1787,17 @@ theorem cliPqxdhElfCorrectPlaced_of_cliKitEnvFits_canonSlice
     {keep : BitVec 64 → Bool} {InvMem : Memory → Prop}
     {P_real P_sub : Program} {T : F3GhostEntryTargets} {hookStack : Nat}
     {fMemset fMemcpy : Option (State → State)}
+    {extra : ExtraGhostTable}
     (H : CliElfF3B2NeedLocksAssumptions mpl mmpl exitStk libcAddr cliMainStk CodeOk_real elf)
     (HF : F3FixedHookHyp mpl mmpl CodeOk_ghost CodeOk_real libcAddr elf.brkStart
-      keep InvMem P_real P_sub T hookStack fMemset fMemcpy)
+      keep InvMem P_real P_sub T hookStack fMemset fMemcpy extra)
     (img : Image)
     (hrun : mpl.base 547 ≠ 0#64 →
       ∀ (X : UnreachedPqxdhPrimitives) (W : CliHooks) (γ : GhostName) (tp : BitVec 64),
         @subroutine_ok _
           (@mProgPlaced (libsignalPlacementOf mpl HF.hblk HF.hext_nodup)
             (cliGhostExterns
-              (@f3CliGhostHooksFixed (libsignalPlacementOf mpl HF.hblk HF.hext_nodup) keep P_real P_sub T mmpl elf.brkStart cliBudgetLimits hookStack fMemset fMemcpy)
+              (@f3CliGhostHooksFixed (libsignalPlacementOf mpl HF.hblk HF.hext_nodup) keep P_real P_sub T mmpl elf.brkStart cliBudgetLimits hookStack fMemset fMemcpy extra)
               (cliExternsPlaced mmpl W)))
           (mpl.base 579)
           (@runSpecTightPlaced
@@ -1763,9 +1824,10 @@ theorem hAlloc_of_cliKitEnvFits
     {keep : BitVec 64 → Bool} {InvMem : Memory → Prop}
     {P_real P_sub : Program} {T : F3GhostEntryTargets} {hookStack : Nat}
     {fMemset fMemcpy : Option (State → State)}
+    {extra : ExtraGhostTable}
     (H : CliElfF3B2NeedLocksAssumptions mpl mmpl exitStk libcAddr cliMainStk CodeOk_real elf)
     (HF : F3FixedHookHyp mpl mmpl CodeOk_ghost CodeOk_real libcAddr elf.brkStart
-      keep InvMem P_real P_sub T hookStack fMemset fMemcpy)
+      keep InvMem P_real P_sub T hookStack fMemset fMemcpy extra)
     (img : Image)
     (RunEnvPq RunEnvOver : UnreachedPqxdhPrimitives → CliHooks → GhostName → BitVec 64 →
       RunCall → List AllocEvent → Prop)
@@ -1794,7 +1856,7 @@ theorem hAlloc_of_cliKitEnvFits
         @subroutine_ok _
           (@mProgPlaced (libsignalPlacementOf mpl HF.hblk HF.hext_nodup)
             (cliGhostExterns
-              (@f3CliGhostHooksFixed (libsignalPlacementOf mpl HF.hblk HF.hext_nodup) keep P_real P_sub T mmpl elf.brkStart cliBudgetLimits hookStack fMemset fMemcpy)
+              (@f3CliGhostHooksFixed (libsignalPlacementOf mpl HF.hblk HF.hext_nodup) keep P_real P_sub T mmpl elf.brkStart cliBudgetLimits hookStack fMemset fMemcpy extra)
               (cliExternsPlaced mmpl W)))
           (mpl.base 579)
           (@runSpecTightPlaced
@@ -1809,7 +1871,7 @@ theorem hAlloc_of_cliKitEnvFits
         @subroutine_ok _
           (@mProgPlaced (libsignalPlacementOf mpl HF.hblk HF.hext_nodup)
             (cliGhostExterns
-              (@f3CliGhostHooksFixed (libsignalPlacementOf mpl HF.hblk HF.hext_nodup) keep P_real P_sub T mmpl elf.brkStart cliBudgetLimits hookStack fMemset fMemcpy)
+              (@f3CliGhostHooksFixed (libsignalPlacementOf mpl HF.hblk HF.hext_nodup) keep P_real P_sub T mmpl elf.brkStart cliBudgetLimits hookStack fMemset fMemcpy extra)
               (cliExternsPlaced mmpl W)))
           (mpl.base 579)
           (@runSpecTightPlaced
@@ -1836,16 +1898,17 @@ theorem hAlloc_of_cliKitEnvFits_canonSlice
     {keep : BitVec 64 → Bool} {InvMem : Memory → Prop}
     {P_real P_sub : Program} {T : F3GhostEntryTargets} {hookStack : Nat}
     {fMemset fMemcpy : Option (State → State)}
+    {extra : ExtraGhostTable}
     (H : CliElfF3B2NeedLocksAssumptions mpl mmpl exitStk libcAddr cliMainStk CodeOk_real elf)
     (HF : F3FixedHookHyp mpl mmpl CodeOk_ghost CodeOk_real libcAddr elf.brkStart
-      keep InvMem P_real P_sub T hookStack fMemset fMemcpy)
+      keep InvMem P_real P_sub T hookStack fMemset fMemcpy extra)
     (img : Image)
     (hrun : mpl.base 547 ≠ 0#64 →
       ∀ (X : UnreachedPqxdhPrimitives) (W : CliHooks) (γ : GhostName) (tp : BitVec 64),
         @subroutine_ok _
           (@mProgPlaced (libsignalPlacementOf mpl HF.hblk HF.hext_nodup)
             (cliGhostExterns
-              (@f3CliGhostHooksFixed (libsignalPlacementOf mpl HF.hblk HF.hext_nodup) keep P_real P_sub T mmpl elf.brkStart cliBudgetLimits hookStack fMemset fMemcpy)
+              (@f3CliGhostHooksFixed (libsignalPlacementOf mpl HF.hblk HF.hext_nodup) keep P_real P_sub T mmpl elf.brkStart cliBudgetLimits hookStack fMemset fMemcpy extra)
               (cliExternsPlaced mmpl W)))
           (mpl.base 579)
           (@runSpecTightPlaced
@@ -1870,9 +1933,10 @@ theorem not_cliReachesOOMPlaced_of_cliKitEnvFits
     {keep : BitVec 64 → Bool} {InvMem : Memory → Prop}
     {P_real P_sub : Program} {T : F3GhostEntryTargets} {hookStack : Nat}
     {fMemset fMemcpy : Option (State → State)}
+    {extra : ExtraGhostTable}
     (H : CliElfF3B2NeedLocksAssumptions mpl mmpl exitStk libcAddr cliMainStk CodeOk_real elf)
     (HF : F3FixedHookHyp mpl mmpl CodeOk_ghost CodeOk_real libcAddr elf.brkStart
-      keep InvMem P_real P_sub T hookStack fMemset fMemcpy)
+      keep InvMem P_real P_sub T hookStack fMemset fMemcpy extra)
     (img : Image)
     (RunEnvPq RunEnvOver : UnreachedPqxdhPrimitives → CliHooks → GhostName → BitVec 64 →
       RunCall → List AllocEvent → Prop)
@@ -1901,7 +1965,7 @@ theorem not_cliReachesOOMPlaced_of_cliKitEnvFits
         @subroutine_ok _
           (@mProgPlaced (libsignalPlacementOf mpl HF.hblk HF.hext_nodup)
             (cliGhostExterns
-              (@f3CliGhostHooksFixed (libsignalPlacementOf mpl HF.hblk HF.hext_nodup) keep P_real P_sub T mmpl elf.brkStart cliBudgetLimits hookStack fMemset fMemcpy)
+              (@f3CliGhostHooksFixed (libsignalPlacementOf mpl HF.hblk HF.hext_nodup) keep P_real P_sub T mmpl elf.brkStart cliBudgetLimits hookStack fMemset fMemcpy extra)
               (cliExternsPlaced mmpl W)))
           (mpl.base 579)
           (@runSpecTightPlaced
@@ -1916,7 +1980,7 @@ theorem not_cliReachesOOMPlaced_of_cliKitEnvFits
         @subroutine_ok _
           (@mProgPlaced (libsignalPlacementOf mpl HF.hblk HF.hext_nodup)
             (cliGhostExterns
-              (@f3CliGhostHooksFixed (libsignalPlacementOf mpl HF.hblk HF.hext_nodup) keep P_real P_sub T mmpl elf.brkStart cliBudgetLimits hookStack fMemset fMemcpy)
+              (@f3CliGhostHooksFixed (libsignalPlacementOf mpl HF.hblk HF.hext_nodup) keep P_real P_sub T mmpl elf.brkStart cliBudgetLimits hookStack fMemset fMemcpy extra)
               (cliExternsPlaced mmpl W)))
           (mpl.base 579)
           (@runSpecTightPlaced
@@ -1941,16 +2005,17 @@ theorem not_cliReachesOOMPlaced_of_cliKitEnvFits_canonSlice
     {keep : BitVec 64 → Bool} {InvMem : Memory → Prop}
     {P_real P_sub : Program} {T : F3GhostEntryTargets} {hookStack : Nat}
     {fMemset fMemcpy : Option (State → State)}
+    {extra : ExtraGhostTable}
     (H : CliElfF3B2NeedLocksAssumptions mpl mmpl exitStk libcAddr cliMainStk CodeOk_real elf)
     (HF : F3FixedHookHyp mpl mmpl CodeOk_ghost CodeOk_real libcAddr elf.brkStart
-      keep InvMem P_real P_sub T hookStack fMemset fMemcpy)
+      keep InvMem P_real P_sub T hookStack fMemset fMemcpy extra)
     (img : Image)
     (hrun : mpl.base 547 ≠ 0#64 →
       ∀ (X : UnreachedPqxdhPrimitives) (W : CliHooks) (γ : GhostName) (tp : BitVec 64),
         @subroutine_ok _
           (@mProgPlaced (libsignalPlacementOf mpl HF.hblk HF.hext_nodup)
             (cliGhostExterns
-              (@f3CliGhostHooksFixed (libsignalPlacementOf mpl HF.hblk HF.hext_nodup) keep P_real P_sub T mmpl elf.brkStart cliBudgetLimits hookStack fMemset fMemcpy)
+              (@f3CliGhostHooksFixed (libsignalPlacementOf mpl HF.hblk HF.hext_nodup) keep P_real P_sub T mmpl elf.brkStart cliBudgetLimits hookStack fMemset fMemcpy extra)
               (cliExternsPlaced mmpl W)))
           (mpl.base 579)
           (@runSpecTightPlaced
@@ -1979,17 +2044,17 @@ theorem cliPqxdhBinaryCorrectStrictPlaced2_of_cliKitEnvFits_canonSlice
         (CodeOk_ghost CodeOk_real : Memory → Prop)
         (keep : BitVec 64 → Bool) (InvMem : Memory → Prop)
         (P_real P_sub : Program) (T : F3GhostEntryTargets) (hookStack : Nat)
-        (fMemset fMemcpy : Option (State → State))
+        (fMemset fMemcpy : Option (State → State)) (extra : ExtraGhostTable)
         (_H : CliElfF3B2NeedLocksAssumptions mpl mmpl exitStk libcAddr cliMainStk CodeOk_real elf)
         (HF : F3FixedHookHyp mpl mmpl CodeOk_ghost CodeOk_real libcAddr elf.brkStart
-          keep InvMem P_real P_sub T hookStack fMemset fMemcpy),
+          keep InvMem P_real P_sub T hookStack fMemset fMemcpy extra),
         mpl.base 547 ≠ 0#64 →
           ∀ (X : UnreachedPqxdhPrimitives) (W : CliHooks) (γ : GhostName) (tp : BitVec 64),
             @subroutine_ok _
               (@mProgPlaced (libsignalPlacementOf mpl HF.hblk HF.hext_nodup)
                 (cliGhostExterns
                   (@f3CliGhostHooksFixed (libsignalPlacementOf mpl HF.hblk HF.hext_nodup) keep P_real P_sub T mmpl elf.brkStart cliBudgetLimits
-                    hookStack fMemset fMemcpy)
+                    hookStack fMemset fMemcpy extra)
                   (cliExternsPlaced mmpl W)))
               (mpl.base 579)
               (@runSpecTightPlaced
@@ -2003,7 +2068,7 @@ theorem cliPqxdhBinaryCorrectStrictPlaced2_of_cliKitEnvFits_canonSlice
     CliPqxdhBinaryCorrectStrictPlaced2 bytes := by
   refine cliPqxdhBinaryCorrectStrictPlaced2_of_f3B2NeedLocks' hparse ?_
   intro mpl mmpl hls hmng
-  obtain ⟨exitStk, libcAddr, _, CodeOk_real, _, _, _, _, _, _, _, _, H, HF, hrun⟩ :=
+  obtain ⟨exitStk, libcAddr, _, CodeOk_real, _, _, _, _, _, _, _, _, _, H, HF, hrun⟩ :=
     hAssump mpl mmpl hls hmng
   exact ⟨exitStk, libcAddr, cliMainStk, CodeOk_real, H,
     mainOkCliF3Pq_of_cliKitEnvFits_canonSlice HF img hrun,
@@ -2021,17 +2086,17 @@ theorem cliPqxdhBinaryCorrectPlaced_of_cliKitEnvFits_canonSlice
         (CodeOk_ghost CodeOk_real : Memory → Prop)
         (keep : BitVec 64 → Bool) (InvMem : Memory → Prop)
         (P_real P_sub : Program) (T : F3GhostEntryTargets) (hookStack : Nat)
-        (fMemset fMemcpy : Option (State → State))
+        (fMemset fMemcpy : Option (State → State)) (extra : ExtraGhostTable)
         (_H : CliElfF3B2NeedLocksAssumptions mpl mmpl exitStk libcAddr cliMainStk CodeOk_real elf)
         (HF : F3FixedHookHyp mpl mmpl CodeOk_ghost CodeOk_real libcAddr elf.brkStart
-          keep InvMem P_real P_sub T hookStack fMemset fMemcpy),
+          keep InvMem P_real P_sub T hookStack fMemset fMemcpy extra),
         mpl.base 547 ≠ 0#64 →
           ∀ (X : UnreachedPqxdhPrimitives) (W : CliHooks) (γ : GhostName) (tp : BitVec 64),
             @subroutine_ok _
               (@mProgPlaced (libsignalPlacementOf mpl HF.hblk HF.hext_nodup)
                 (cliGhostExterns
                   (@f3CliGhostHooksFixed (libsignalPlacementOf mpl HF.hblk HF.hext_nodup) keep P_real P_sub T mmpl elf.brkStart cliBudgetLimits
-                    hookStack fMemset fMemcpy)
+                    hookStack fMemset fMemcpy extra)
                   (cliExternsPlaced mmpl W)))
               (mpl.base 579)
               (@runSpecTightPlaced
@@ -2045,7 +2110,7 @@ theorem cliPqxdhBinaryCorrectPlaced_of_cliKitEnvFits_canonSlice
     CliPqxdhBinaryCorrectPlaced bytes := by
   refine cliPqxdhBinaryCorrectPlaced_of_f3B2NeedLocks' hparse ?_
   intro mpl mmpl hls hmng
-  obtain ⟨exitStk, libcAddr, _, CodeOk_real, _, _, _, _, _, _, _, _, H, HF, hrun⟩ :=
+  obtain ⟨exitStk, libcAddr, _, CodeOk_real, _, _, _, _, _, _, _, _, _, H, HF, hrun⟩ :=
     hAssump mpl mmpl hls hmng
   exact ⟨exitStk, libcAddr, cliMainStk, CodeOk_real, H,
     mainOkCliF3Pq_of_cliKitEnvFits_canonSlice HF img hrun,

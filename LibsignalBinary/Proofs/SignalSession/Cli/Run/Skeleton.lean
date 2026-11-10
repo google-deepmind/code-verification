@@ -307,7 +307,7 @@ theorem RunHooks.cli (W : CliHooks) (img : Obj.Image) :
   memcpyRO := cli_hookSat_memcpy_region_ro W
   bcmp := RunGlue.cli_hookSat_bcmp W
   fs := RunGlue.traceFsSound_cli W img.base
-  utf8 := ⟨W.utf8Err, cliExterns_row W (List.mem_append_right _ (by simp))⟩
+  utf8 := ⟨CryptoVerification.SignalSession.cliDefaultUtf8Err, cliExterns_row W (List.mem_append_right _ (by simp))⟩
   memrchr := cliExterns_memrchr W
   allocHooks := Slots.cliExterns_allocHooks W
   allocZeroed := Slots.cliExterns_allocZeroed W

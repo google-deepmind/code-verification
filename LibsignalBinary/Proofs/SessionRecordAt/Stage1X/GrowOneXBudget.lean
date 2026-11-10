@@ -81,7 +81,7 @@ open LibsignalBinary.Heap.IfaceBudgetLemmas (
 )
 open LibsignalBinary.Proofs.Placed.ElfLsRetAddr (LsRetAddr624)
 open LibsignalBinary.Proofs.TripleRatchet.Hooks.DefsBudget (
-  sessionShimBudgetSpec sessionMemmoveBudgetSpec
+  sessionShimBudgetSpec
 )
 open LibsignalBinary.Proofs.TripleRatchet.Alloc.DefsBudget (
   finishGrowEvents FinishGrowEnv fitsEnv_finishGrow_iff
@@ -102,7 +102,7 @@ abbrev growOneChainName : String := Proofs.libsignal.Stage1X.growOneChainName
 
 /-! ## Budget-threaded `[LibsignalPlacement]` allocator contract bundle -/
 
-/-- Relocatable budget-threaded allocator + `shim` + `memmove` bundle at `extHookStack = 16384`. -/
+/-- Relocatable budget-threaded allocator + `shim` bundle at `extHookStack = 16384`. -/
 structure AllocContractsPlaced [LibsignalPlacement] (M : AllocCostModel)
     (A : RustCliAllocBudget M) (lim : BudgetLimits) (H : LibsignalHooks) : Prop where
   alloc : ∀ {callerProg : Program} {callerBlk : Nat} [IsLsBlockProg callerProg callerBlk H],
@@ -117,9 +117,6 @@ structure AllocContractsPlaced [LibsignalPlacement] (M : AllocCostModel)
   shim : ∀ {callerProg : Program} {callerBlk : Nat} [IsLsBlockProg callerProg callerBlk H],
     subroutine_ok callerProg (lsρ lsRustNoAllocShimSym)
       (withLsCl lsmpl session2ShimBudgetSpecX)
-  session_memmove : ∀ {callerProg : Program} {callerBlk : Nat} [IsLsBlockProg callerProg callerBlk H],
-    subroutine_ok callerProg (lsρ "memmove")
-      (withLsCl lsmpl (sessionMemmoveBudgetSpec extHookStack))
 
 /-- Construct `AllocContractsPlaced M A lim H` from block-0 `withLsCodeLoaded` contracts. -/
 theorem AllocContractsPlaced.of_block0 [LibsignalPlacement] {M : AllocCostModel}
@@ -132,15 +129,12 @@ theorem AllocContractsPlaced.of_block0 [LibsignalPlacement] {M : AllocCostModel}
     (hrealloc : subroutine_ok blk0Prog (lsρ lsRustReallocSym)
       (withLsCodeLoaded lsmpl (rustCliReallocBudgetExternSpecWithStack M A lim extHookStack)))
     (hshim : subroutine_ok blk0Prog (lsρ lsRustNoAllocShimSym)
-      (withLsCodeLoaded lsmpl session2ShimBudgetSpecX))
-    (hmemmove : subroutine_ok blk0Prog (lsρ "memmove")
-      (withLsCodeLoaded lsmpl (sessionMemmoveBudgetSpec extHookStack))) :
+      (withLsCodeLoaded lsmpl session2ShimBudgetSpecX)) :
     AllocContractsPlaced M A lim H :=
   ⟨ls_subroutine_ok_cl_of_callee (j := 0) halloc,
    ls_subroutine_ok_cl_of_callee (j := 0) hdealloc,
    ls_subroutine_ok_cl_of_callee (j := 0) hrealloc,
-   ls_subroutine_ok_cl_of_callee (j := 0) hshim,
-   ls_subroutine_ok_cl_of_callee (j := 0) hmemmove⟩
+   ls_subroutine_ok_cl_of_callee (j := 0) hshim⟩
 
 /-- Construct `AllocContractsPlaced M A lim H` from `HookSat H` single-step hooks. -/
 theorem AllocContractsPlaced.of_hooks [LibsignalPlacement] {M : AllocCostModel}
@@ -148,8 +142,7 @@ theorem AllocContractsPlaced.of_hooks [LibsignalPlacement] {M : AllocCostModel}
     (halloc : HookSat H lsRustAllocSym (rustCliAllocBudgetSpec M A lim false))
     (hdealloc : HookSat H lsRustDeallocSym (rustCliDeallocBudgetSpec M A lim))
     (hrealloc : HookSat H lsRustReallocSym (rustCliReallocBudgetSpec M A lim))
-    (hshim : HookSat H lsRustNoAllocShimSym sessionShimBudgetSpec)
-    (hmemmove : HookSat H "memmove" (sessionMemmoveBudgetSpec extHookStack)) :
+    (hshim : HookSat H lsRustNoAllocShimSym sessionShimBudgetSpec) :
     AllocContractsPlaced M A lim H where
   alloc := ls_subroutine_ok_cl_of_plain_prog
     (subroutine_ok_rustCliAllocBudget_withStack (by decide) (by decide) (ls_hook_ok_of_caller halloc))
@@ -173,7 +166,6 @@ theorem AllocContractsPlaced.of_hooks [LibsignalPlacement] {M : AllocCostModel}
       rw [sepConj_assoc, sepConj_assoc, satisfies_pure_sepConj, satisfies_pure_sepConj] at hpost
       rw [sepConj_assoc, satisfies_pure_sepConj]
       exact ⟨⟨hpost.2.1, hpost.1⟩, hpost.2.2⟩
-  session_memmove := ls_subroutine_ok_cl_of_plain_prog (ls_hook_ok_of_caller hmemmove)
 
 /-- `NoOom` specialization of `AllocContractsPlaced.alloc` at memory `m` with `LibsignalCodeLoaded`. -/
 theorem AllocContractsPlaced.allocNoOom_call [LibsignalPlacement] {M : AllocCostModel}

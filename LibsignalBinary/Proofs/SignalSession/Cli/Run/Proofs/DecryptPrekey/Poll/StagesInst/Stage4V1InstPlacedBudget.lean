@@ -56,7 +56,7 @@ open Arm64 Arm64.Obj Arm64.Process ProofLib SepProp
 open CryptoGames.LibsignalSession (IdentityKey PublicKey)
 open CryptoGames.LibsignalSessionApi (IdentityChange Session SessionRecord)
 open CryptoVerification
-  (IsLsBlockProg LibsignalHooks LibsignalPlacement libsignalMutatedBlocks lsBlackBoxU8Sym
+  (IsLsBlockProg LibsignalHooks LibsignalPlacement libsignalMutatedBlocks
    ls_hook_ok_ultra_of_mem lsmpl lsρ withLsCodeLoaded)
 open CryptoVerification.RustHeap (RustAlloc)
 open CryptoVerification.E2E.Record (encodeRecord)
@@ -66,8 +66,7 @@ open CryptoVerification.Cli.E2E.Pqxdh.ResponderClosure.Kits
   (SessionExtraRel stageP4CallStack stageP4EnvOk stageP4Quiet)
 open CryptoVerification.Cli.E2E.Pqxdh.ResponderClosure.Matched (stageP4MatchedCallStack)
 open CryptoVerification.LibsignalTripleRatchet
-  (doReserveStackX extHookStack hookMemcpy_trace_ok hookMemmove_trace_ok
-   noAllocShimSpec sessionMemcpySpec sessionMemmoveSpec)
+  (doReserveStackX extHookStack noAllocShimSpec sessionMemcpySpec)
 open CryptoVerification.LibsignalTripleRatchetRepr (AddrGhost SessionGhost)
 open CryptoVerification.LibsignalPublicApiRepr (AddrVal RecordGhost)
 open CryptoVerification.LibsignalPublicApi.StoreKit
@@ -83,8 +82,7 @@ open CryptoVerification.SignalSession.Cli
   (DirGhost IdGhost KpkMarkPollGhost KyberGhost PkPollGhost ReadRule cliIdentityVtSym
    cliSessionVtSym dirAt keyName kpkMarkBoxAt kpkMarkOf pkBoxAt pkRemoveFutVtSym pkRemoveOf
    pkRemoveOutAt)
-open CryptoVerification.SignalSession.Cli.MainHops
-  (cliExternsPlaced_memmove cliIo cliWrOk main_cliExternsPlaced_row)
+open CryptoVerification.SignalSession.Cli.MainHops (cliIo cliWrOk)
 open CryptoVerification.SignalSession.Cli.Placed
   (lsProg_570 lsProg_575 lsProg_578 lsProg_589 lsProg_597 lsProg_610)
 open CryptoVerification.SignalSession.Cli.RunSkeleton (RunBudgets)
@@ -102,7 +100,7 @@ open CryptoVerification.SignalSession.Cli.RunProofs.Poll
    cliPollPk_vtablesPlacedOk cliPollSessKitPlaced cliPollSess_vtablesPlacedOk dpPollEntryPlaced
    dpPollProgPlaced)
 open LibsignalBinary.Heap
-  (AllocCostModel AllocEvent BudgetLimits FitsEnv FreeOnlyEvs RustCliAllocBudget SeqEnv VmPreserved
+  (AllocCostModel AllocEvent BudgetLimits FitsEnv FreeOnlyEvs RustCliAllocBudget SeqEnv
    rustCliDeallocBudgetSpec)
 open LibsignalBinary.Proofs.PublicApi.StoreKit.PreKeyStoreKitBudget
   (BoxAllocEnv PreKeyStoreBudgetEnv kitPreKeyRemovePollSpec kitPreKeyRemovePollSpecE
@@ -127,11 +125,10 @@ open LibsignalBinary.Proofs.SignalSession.Cli.Dir.Decimal.ExecPlacedBudget (Deci
 open LibsignalBinary.Proofs.SignalSession.Cli.Dir.Get.PlacedBudgetAux1a (DirGetEnv)
 open LibsignalBinary.Proofs.SignalSession.Cli.Dir.Path.PlacedBudget (PathEnv)
 open LibsignalBinary.Proofs.SignalSession.Cli.Dir.Put.PlacedBudgetAux (DirPutEnv)
-open LibsignalBinary.Heap.SpecBudget (hookSat_withVmPreserved withVmPreserved)
-open LibsignalBinary.Proofs.TripleRatchet.Hooks.DefsBudget
-  (sessionMemcpyBudgetSpec sessionMemmoveBudgetSpec sessionShimBudgetSpec)
+open LibsignalBinary.Heap.SpecBudget (withVmPreserved)
+open LibsignalBinary.Proofs.TripleRatchet.Hooks.DefsBudget (sessionShimBudgetSpec)
 open LibsignalBinary.Proofs.SignalSession.Cli.AllocGhostLinkTransfer
-  (CliGhostHooks cliGhostExterns cliGhostExterns_other)
+  (CliGhostHooks cliGhostExterns)
 open LibsignalBinary.Proofs.SignalSession.Cli.SpecsPlacedBudget
   (AllocContractsXCliPlaced ReadFileRuleEnv pkRemovePollSpecPlaced pkShimSpecPlaced readFileSpecPlaced sessDeserializeSpecPlaced)
 open LibsignalBinary.Proofs.SignalSession.Cli.Store.PkShimsPlacedBudget (pkRemoveShim_placed_ok_of_deps)
@@ -146,7 +143,7 @@ open LibsignalBinary.Proofs.SignalSession.Cli.KitInst.SessionKitOkCliPlacedBudge
    cliSessKitOkSE_placed cliSessKitOkSE_seqFree_placed cliSessionKitDefaultBudgetEnv
    cliSessionKitSeqFreeBudgetEnv)
 open LibsignalBinary.Proofs.SignalSession.Cli.KitInst.IdentityKitOkPlacedBudget
-  (cliIdFutDrop_rocl_placed_ok cliIdKitOkIE_placed cliIdentityKitDefaultBudgetEnv)
+  (cliIdFutDrop_rocl_placed_ok cliIdKitOkIE_placed_sat cliIdentityKitDefaultBudgetEnv)
 open LibsignalBinary.Proofs.SignalSession.Cli.KitInst.KyberMarkFitPlacedBudget
   (cliKpkMarkShim_placed_ok cliKpkStoreBudgetEnvPlaced cliKpkStoreSpecPlaced_markPoll_of_env)
 open LibsignalBinary.Proofs.SignalSession.Cli.Run.Proofs.DecryptPrekey.Poll.ClosureStagesStmtPlacedBudget
@@ -163,15 +160,7 @@ private theorem toSkeletonRunHooks [LibsignalPlacement] {M : AllocCostModel}
   { alloc := hh.alloc, allocFs := hh.allocFs, panics := hh.panics, memcpyRO := hh.memcpyRO,
     bcmp := hh.bcmp, fs := hh.fs, utf8 := hh.utf8, memrchr := hh.memrchr,
     codecHooks := hh.codecHooks, allocZeroed := hh.allocZeroed, stringClone := hh.stringClone,
-    formatInner := hh.formatInner }
-
-private theorem hookMemcpy_vm_local (s : State) : VmPreserved s (hookMemcpy s) :=
-  ⟨⟨rfl, rfl, rfl⟩, rfl,
-    fun a => congrFun (LibsignalBinary.Heap.IfaceBudgetLemmas.perm_writeBytes_norm _ _ _) a,
-    fun _ _ _ => rfl⟩
-
-private theorem hookMemmove_vm_local (s : State) : VmPreserved s (hookMemmove s) :=
-  hookMemcpy_vm_local s
+    formatInner := hh.formatInner, blackBox := hh.blackBox }
 
 theorem cliSerContractsX_placed_ok [LibsignalPlacement] {M : AllocCostModel}
     {A : RustCliAllocBudget M} {lim : BudgetLimits}
@@ -180,16 +169,6 @@ theorem cliSerContractsX_placed_ok [LibsignalPlacement] {M : AllocCostModel}
     SerContractsXPlaced M A lim (cliGhostExterns gh (cliExternsPlaced mmpl W)) :=
   SerContractsXPlaced.of_hooks hh.codecHooks.alloc hh.codecHooks.dealloc hh.codecHooks.realloc
     ((show withVmPreserved noAllocShimSpec = sessionShimBudgetSpec from rfl) ▸ hh.codecHooks.shim)
-    (by
-      let hlookup : cliGhostExterns gh (cliExternsPlaced mmpl W) "memmove" = some hookMemmove :=
-        (cliGhostExterns_other gh (cliExternsPlaced mmpl W)
-          (by decide) (by decide) (by decide) (by decide) (by decide) (by decide)).trans
-          (cliExternsPlaced_memmove mmpl W)
-      exact (show withVmPreserved (sessionMemmoveSpec extHookStack) =
-          sessionMemmoveBudgetSpec extHookStack from rfl) ▸
-        hookSat_withVmPreserved ⟨hookMemmove, hlookup, hookMemmove_trace_ok extHookStack⟩
-          fun f hf s => by
-            rw [hlookup] at hf; injection hf with hfg; subst hfg; exact hookMemmove_vm_local s)
     (by
       refine ProofLib.HookSat.mono hh.codecHooks.memcpy fun ⟨dst, src, bs⟩ R s0 hpre =>
         ⟨(dst, src, bs), stackAt s0.sp extHookStack ∗ R, ?_, fun sf hpost => ?_⟩
@@ -230,35 +209,8 @@ private theorem saveUpd_own_placed (rd : ReadRule) (F0 : FsFiles) (g : IdGhost)
 private theorem withPanics_cliGhostExterns_eq (mmpl : Obj.MultiPlacement)
     (gh : CliGhostHooks) (W : CliHooks) :
     Rust.withPanics (cliGhostExterns gh (cliExternsPlaced mmpl W)) =
-      cliGhostExterns gh (cliExternsPlaced mmpl W) := by
-  funext name
-  by_cases hp : Rust.isPanicSymbol name = true
-  · have hother : cliGhostExterns gh (cliExternsPlaced mmpl W) name = cliExternsPlaced mmpl W name :=
-      cliGhostExterns_other gh (cliExternsPlaced mmpl W)
-        (fun h => by subst h; simp [Rust.isPanicSymbol, CryptoVerification.SignalSession.lsRustAllocSymCli, CryptoVerification.SignalSession.lsRustDeallocSymCli, CryptoVerification.SignalSession.lsRustReallocSymCli, CryptoVerification.SignalSession.lsRustAllocZeroedSymCli, CryptoVerification.SignalSession.lsRustNoAllocShimSymCli, CryptoVerification.SignalSession.lsStringCloneSym] at hp)
-        (fun h => by subst h; simp [Rust.isPanicSymbol, CryptoVerification.SignalSession.lsRustAllocSymCli, CryptoVerification.SignalSession.lsRustDeallocSymCli, CryptoVerification.SignalSession.lsRustReallocSymCli, CryptoVerification.SignalSession.lsRustAllocZeroedSymCli, CryptoVerification.SignalSession.lsRustNoAllocShimSymCli, CryptoVerification.SignalSession.lsStringCloneSym] at hp)
-        (fun h => by subst h; simp [Rust.isPanicSymbol, CryptoVerification.SignalSession.lsRustAllocSymCli, CryptoVerification.SignalSession.lsRustDeallocSymCli, CryptoVerification.SignalSession.lsRustReallocSymCli, CryptoVerification.SignalSession.lsRustAllocZeroedSymCli, CryptoVerification.SignalSession.lsRustNoAllocShimSymCli, CryptoVerification.SignalSession.lsStringCloneSym] at hp)
-        (fun h => by subst h; simp [Rust.isPanicSymbol, CryptoVerification.SignalSession.lsRustAllocSymCli, CryptoVerification.SignalSession.lsRustDeallocSymCli, CryptoVerification.SignalSession.lsRustReallocSymCli, CryptoVerification.SignalSession.lsRustAllocZeroedSymCli, CryptoVerification.SignalSession.lsRustNoAllocShimSymCli, CryptoVerification.SignalSession.lsStringCloneSym] at hp)
-        (fun h => by subst h; simp [Rust.isPanicSymbol, CryptoVerification.SignalSession.lsRustAllocSymCli, CryptoVerification.SignalSession.lsRustDeallocSymCli, CryptoVerification.SignalSession.lsRustReallocSymCli, CryptoVerification.SignalSession.lsRustAllocZeroedSymCli, CryptoVerification.SignalSession.lsRustNoAllocShimSymCli, CryptoVerification.SignalSession.lsStringCloneSym] at hp)
-        (fun h => by subst h; simp [Rust.isPanicSymbol, CryptoVerification.SignalSession.lsRustAllocSymCli, CryptoVerification.SignalSession.lsRustDeallocSymCli, CryptoVerification.SignalSession.lsRustReallocSymCli, CryptoVerification.SignalSession.lsRustAllocZeroedSymCli, CryptoVerification.SignalSession.lsRustNoAllocShimSymCli, CryptoVerification.SignalSession.lsStringCloneSym] at hp)
-        (fun h => by subst h; simp [Rust.isPanicSymbol, CryptoVerification.SignalSession.lsReadFileSym] at hp)
-        (fun h => by subst h; simp [Rust.isPanicSymbol, CryptoVerification.SignalSession.lsReadStdinSym] at hp)
-        (fun h => by subst h; simp [Rust.isPanicSymbol, CryptoVerification.SignalSession.lsMemsetSym] at hp)
-        (fun h => by subst h; simp [Rust.isPanicSymbol, CryptoVerification.SignalSession.lsMemcpySym] at hp)
-    unfold Rust.withPanics
-    rw [hother]
-    unfold cliExternsPlaced isCliPanicSymbolPlaced
-    simp [hp]
-  · simp [Rust.withPanics, hp]
-
-theorem cliGhostExterns_blackBox (mmpl : Obj.MultiPlacement)
-    (gh : CliGhostHooks) (W : CliHooks) :
-    cliGhostExterns gh (cliExternsPlaced mmpl W) lsBlackBoxU8Sym =
-      some CryptoVerification.LibsignalSession.blackBoxHook :=
-  (cliGhostExterns_other gh (cliExternsPlaced mmpl W)
-    (by decide) (by decide) (by decide) (by decide) (by decide) (by decide)).trans
-    (CryptoVerification.SignalSession.Cli.RunGlue.cliExternsPlaced_row mmpl W
-      (List.mem_append_right _ (List.mem_of_getElem? (i := 11) rfl)))
+      cliGhostExterns gh (cliExternsPlaced mmpl W) :=
+  CryptoVerification.SignalSession.Cli.RunGlue.withPanics_cliGhostExterns mmpl gh W
 
 /-- Retag `IdentityStoreBudgetEnv` from `cliIdentityKitSpecPlaced` to `cliIdStoreSpecFullPlaced`. -/
 def fullIdKitBudgetEnv [LibsignalPlacement] {A : RustAlloc}
@@ -475,11 +427,11 @@ theorem cliPollId_kitPlacedOkI [LibsignalPlacement] {M : AllocCostModel}
       (cliPollIdBudgetEnv A.repAlloc F0 peer (cliKitStk B) ReadEnv)
       (cliGhostExterns gh (cliExternsPlaced mmpl W)) :=
   cliIdKitPlacedOkI_full
-    (cliIdKitOkIE_placed
+    (cliIdKitOkIE_placed_sat
       (readProg := dpPollProgPlaced (cliGhostExterns gh (cliExternsPlaced mmpl W))) (jRead := 518)
       hDropNz (fun _ hp => hp.2) (toSkeletonRunHooks hh)
       (subroutine_ok_withLsCodeRoLoaded_of_plain hRead)
-      (cliGhostExterns_blackBox mmpl gh W)
+      hh.blackBox
       (Nat.le_refl _) (Nat.le_refl _) (Nat.le_refl _) (Nat.le_refl _)
       (by decide) (by decide))
 
@@ -535,7 +487,7 @@ private theorem cliPollKpk_markPoll_rocl [LibsignalPlacement] {M : AllocCostMode
     (getProg := lsProg_589 (cliGhostExterns gh (cliExternsPlaced mmpl W))) (getBlk := 589)
     (putProg := lsProg_570 (cliGhostExterns gh (cliExternsPlaced mmpl W))) (putBlk := 570)
     (stk := (cliKitStk B).kpkMarkPoll)
-    hh.alloc hh.panics hh.bcmp hDecimal hGet hPut
+    hh.alloc hh.panics hh.bcmp.of_keepsFs hDecimal hGet hPut
     (hh.fs (lsProg_578 (cliGhostExterns gh (cliExternsPlaced mmpl W))) 578)
     (Nat.le_refl _) hblk
   let baseKit := cliKpkStoreSpecPlaced A.repAlloc cliIo.rd F0 cliWrOk kpkId spkId kbk

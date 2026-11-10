@@ -407,6 +407,7 @@ theorem tryDecryptV1_placed_ok_PTight_cli [LibsignalPlacement]
     (mmpl : Obj.MultiPlacement) (gh : RunGlue.CliGhostHooks)
     (W : CliHooks) (ctl : BitVec 64)
     (hG : Slots.CliGhostA0Hooks E2E.HooksE.A0 gh)
+    (hMv : gh.extra.lookup "memmove" = some hookMemmove)
     (hAesDec : HookSat (RunGlue.cliGhostExterns gh (cliExternsPlaced mmpl W)) lsAesDecSym
       (aesDecSpec W.C.D E2E.HooksE.A0))
     (hSpqr : SpqrV1PlacedSeams mmpl gh W) :
@@ -416,11 +417,11 @@ theorem tryDecryptV1_placed_ok_PTight_cli [LibsignalPlacement]
       (tryDecryptSpecTPTightAt W.C E2E.HooksE.A0 ctl uuidTryParse (spqrV1 W.C.F W.Q.K)) :=
   tryDecrypt_placed_ok_of_seams
     (errTail_433_cli mmpl gh W hG ctl (spqrV1 W.C.F W.Q.K))
-    (s0_433_cli mmpl gh W ctl (spqrV1 W.C.F W.Q.K))
+    (s0_433_cli mmpl gh W hG.extraOk ctl (spqrV1 W.C.F W.Q.K))
     (s1_433_cli mmpl gh W hG ctl (spqrV1 W.C.F W.Q.K))
-    (s2_433_cli mmpl gh W ctl)
-    (dhStep_433_cli mmpl gh W hG ctl (spqrV1 W.C.F W.Q.K))
-    (s4_433_cli mmpl gh W hG ctl (spqrV1 W.C.F W.Q.K))
+    (s2_433_cli mmpl gh W hG.extraOk ctl)
+    (dhStep_433_cli mmpl gh W hG hMv ctl (spqrV1 W.C.F W.Q.K))
+    (s4_433_cli mmpl gh W hG hMv ctl (spqrV1 W.C.F W.Q.K))
     (pqRecv_433_cli mmpl gh W hG hSpqr ctl)
     (s6_433_cli mmpl gh W hG ctl)
     (s7_433_cli mmpl gh W hG ctl (spqrV1 W.C.F W.Q.K))

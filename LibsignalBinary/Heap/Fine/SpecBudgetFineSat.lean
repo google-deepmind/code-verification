@@ -82,12 +82,12 @@ structure FineCliB2ExternRowsSat [LibsignalPlacement] (mpl : Obj.MultiPlacement)
   memmove : ext "memmove" = some hookMemmove
   memcpy : HookSat ext "memcpy" memcpySpec
   memcpyRO : HookSat ext "memcpy" memcpyROSpec
-  bcmp : ext "bcmp" = some (cliBcmpHook W.bcmp)
+  bcmp : ext "bcmp" = some (cliBcmpHook CryptoVerification.SignalSession.cliDefaultBcmp)
   strlen : ext "strlen" = some strlenHook
   writeFile : ext writeFileName = some writeFileHook
   writeStdout : ext writeStdoutName = some writeStdoutHook
   memrchr : ext "core::slice::memchr::memrchr" = some memrchrHook
-  fromUtf8 : ext "core::str::converts::from_utf8" = some (fromUtf8Hook W.utf8Err)
+  fromUtf8 : ext "core::str::converts::from_utf8" = some (fromUtf8Hook CryptoVerification.SignalSession.cliDefaultUtf8Err)
   stringClone : ext stringCloneHookName = some (stringCloneHookMallocng mpl)
   fmtWrite : ext fmtWriteName = some CryptoVerification.E2E.fmtWriteHook0
   formatInner : ext formatInnerName = some CryptoVerification.E2E.formatInnerHook0

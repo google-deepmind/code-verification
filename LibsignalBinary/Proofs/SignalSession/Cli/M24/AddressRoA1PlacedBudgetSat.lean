@@ -35,7 +35,7 @@ open CryptoVerification
 open CryptoVerification.LibsignalPublicApi.StoreKit (withLsRoCl)
 open CryptoVerification.LibsignalTripleRatchet (extHookStack)
 open CryptoVerification.LibsignalTripleRatchetRepr (uuidTryParse)
-open CryptoVerification.SignalSession (lsFromUtf8Sym lsMemrchrSym strlenHook)
+open CryptoVerification.SignalSession (lsFromUtf8Sym lsMemrchrSym)
 open CryptoVerification.SignalSession.Cli.Main.Placed (lsProg_617)
 open LibsignalBinary.Heap (AllocCostModel BudgetLimits RustCliAllocBudget)
 open LibsignalBinary.Heap.SpecBudget (withVmPreserved)
@@ -80,12 +80,11 @@ theorem mainCalleesROBlk617_of_mainCalleesBlk617_and_hooks_sat [LibsignalPlaceme
     {M : AllocCostModel} {A : RustCliAllocBudget M} {lim : BudgetLimits}
     {H : LibsignalHooks} {hookStack resStack : Nat}
     (hc : MainCalleesBlk617 A lim H uuidTryParse hookStack resStack)
-    (hstrlen : H "strlen" = some strlenHook)
     (hutf8 : HookSat H lsFromUtf8Sym (withVmPreserved (fromUtf8AsciiSpecRO hookStack)))
     (hmemrchr : HookSat H lsMemrchrSym (withLsRet (withVmPreserved (memrchrSpecRO extHookStack))))
     (hres : 0xB0 + extHookStack ≤ resStack) (hres64 : resStack ≤ 2 ^ 63) :
     MainCalleesROBlk617 A lim H uuidTryParse hookStack resStack :=
-  mainCalleesROBlk617_of_mainCalleesBlk617_and_addr_sat hc hstrlen hutf8
+  mainCalleesROBlk617_of_mainCalleesBlk617_and_addr_sat hc hutf8
     (address_ro_placed_ok_a1_of_hooks_sat hc.allocFs hmemrchr hres hres64)
 
 end LibsignalBinary.Proofs.SignalSession.Cli.M24.AddressRoA1PlacedBudgetSat
