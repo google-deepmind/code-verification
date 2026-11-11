@@ -38,8 +38,11 @@ public import LibsignalBinary.Proofs.SignalSession.Cli.Run.Slots.SpqrV1Empty
 public import LibsignalBinary.Proofs.SignalSession.Cli.Main.Proofs.UuidFsPlaced
 public import LibsignalBinary.Proofs.SignalSession.Cli.Main.Proofs.ParseSidFsPlaced
 public import LibsignalBinary.Proofs.E2E.Pqxdh.Shared.VerifySignaturePlaced
+public import LibsignalBinary.Proofs.E2E.Pqxdh.Shared.VerifySignaturePlacedSat
 public import LibsignalBinary.Proofs.E2E.Pqxdh.WireEntries.RecvWireSameAccountPlaced
+public import LibsignalBinary.Proofs.E2E.Pqxdh.WireEntries.RecvWireSameAccountPlacedSat
 public import LibsignalBinary.Proofs.E2E.Pqxdh.ResponderCore.CryptoCalleesPlaced
+public import LibsignalBinary.Proofs.E2E.Pqxdh.ResponderCore.CryptoBridgePlacedSat
 public import LibsignalBinary.Proofs.TripleRatchet.ChainKey.MessageKeys
 public import LibsignalBinary.Proofs.TripleRatchet.ChainKey.NextChainKey
 public import LibsignalBinary.Proofs.TripleRatchet.Keys.GenerateKeys
@@ -101,9 +104,11 @@ private theorem cliGhostExterns_row_eq (mmpl : Obj.MultiPlacement) (gh : CliGhos
     (h7 : sym ≠ lsReadFileSym := by decide)
     (h8 : sym ≠ lsReadStdinSym := by decide)
     (h9 : sym ≠ lsMemsetSym := by decide)
-    (h10 : sym ≠ lsMemcpySym := by decide) :
+    (h10 : sym ≠ lsMemcpySym := by decide)
+    (h11 : LibsignalBinary.Proofs.SignalSession.Cli.Run.Slots.ExtraGhostSpecs.cliExtraGhostSyms.contains sym = false ∨
+      gh.extra.lookup sym = none := by left; decide) :
     cliGhostExterns gh (cliExternsPlaced mmpl W) sym = some f :=
-  (RunGlue.cliGhostExterns_other gh _ h1 h2 h3 h4 h5 h6 h7 h8 h9 h10).trans
+  (RunGlue.cliGhostExterns_other gh _ h1 h2 h3 h4 h5 h6 h7 h8 h9 h10 h11).trans
     (RunGlue.cliExternsPlaced_row mmpl W hrow)
 
 /-! ## Placed Store Kits and Vtable Witnesses -/
@@ -168,12 +173,6 @@ theorem dirPutStrPlacedOk_cli [LibsignalPlacement]
 
 /-! ## Inner Decrypt (`w2_inner_placed_ok_of_region`) -/
 
-private theorem cliExternsPlaced_blackBox_eq
-    (mmpl : Obj.MultiPlacement) (gh : CliGhostHooks) (W : CliHooks) :
-    cliGhostExterns gh (cliExternsPlaced mmpl W) lsBlackBoxU8Sym =
-      some CryptoVerification.LibsignalSession.blackBoxHook :=
-  cliGhostExterns_row_eq mmpl gh W (Slots.blackBox_row_placed mmpl W)
-
 /-- Proves `InnerDecryptPlacedOk` on Block `463` from `hDropNz` and the Block-`463` `region_ok`
 hypothesis `hreg`. -/
 theorem w2_inner_placed_ok_of_region [LibsignalPlacement]
@@ -235,10 +234,8 @@ theorem publicApiEncHooksPlaced_cli [LibsignalPlacement]
   realloc := Slots.cliExternsPlaced_realloc_sat mmpl gh W hG
   memcpy := Slots.cliExternsPlaced_sessionMemcpyRegion_sat mmpl gh W hG
   stringClone := hStrClone
-  timeAdd := Slots.cliGhostExterns_sat_of_cliExternsPlaced mmpl gh W
-    (Slots.cliExternsPlaced_timeAdd_sat mmpl W)
-  durationSince := Slots.cliGhostExterns_sat_of_cliExternsPlaced mmpl gh W
-    (Slots.cliExternsPlaced_durationSinceBounded_sat mmpl W)
+  timeAdd := Slots.cliGhostExterns_timeAdd_sat gh (cliExternsPlaced mmpl W) hG.extraOk
+  durationSince := Slots.cliGhostExterns_durationSinceBounded_sat gh (cliExternsPlaced mmpl W) hG.extraOk
   handleError := Slots.cliGhostExterns_panic_handle_error mmpl gh W
   handleAllocError := Slots.cliGhostExterns_panic_handle_alloc_error mmpl gh W
   expectFailed := Slots.cliGhostExterns_panic_option_expect_failed mmpl gh W
@@ -652,8 +649,7 @@ theorem w3Hooks_placed_ok [LibsignalPlacement]
     sessionMemcpyRegion := Slots.cliExternsPlaced_sessionMemcpyRegion_sat mmpl gh W hG
     memcpyRO := hh.memcpyRO
     bcmp := hh.bcmp
-    e2eBcmp := Slots.cliGhostExterns_sat_of_cliExternsPlaced mmpl gh W
-      (Slots.cliExternsPlaced_e2eBcmp_sat mmpl W)
+    e2eBcmp := Slots.cliGhostExterns_e2eBcmp_sat gh (cliExternsPlaced mmpl W) hG.extraOk
     allocZeroed := hh.allocZeroed
     stringClone := hh.stringClone
     formatInner := hh.formatInner
@@ -661,14 +657,12 @@ theorem w3Hooks_placed_ok [LibsignalPlacement]
       (Slots.cliExternsPlaced_derivePublicKeyBytes_sat mmpl W)
     dh := Slots.cliGhostExterns_sat_of_cliExternsPlaced mmpl gh W
       (Slots.cliExternsPlaced_diffieHellman_sat mmpl W)
-    sharedDrop := Slots.cliGhostExterns_sat_of_cliExternsPlaced mmpl gh W
-      (Slots.cliExternsPlaced_sharedSecretDrop_sat mmpl W)
-    staticDrop := Slots.cliGhostExterns_sat_of_cliExternsPlaced mmpl gh W
-      (Slots.cliExternsPlaced_staticSecretDrop_sat mmpl W)
-    blackBox := cliExternsPlaced_blackBox_eq mmpl gh W
+    sharedDrop := Slots.cliGhostExterns_sharedSecretDrop_sat gh (cliExternsPlaced mmpl W) hG.extraOk
+    staticDrop := Slots.cliGhostExterns_staticSecretDrop_sat gh (cliExternsPlaced mmpl W) hG.extraOk
+    blackBox := hh.blackBox
     hkdf := instHkdfPlacedHooks_cli mmpl gh W hMs hMc
     kemEncaps := cliGhostExterns_row_eq mmpl gh W (Slots.kemEncaps_row_placed mmpl W)
-    durationSince := cliGhostExterns_row_eq mmpl gh W (Slots.durationSince_row_placed mmpl W)
+    durationSince := Slots.cliGhostExterns_durationSinceEpochAlloc_sat gh (cliExternsPlaced mmpl W) hG.extraOk
     panic_alloc := hh.panics "_RNvNtCs69KKACWg7bl_5alloc5alloc18handle_alloc_error" (by decide)
     panic_raw := hh.panics "_RNvNtCs69KKACWg7bl_5alloc7raw_vec12handle_error" (by decide)
     panic_sym := hh.panics
@@ -714,7 +708,7 @@ theorem w3Exist_placed_ok_of_putStr [LibsignalPlacement]
   have hPutStr' : subroutine_ok (Placed.lsProg_543 H) (lsmpl.base 543)
       (dirPutStrSpecPlaced E2E.HooksE.A0 Initiate.cliDirPutStrStk) :=
     dirPutStrPlacedOk_cli mmpl gh W hh
-  have hEq := Store.IdTrustPoll.publicKeyEq_placed_ok_of_bb (cliExternsPlaced_blackBox_eq mmpl gh W)
+  have hEq := Store.IdTrustPoll.publicKeyEq_mem_placed_ok_of_bb_16_sat hh.blackBox
   have hDec := RecordCodecsBinary.IdentityKeyDecode.identityKey_decode_placed_ok
     (A := E2E.HooksE.A0) H
   exact
@@ -729,7 +723,7 @@ theorem w3Exist_placed_ok_of_putStr [LibsignalPlacement]
         have := Initiate.stk_sub_ge_base hstk
         have := Initiate.stk_sub_ge_dirGet hstk
         have : extHookStack ≤ 65536 := by decide
-        exact Store.IdTrustPoll.idTrustPoll_placed_ok_of_deps hh.alloc hGet hDec hEq (by omega)
+        exact Store.IdTrustPoll.idTrustPoll_placed_ok_of_deps_16 hh.alloc hGet hDec hEq (by omega)
           (by decide) (by decide) (by decide) (by decide) (by decide) (by decide)
       sessLoadShim := fun {stk} hstk => by
         have := Initiate.stk_sub_ge_base hstk
@@ -751,7 +745,7 @@ theorem w3Exist_placed_ok_of_putStr [LibsignalPlacement]
         have : Initiate.cliDirPutStrStk ≤ 65536 := by decide
         have : publicKeySerializeStackX ≤ 65536 := by decide
         have : extHookStack ≤ 65536 := by decide
-        exact Store.IdSavePoll.idSavePoll_placed_ok_of_deps hh.alloc hh.panics hGet hPutStr'
+        exact Store.IdSavePoll.idSavePoll_placed_ok_of_deps_16 hh.alloc hh.panics hGet hPutStr'
           hDec hEq (by omega)
           (by decide) (by decide) (by decide) (by decide)
           (by decide) (by decide) (by decide) (by decide)
@@ -782,18 +776,17 @@ theorem setUnackEpochPlacedOk_cli [LibsignalPlacement]
     (Slots.cliExternsPlaced_dealloc_sat mmpl gh W hG)
     (Slots.cliExternsPlaced_sessionMemcpyRegion_sat mmpl gh W hG)
     (Slots.cliGhostExterns_panic_handle_error mmpl gh W)
-    (Slots.cliGhostExterns_sat_of_cliExternsPlaced mmpl gh W
-      (Slots.cliExternsPlaced_durationSinceEpochAlloc_sat mmpl W))
+    (Slots.cliGhostExterns_durationSinceEpochAlloc_sat gh (cliExternsPlaced mmpl W) hG.extraOk)
 
-private theorem w3VerifySigHooks_cli
+private theorem w3VerifySigHooks_cli [LibsignalPlacement]
     (mmpl : Obj.MultiPlacement) (gh : CliGhostHooks) (W : CliHooks)
     (X : UnreachedPqxdhPrimitives)
     (hG : Slots.CliGhostA0Hooks E2E.HooksE.A0 gh) :
-    E2E.Pqxdh.Shared.VerifySignaturePlacedHooks
+    LibsignalBinary.Proofs.E2E.Pqxdh.Shared.VerifySignaturePlacedASat.VerifySignaturePlacedHooksSat
       (E2E.modelPrims X ⟨W.C, W.Q⟩) (cliGhostExterns gh (cliExternsPlaced mmpl W)) :=
   { memcpy := Slots.cliExternsPlaced_sessionMemcpyRegion_sat mmpl gh W hG
     memset := Slots.cliExternsPlaced_sessionMemset_sat mmpl gh W hG E2E.Pqxdh.Shared.pqxdhHookStack (by decide)
-    blackBox := cliExternsPlaced_blackBox_eq mmpl gh W
+    blackBox := KitInst.cliGhostExterns_blackBox_sat mmpl gh W hG.extraOk
     montToEd := Slots.cliGhostExterns_sat_of_cliExternsPlaced mmpl gh W
       (Slots.cliExternsPlaced_toEdwards_sat mmpl W X (img := default))
     compress := Slots.cliGhostExterns_sat_of_cliExternsPlaced mmpl gh W
@@ -816,11 +809,12 @@ private theorem w3VerifySignature_placed_ok [LibsignalPlacement]
     subroutine_ok (Initiate.initProgPlaced mmpl gh W) (lsmpl.base 203)
       (StoreKit.withLsCodeRoLoaded lsmpl
         (Initiate.verifySignatureInnerSpec (E2E.modelPrims X ⟨W.C, W.Q⟩))) := by
-  have hv := E2E.Pqxdh.Shared.verifySignature_placed_ok_of_block
-    (callerProg := Initiate.initProgPlaced mmpl gh W)
-    (E2E.Pqxdh.Shared.VerifySignaturePrims.of_structuralPrims
-      (E2E.Pqxdh.Initiator.structuralPrims_initiatorModelPrims X ⟨W.C, W.Q⟩))
-    (w3VerifySigHooks_cli mmpl gh W X hG) (by decide)
+  have hv :=
+    LibsignalBinary.Proofs.E2E.Pqxdh.Shared.VerifySignaturePlacedSat.verifySignature_placed_ok_of_block_sat
+      (callerProg := Initiate.initProgPlaced mmpl gh W)
+      (E2E.Pqxdh.Shared.VerifySignaturePrims.of_structuralPrims
+        (E2E.Pqxdh.Initiator.structuralPrims_initiatorModelPrims X ⟨W.C, W.Q⟩))
+      (w3VerifySigHooks_cli mmpl gh W X hG) (by decide)
   refine subroutine_ok_map hv (fun g R s0 hp =>
     ⟨{ pkPtr := g.pkPtr, msgPtr := g.msgPtr, sigPtr := g.sigPtr,
        pk := g.pk, m := g.m, sig := g.sig }, R, ?_, fun _ hq => hq⟩)
@@ -834,7 +828,8 @@ private theorem w3VerifySignature_placed_ok [LibsignalPlacement]
   exact Eq.mp (congrArg (s0.mem ⊨ ·) (by ac_rfl)) h1
 
 private theorem w3IsSameAccount_placed_ok [LibsignalPlacement]
-    (mmpl : Obj.MultiPlacement) (gh : CliGhostHooks) (W : CliHooks) :
+    (mmpl : Obj.MultiPlacement) (gh : CliGhostHooks) (W : CliHooks)
+    (hG : Slots.CliGhostA0Hooks E2E.HooksE.A0 gh) :
     subroutine_ok (Initiate.initProgPlaced mmpl gh W) (lsmpl.base 17)
       (StoreKit.withLsCodeRoLoaded lsmpl
         (E2E.Pqxdh.WireEntries.isSameAccountDistinctSpec E2E.HooksE.A0 uuidTryParse)) := by
@@ -845,9 +840,10 @@ private theorem w3IsSameAccount_placed_ok [LibsignalPlacement]
       (fun _ _ _ hp => hp) (fun _ _ _ _ hq => ?_)
     dsimp only [withLsCodeLoaded, Spec.keepsFs] at hq ⊢
     rw [sepConj_assoc, satisfies_pure_sepConj] at hq; exact hq.2
-  have hisa := E2E.Pqxdh.WireEntries.isSameAccountEqDistinct_placed_ok_at E2E.HooksE.A0
-    (callerProg := Initiate.initProgPlaced mmpl gh W)
-    (cliExternsPlaced_blackBox_eq mmpl gh W) huuid (by decide)
+  have hisa :=
+    LibsignalBinary.Proofs.E2E.Pqxdh.WireEntries.RecvWireSameAccountPlacedSat.isSameAccountEqDistinct_placed_ok_at_sat
+      E2E.HooksE.A0 (callerProg := Initiate.initProgPlaced mmpl gh W)
+      (KitInst.cliGhostExterns_blackBox_sat mmpl gh W hG.extraOk) huuid (by decide)
   refine subroutine_ok_mono hisa (fun x R s0 hp => ?_) (fun _ _ _ _ hq => hq)
   obtain ⟨hc, hpre⟩ := StoreKit.extract_withLsCodeRoLoaded hp
   dsimp only [withLsCodeLoaded]
@@ -863,19 +859,18 @@ private theorem w3CalculateAgreement_placed_ok [LibsignalPlacement]
     subroutine_ok (Initiate.initProgPlaced mmpl gh W) (lsmpl.base 207)
       (StoreKit.withLsCodeRoLoaded lsmpl
         (Initiate.pqxdhCalculateAgreementPlacedInnerSpec (E2E.modelPrims X ⟨W.C, W.Q⟩) E2E.HooksE.A0)) := by
-  have hca := E2E.Pqxdh.ResponderCore.pqxdhCalculateAgreement_placed_ok_of_block
-    (callerProg := Initiate.initProgPlaced mmpl gh W)
-    (E2E.Pqxdh.ResponderCore.primitivesMatchCrypto_modelPrims X ⟨W.C, W.Q⟩)
-    (Slots.cliGhostExterns_sat_of_cliExternsPlaced mmpl gh W
-      (Slots.cliExternsPlaced_diffieHellman_sat mmpl W))
-    (Slots.cliGhostExterns_sat_of_cliExternsPlaced mmpl gh W
-      (Slots.cliExternsPlaced_sharedSecretDrop_sat mmpl W))
-    (cliExternsPlaced_blackBox_eq mmpl gh W)
-    (Slots.cliExternsPlaced_noAllocShim_sat mmpl gh W hG.shim_eq)
-    (Slots.cliExternsPlaced_alloc_sat mmpl gh W hG)
-    (Slots.cliGhostExterns_sat_of_cliExternsPlaced mmpl gh W
-      (Slots.cliExternsPlaced_staticSecretDrop_sat mmpl W))
-    (Slots.cliGhostExterns_panic_handle_alloc_error mmpl gh W) (by decide)
+  have hca :=
+    LibsignalBinary.Proofs.E2E.Pqxdh.ResponderCore.CryptoBridgePlacedSat.pqxdhCalculateAgreement_placed_ok_of_block_sat
+      (callerProg := Initiate.initProgPlaced mmpl gh W)
+      (E2E.Pqxdh.ResponderCore.primitivesMatchCrypto_modelPrims X ⟨W.C, W.Q⟩)
+      (Slots.cliGhostExterns_sat_of_cliExternsPlaced mmpl gh W
+        (Slots.cliExternsPlaced_diffieHellman_sat mmpl W))
+      (Slots.cliGhostExterns_sharedSecretDrop_sat gh (cliExternsPlaced mmpl W) hG.extraOk)
+      (KitInst.cliGhostExterns_blackBox_sat mmpl gh W hG.extraOk)
+      (Slots.cliExternsPlaced_noAllocShim_sat mmpl gh W hG.shim_eq)
+      (Slots.cliExternsPlaced_alloc_sat mmpl gh W hG)
+      (Slots.cliGhostExterns_staticSecretDrop_sat gh (cliExternsPlaced mmpl W) hG.extraOk)
+      (Slots.cliGhostExterns_panic_handle_alloc_error mmpl gh W) (by decide)
   refine subroutine_ok_mono hca (fun x R s0 hp => ?_) (fun _ _ _ _ hq => hq)
   obtain ⟨hc, hpre⟩ := StoreKit.extract_withLsCodeRoLoaded hp
   dsimp only [LibsignalTripleRatchet.withLsCodeRoLoaded]
@@ -897,10 +892,9 @@ theorem w3A4_placed_ok [LibsignalPlacement]
   let H := cliGhostExterns gh (cliExternsPlaced mmpl W)
   have _ := instHkdfPlacedHooks_cli mmpl gh W hMs hMc
   have _ := CryptoVerification.instIsLsBlockProg_59 H
-  have _ := CryptoVerification.instIsLsBlockProg_207 H
   exact
     { verifySignature := fun X => w3VerifySignature_placed_ok mmpl gh W X hG
-      isSameAccount := w3IsSameAccount_placed_ok mmpl gh W
+      isSameAccount := w3IsSameAccount_placed_ok mmpl gh W hG
       calculateAgreement := fun X => w3CalculateAgreement_placed_ok mmpl gh W X hG
       spqrInitialState := hSpqr.spqrInitialState_initProg
       setUnackPreKeyMsg := setUnackEpochPlacedOk_cli mmpl gh W hG
@@ -908,10 +902,6 @@ theorem w3A4_placed_ok [LibsignalPlacement]
         (E2E.Pqxdh.ResponderCore.primitivesMatchCrypto_modelPrims X ⟨W.C, W.Q⟩)
       pqxdhHkdfExpand := fun X => E2E.Pqxdh.ResponderCore.pqxdhHkdfExpandMultiInfo_placed_ok
         (E2E.Pqxdh.ResponderCore.primitivesMatchCrypto_modelPrims X ⟨W.C, W.Q⟩)
-      ctEqSliceRO := ls_subroutine_ok_of_block
-        (callerProg := (CryptoVerification.blkPC_207).rebase (CryptoVerification.blkPl_207).base H)
-        (ConsumeMessageKeyTransfer.ct_eq_ro_placed_ok_withLsCodeLoaded
-          (cliExternsPlaced_blackBox_eq mmpl gh W))
       newFromSlice := new_from_slice_54_cro_ok mmpl gh W hMs hMc }
 
 /-- Block-`618` `coinsFillSpecPlacedW3` contract obligation for `cliCoinsFillStack ≤ cStk`. -/
@@ -1007,7 +997,7 @@ theorem cliSlotCallees_placed_of_region [LibsignalPlacement]
     w3Stage2 := w3Stage2_placed_ok mmpl gh X W hG
     w3Stage3 := w3Stage3_placed_ok mmpl gh X W hG }
 
--- A2'' D1: A0 island, hMs/hMc discharged at a0Ghost
+-- A2'' D1 / 2B MV: A0 island, hMs/hMc/hMv discharged at a0Ghost
 /-- Assembles `CliSlotCalleesPlaced mmpl gh X W` from `SpqrV1PlacedSeams` and the Block-`462`
 `logClosurePlacedSpec` seam `hLog462`. -/
 theorem cliSlotCallees_placed_of_seams [LibsignalPlacement]
@@ -1016,6 +1006,7 @@ theorem cliSlotCallees_placed_of_seams [LibsignalPlacement]
     (hG : Slots.CliGhostA0Hooks E2E.HooksE.A0 gh)
     (hMs : gh.memset = some CryptoVerification.LibsignalAesCbc.memsetHook)
     (hMc : gh.memcpy = some CryptoVerification.LibsignalAesCbc.memcpyHook)
+    (hMv : gh.extra.lookup "memmove" = some hookMemmove)
     (hh : RunSkeleton.RunHooksPlaced E2E.HooksE.A0 (cliGhostExterns gh (cliExternsPlaced mmpl W)))
     (hRead589 : subroutine_ok (Placed.lsProg_589 (cliGhostExterns gh (cliExternsPlaced mmpl W)))
       (lsρ lsReadFileSym)
@@ -1035,7 +1026,7 @@ theorem cliSlotCallees_placed_of_seams [LibsignalPlacement]
   { w1Inner := w1_inner_placed_ok mmpl gh W hDropNz hG hMs hMc hh hRead589 hAesEnc hSpqr
     w2SessVt := w2SessVt_placed_ok cliRunBudgets_placed hDropNz
     w2IdVt := w2IdVt_placed_ok cliRunBudgets_placed hDropNz
-    w2Inner := DecryptLemmas.w2_inner_placed_ok mmpl gh W hDropNz hG hh hRead589 hAesDec hSpqr hLog462
+    w2Inner := DecryptLemmas.w2_inner_placed_ok mmpl gh W hDropNz hG hMv hh hRead589 hAesDec hSpqr hLog462
     w3Hooks := w3Hooks_placed_ok mmpl gh W hG hMs hMc hh
     w3Exist := w3Exist_placed_ok_of_putStr mmpl gh W hh hRead589
     w3A4 := w3A4_placed_ok mmpl gh W hG hMs hMc hSpqr
@@ -1079,7 +1070,7 @@ theorem cliSlotCallees_full_placed_of_region [LibsignalFullPlacement]
     w3Stage2 := w3Stage2_placed_ok mmpl gh X W hG
     w3Stage3 := w3Stage3_placed_ok mmpl gh X W hG }
 
--- A2'' D1: A0 island, hMs/hMc discharged at a0Ghost
+-- A2'' D1 / 2B MV: A0 island, hMs/hMc/hMv discharged at a0Ghost
 /-- Closed `[LibsignalFullPlacement]` assembly of `CliSlotCalleesFullPlaced mmpl gh X W` from
 `SpqrV1PlacedSeams` and `A0` hooks (`w2Inner` discharged via `w2_inner_full_placed_ok`). -/
 theorem cliSlotCallees_full_placed_of_seams [LibsignalFullPlacement]
@@ -1089,6 +1080,7 @@ theorem cliSlotCallees_full_placed_of_seams [LibsignalFullPlacement]
     (hG : Slots.CliGhostA0Hooks E2E.HooksE.A0 gh)
     (hMs : gh.memset = some CryptoVerification.LibsignalAesCbc.memsetHook)
     (hMc : gh.memcpy = some CryptoVerification.LibsignalAesCbc.memcpyHook)
+    (hMv : gh.extra.lookup "memmove" = some hookMemmove)
     (hh : RunSkeleton.RunHooksPlaced E2E.HooksE.A0 (cliGhostExterns gh (cliExternsPlaced mmpl W)))
     (hRead589 : subroutine_ok (Placed.lsProg_589 (cliGhostExterns gh (cliExternsPlaced mmpl W)))
       (lsρ lsReadFileSym)
@@ -1102,7 +1094,7 @@ theorem cliSlotCallees_full_placed_of_seams [LibsignalFullPlacement]
   { w1Inner := w1_inner_placed_ok mmpl gh W hDropNz hG hMs hMc hh hRead589 hAesEnc hSpqr
     w2SessVt := w2SessVt_placed_ok cliRunBudgets_placed hDropNz
     w2IdVt := w2IdVt_placed_ok cliRunBudgets_placed hDropNz
-    w2Inner := DecryptLemmas.w2_inner_full_placed_ok mmpl gh W hDropNz hG hh hRead589 hAesDec hSpqr
+    w2Inner := DecryptLemmas.w2_inner_full_placed_ok mmpl gh W hDropNz hG hMv hh hRead589 hAesDec hSpqr
     w3Hooks := w3Hooks_placed_ok mmpl gh W hG hMs hMc hh
     w3Exist := w3Exist_placed_ok_of_putStr mmpl gh W hh hRead589
     w3A4 := w3A4_placed_ok mmpl gh W hG hMs hMc hSpqr

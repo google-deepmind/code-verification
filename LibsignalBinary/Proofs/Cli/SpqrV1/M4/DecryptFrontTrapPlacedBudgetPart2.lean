@@ -13,6 +13,7 @@ public import LibsignalBinary.Proofs.Cli.TripleRatchet.Decrypt.ChainLookupS0Plac
 public import LibsignalBinary.Proofs.SignalSession.Cli.Run.Slots.CliHookSatPlacedBudget
 import Arm64.Trusted.Spec.Hoare
 import Arm64.Trusted.Spec.SepLogic
+import LibsignalBinary.Proofs.E2E.Pqxdh.WireEntries.RecvWireSameAccountPlacedBudgetSat
 import LibsignalBinary.Proofs.Placed.BudgetPoolSync
 import LibsignalBinary.Proofs.SignalSession.Cli.Main.Proofs.UuidFsPlaced
 import ProofLib.Placed.OpcodeExclusion
@@ -36,18 +37,20 @@ open CryptoVerification (IsLsBlockProg LibsignalCodeLoaded LibsignalHooks Libsig
   blkPC_252 blkPl_252 extract_withLsCodeLoaded libsignalMutatedBlocks libsignalSessionLib
   lsmpl withLsCodeLoaded)
 open CryptoVerification.LibsignalTripleRatchet (SpqrModel uuidTryParseCodeSpec)
-open CryptoVerification.LibsignalTripleRatchet.Decrypt (blkPC_434 blkPl_434)
+open CryptoVerification.LibsignalTripleRatchet.Decrypt (blkPC_434 blkPl_434 instIsLsBlockProg_434)
 open CryptoVerification.LibsignalTripleRatchetRepr (uuidTryParse)
 open CryptoVerification.SignalSession (CliHooks cliExternsPlaced)
 open CryptoVerification.SignalSession.Cli.MainHops.UuidFs (uuidTryParse_placed_okFs_F)
-open CryptoVerification.SignalSession.Cli.RunGlue (CliGhostHooks cliExternsPlaced_row cliGhostExterns cliGhostExterns_other)
-open CryptoVerification.SignalSession.Cli.Slots (blackBox_row_placed)
+open CryptoVerification.SignalSession.Cli.RunGlue (CliGhostHooks cliGhostExterns)
 open LibsignalBinary.Heap (AllocCostModel AllocEvent BudgetLimits RustCliAllocBudget VmPreserved)
 open LibsignalBinary.Heap.SpecBudget (withVmPreserved)
 open LibsignalBinary.Proofs.Cli.TripleRatchet.Decrypt.ChainLookupS0PlacedBudget (
-  s0_433_placed_ok_P_of_callees)
+  s0_433_placed_ok_P)
 open LibsignalBinary.Proofs.Cli.TripleRatchet.Decrypt.DefsPlacedBudget (S0PSeamPlaced)
 open LibsignalBinary.Proofs.Placed.BudgetPoolSync (hooksException)
+open LibsignalBinary.Proofs.SignalSession.Cli.Run.Slots.CliHookSatPlacedBudget (
+  cliGhostExterns_blackBoxSat_budget_sat)
+open LibsignalBinary.Proofs.SignalSession.Cli.Run.Slots.ExtraGhostSpecs (ExtraSpecOk)
 open LibsignalBinary.Proofs.TripleRatchet.Record.DefsBudget (TryDecryptEnvArgs)
 
 private theorem allBlocks_patchSafe :
@@ -297,15 +300,19 @@ private theorem uuidTryParse_placed_vm_ok [LibsignalPlacement] (H : LibsignalHoo
 theorem s0_433_cli [LibsignalPlacement] {M : AllocCostModel}
     {A : RustCliAllocBudget M} {lim : BudgetLimits}
     (mmpl : Obj.MultiPlacement) (g : CliGhostHooks) (W : CliHooks)
+    (hOk : ExtraSpecOk g)
     (ctl : BitVec 64) (S : SpqrModel)
     (tdEnv : TryDecryptEnvArgs → List AllocEvent → Prop) :
     S0PSeamPlaced
       ((blkPC_434).rebase (blkPl_434).base (cliGhostExterns g (cliExternsPlaced mmpl W)))
-      (blkPl_434).base W.C A lim ctl uuidTryParse S tdEnv :=
-  s0_433_placed_ok_P_of_callees
-    ((cliGhostExterns_other g _ (by decide) (by decide) (by decide)
-      (by decide) (by decide) (by decide)).trans
-      (cliExternsPlaced_row mmpl W (blackBox_row_placed mmpl W)))
-    (uuidTryParse_placed_vm_ok (cliGhostExterns g (cliExternsPlaced mmpl W)))
+      (blkPl_434).base W.C A lim ctl uuidTryParse S tdEnv := by
+  have _ := instIsLsBlockProg_434 (cliGhostExterns g (cliExternsPlaced mmpl W))
+  exact s0_433_placed_ok_P
+    (LibsignalBinary.Proofs.E2E.Pqxdh.WireEntries.RecvWireSameAccountPlacedBudgetSat.isSameAccountEqDistinct_placed_ok_at_sat
+      A.repAlloc
+      (callerProg := (blkPC_434).rebase (blkPl_434).base (cliGhostExterns g (cliExternsPlaced mmpl W)))
+      (cliGhostExterns_blackBoxSat_budget_sat g (cliExternsPlaced mmpl W) hOk)
+      (uuidTryParse_placed_vm_ok (cliGhostExterns g (cliExternsPlaced mmpl W)))
+      (by decide))
 
 end LibsignalBinary.Proofs.Cli.SpqrV1.M4.DecryptFrontTrapPlacedBudgetPart2

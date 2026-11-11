@@ -503,7 +503,7 @@ def fastLibcruxHmacMallocng (subStep : FastState → Option FastState) (addrs : 
                     else
                       none) fs6) fs5) fs4) fs3) fs2) fs1) fs0
 
-/-- 37-row mangled-symbol hook table corresponding in order to `CliBinaryPq.cliHookTablePlaced`. -/
+/-- 27-row mangled-symbol hook table corresponding in order to `CliBinaryPq.cliHookTablePlaced`. -/
 def fastHookTablePlaced (subStep : FastState → Option FastState) (addrs : MallocngCallAddrs)
     (W : CliHooks) : List (String × (FastState → Option FastState)) :=
   [("_RNvNtCsbvWyylYiyxg_4sha26sha51211compress512", fastCompress512 W.Q.F512),
@@ -540,19 +540,10 @@ def fastHookTablePlaced (subStep : FastState → Option FastState) (addrs : Mall
    ("_RNvNtNtCs1mK0QScfTrZ_14libcrux_ml_kem8mlkem76811incremental17validate_pk_bytes",
      fastMlkemValidatePk W.Q.K),
    ("_RNvCs65XVORQObL2_12libcrux_hmac4hmac", fastLibcruxHmacMallocng subStep addrs W.C.F),
-   ("memmove", fastMemcpy),
-   ("bcmp", fastCliBcmp W.bcmp),
-   ("strlen", fastStrlen),
    ("_RNvCs9Xul1Kjr0QF_16libsignal_cli_io10write_file", fastWriteFile),
    ("_RNvCs9Xul1Kjr0QF_16libsignal_cli_io12write_stdout", fastWriteStdout),
-   ("_RNvNtNtCskxtBwYRO61I_4core5slice6memchr7memrchr", fastMemrchr),
-   ("_RNvNtNtCskxtBwYRO61I_4core3str8converts9from_utf8", fastFromUtf8 W.utf8Err),
    ("_RNvNtCskxtBwYRO61I_4core3fmt5write", fastFmtWrite),
    ("_RNvNvNtCs69KKACWg7bl_5alloc3fmt6format12format_inner", fastFormatInner),
-   ("_RNvMs5_NtCsfr5T3GFabw_3std4timeNtB5_10SystemTime14duration_since", fastDurationSince),
-   ("_RNvXs6_NtCsfr5T3GFabw_3std4timeNtB5_10SystemTimeINtNtNtCskxtBwYRO61I_4core3ops5arith3AddNtNtBR_4time8DurationE3add",
-     fastTimeAdd),
-   ("_RINvCsdqpLrhraQXi_6subtle9black_boxhECs2wR8L9wiBdT_16curve25519_dalek", fastBlackBox),
    ("_RNvNtCsbvWyylYiyxg_4sha26sha25611compress256", fastCompress256 W.C.F),
    ("_RNvNtCsbKnPy0UR4Ui_13signal_crypto7aes_cbc19aes_256_cbc_encrypt",
      fastAesEncMallocng subStep addrs W.C.E),
@@ -561,11 +552,7 @@ def fastHookTablePlaced (subStep : FastState → Option FastState) (addrs : Mall
    ("_RNvXs8_NtCscSWoUTnaXmu_12x25519_dalek6x25519NtB5_9PublicKeyINtNtCskxtBwYRO61I_4core7convert4FromRNtB5_12StaticSecretE4from",
      fastPubFromSecret W.C.pubKey),
    ("_RNvMs6_NtCscSWoUTnaXmu_12x25519_dalek6x25519NtB5_12StaticSecret14diffie_hellman",
-     fastDiffieHellman W.C.X),
-   ("_RNvXsa_NtCscSWoUTnaXmu_12x25519_dalek6x25519NtB5_12StaticSecretNtNtNtCskxtBwYRO61I_4core3ops4drop4Drop4drop",
-     fastZeroizeSecret),
-   ("_RNvXse_NtCscSWoUTnaXmu_12x25519_dalek6x25519NtB5_12SharedSecretNtNtNtCskxtBwYRO61I_4core3ops4drop4Drop4drop",
-     fastZeroizeSecret)]
+     fastDiffieHellman W.C.X)]
 
 /-- Mangled panic extern symbols corresponding to `CliBinaryPq.cliPanicSymbolsPlaced`. -/
 def cliPanicSymbolsPlacedList : List String :=

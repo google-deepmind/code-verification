@@ -65,7 +65,7 @@ open CryptoVerification.LibsignalTripleRatchetRepr (AddrGhost SessionGhost uuidT
 open CryptoVerification.RustHeap (RustAlloc)
 open CryptoVerification.SignalSession
   (CliHooks CliPqxdhInputs Inputs PqParty PqxdhPartyInSpecDomain cliExternsPlaced
-   isCliPanicSymbolPlaced lsReadFileSym observe pqRecvInputs pqxdhExpectedOutcome)
+   lsReadFileSym observe pqRecvInputs pqxdhExpectedOutcome)
 open CryptoVerification.SignalSession.Cli (CommitOk MainResult StoresGhost cliStaticsPlaced)
 open CryptoVerification.SignalSession.Cli.MainHops
   (AddrV CallV RunCall cliIo cliMainStk cliRunBudgets_placed cliWrOk
@@ -73,7 +73,8 @@ open CryptoVerification.SignalSession.Cli.MainHops
 open CryptoVerification.SignalSession.Cli.Run.Placed (lsProg_579)
 open CryptoVerification.SignalSession.Cli.RunCompose
   (DecPkGhost RunNeeds RunSem addrValOf dpPollNeed mkSlot runAns runFiles runRel)
-open CryptoVerification.SignalSession.Cli.RunGlue (CliGhostHooks cliGhostExterns cliGhostExterns_other)
+open CryptoVerification.SignalSession.Cli.RunGlue
+  (CliGhostHooks cliGhostExterns withPanics_cliGhostExterns)
 open CryptoVerification.SignalSession.Cli.RunProofs
   (DecPkOk₀ SessMatchesPm cliDecryptPrekeyNeed
    commitOk_pqRecvPrekey_decPkDef decPkDef dpWrapFrame)
@@ -147,31 +148,13 @@ private theorem toSkeletonRunHooks [LibsignalPlacement] {M : AllocCostModel}
   { alloc := hh.alloc, allocFs := hh.allocFs, panics := hh.panics, memcpyRO := hh.memcpyRO,
     bcmp := hh.bcmp, fs := hh.fs, utf8 := hh.utf8, memrchr := hh.memrchr,
     codecHooks := hh.codecHooks, allocZeroed := hh.allocZeroed, stringClone := hh.stringClone,
-    formatInner := hh.formatInner }
+    formatInner := hh.formatInner, blackBox := hh.blackBox }
 
 private theorem withPanics_cliGhostExterns_eq (mmpl : Obj.MultiPlacement)
     (gh : CliGhostHooks) (W : CliHooks) :
     Rust.withPanics (cliGhostExterns gh (cliExternsPlaced mmpl W)) =
-      cliGhostExterns gh (cliExternsPlaced mmpl W) := by
-  funext name
-  by_cases hp : Rust.isPanicSymbol name = true
-  · have hother : cliGhostExterns gh (cliExternsPlaced mmpl W) name = cliExternsPlaced mmpl W name :=
-      cliGhostExterns_other gh (cliExternsPlaced mmpl W)
-        (fun h => by subst h; simp [Rust.isPanicSymbol, CryptoVerification.SignalSession.lsRustAllocSymCli] at hp)
-        (fun h => by subst h; simp [Rust.isPanicSymbol, CryptoVerification.SignalSession.lsRustDeallocSymCli] at hp)
-        (fun h => by subst h; simp [Rust.isPanicSymbol, CryptoVerification.SignalSession.lsRustReallocSymCli] at hp)
-        (fun h => by subst h; simp [Rust.isPanicSymbol, CryptoVerification.SignalSession.lsRustAllocZeroedSymCli] at hp)
-        (fun h => by subst h; simp [Rust.isPanicSymbol, CryptoVerification.SignalSession.lsRustNoAllocShimSymCli] at hp)
-        (fun h => by subst h; simp [Rust.isPanicSymbol, CryptoVerification.SignalSession.lsStringCloneSym] at hp)
-        (fun h => by subst h; simp [Rust.isPanicSymbol, CryptoVerification.SignalSession.lsReadFileSym] at hp)
-        (fun h => by subst h; simp [Rust.isPanicSymbol, CryptoVerification.SignalSession.lsReadStdinSym] at hp)
-        (fun h => by subst h; simp [Rust.isPanicSymbol, CryptoVerification.SignalSession.lsMemsetSym] at hp)
-        (fun h => by subst h; simp [Rust.isPanicSymbol, CryptoVerification.SignalSession.lsMemcpySym] at hp)
-    unfold Rust.withPanics
-    rw [hother]
-    unfold cliExternsPlaced isCliPanicSymbolPlaced
-    simp [hp]
-  · simp [Rust.withPanics, hp]
+      cliGhostExterns gh (cliExternsPlaced mmpl W) :=
+  withPanics_cliGhostExterns mmpl gh W
 
 /-! ## 1. Matching-Session Path-B Semantics (`cliRunSemPathB`, `cliRunSemPathBFull`) & Envelopes -/
 

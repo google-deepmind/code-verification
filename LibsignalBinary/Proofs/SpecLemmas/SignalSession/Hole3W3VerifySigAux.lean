@@ -14,13 +14,18 @@ public import LibsignalBinary.Heap.IfaceBudgetLemmas
 public import LibsignalBinary.Heap.SpecBudget
 public import LibsignalBinary.Proofs.E2E.Pqxdh.Initiator.ModelBridge
 public import LibsignalBinary.Proofs.E2E.Pqxdh.Shared.VerifySignaturePlaced
+public import LibsignalBinary.Proofs.E2E.Pqxdh.Shared.VerifySignaturePlacedASat
 public import LibsignalBinary.Proofs.SignalSession.Cli.Run.Proofs.Initiate.LocalCalleesPlacedBudget
 public import LibsignalBinary.Proofs.SignalSession.Cli.Run.Slots.CliHookSatPlaced
 public import LibsignalBinary.Proofs.SignalSession.Cli.Run.Slots.CliHookSatPlacedBudget
 import Arm64.Trusted.Spec.SepLogic
+import LibsignalBinary.Proofs.ConsumeMessageKey.FindIndexProofs.CtEqSat
+import LibsignalBinary.Proofs.E2E.Pqxdh.Shared.VerifySignaturePlacedSat
 import LibsignalBinary.Proofs.SignalSession.Cli.HooksDehook.MemcpyExactCore
+import LibsignalBinary.Proofs.SpecLemmas.SignalSession.Hole3W3VerifySigBbSat
 import LibsignalBinary.Proofs.SpqrV1.Poly.EncodeBytes.DefsBudget
 import LibsignalBinary.Proofs.TripleRatchet.Hkdf.CommonSat
+import LibsignalBinary.Proofs.TripleRatchet.Hooks.Defs
 import ProofLib.SepLogic.Fresh
 import ProofLib.SepLogic.HeapIntro
 
@@ -53,10 +58,10 @@ open CryptoVerification.E2E
    readSha512State readVecN scalarModHook scalarWideHook toEdwardsHook)
 open CryptoVerification.E2E.Pqxdh.Initiator (structuralPrims_initiatorModelPrims)
 open CryptoVerification.E2E.Pqxdh.Shared
-  (VerifySignaturePlacedGhost VerifySignaturePlacedHooks VerifySignaturePrims
+  (VerifySignaturePlacedGhost VerifySignaturePrims
    lsDalekCompressSym lsDalekDoubleMulSym lsDalekEdNegSym lsDalekScalarModSym
    lsDalekScalarWideSym lsSha512CompressSym lsVerifyMemsetSym lsVerifyMontToEdSym
-   pqxdhHookStack verifySignatureCallSpec verifySignature_placed_ok)
+   pqxdhHookStack verifySignatureCallSpec)
 open CryptoVerification.LibsignalAesCbc (returnToLinkRegister)
 open CryptoVerification.LibsignalPublicApi.StoreKit (extract_withLsCodeRoLoaded withLsCodeRoLoaded)
 open CryptoVerification.LibsignalSession (blackBoxHook)
@@ -65,31 +70,39 @@ open CryptoVerification.SignalSession
    lsRustAllocSymCli lsRustAllocZeroedSymCli lsRustDeallocSymCli lsRustNoAllocShimSymCli
    lsRustReallocSymCli lsStringCloneSym)
 open CryptoVerification.SignalSession.Cli.RunGlue
-  (CliGhostHooks cliExternsPlaced_row cliGhostExterns cliGhostExterns_memcpy_some
-   cliGhostExterns_memset_some cliGhostExterns_other)
+  (CliGhostHooks cliExternsPlaced_row cliExtraGhostSyms cliGhostExterns
+   cliGhostExterns_memcpy_some cliGhostExterns_memset_some cliGhostExterns_other)
 open CryptoVerification.SignalSession.Cli.RunProofs.Initiate
   (initProgPlaced transfer_withLsCodeRoLoaded)
 open CryptoVerification.SignalSession.Cli.Slots
-  (blackBox_row_placed cliExternsPlaced_compress512_sat cliExternsPlaced_compress_sat
+  (cliExternsPlaced_compress512_sat cliExternsPlaced_compress_sat
    cliExternsPlaced_dsmb_sat cliExternsPlaced_edNeg_sat cliExternsPlaced_scalarMod_sat
    cliExternsPlaced_scalarWide_sat cliExternsPlaced_toEdwards_sat
    cliGhostExterns_sat_of_cliExternsPlaced compress512_row_placed compress_row_placed
    dsmb_row_placed edNeg_row_placed scalarMod_row_placed scalarWide_row_placed
    toEdwards_row_placed)
 open CryptoVerification.LibsignalTripleRatchet
-  (RW hookMemset_region_trace_ok sessionMemcpyRegionSpec sessionMemsetRegionSpec
-   sessionMemsetSpec truncate8_truncate32)
+  (RW blackBoxSpec hookMemset_region_trace_ok sessionMemcpyRegionSpec sessionMemsetRegionSpec
+   sessionMemsetSpec truncate8_truncate32 withStack)
 open CryptoVerification.LibsignalTripleRatchet.Extract
   (S2Frame disjoint_fullComplementHeap fullComplementHeap matches_fullComplementHeap)
 open LibsignalBinary.Heap (AllocCostModel BudgetLimits RustCliAllocBudget VmPreserved)
 open LibsignalBinary.Heap.MuslMemOpsRunsTo (applyMemcpyClobber)
 open LibsignalBinary.Heap.SpecBudget (withVmPreserved)
+open LibsignalBinary.Proofs.ConsumeMessageKey.FindIndexProofs.CtEqSat
+  (blackBoxHook_ok_sat blackBoxSpec16 blackBoxSpecSat)
+open LibsignalBinary.Proofs.E2E.Pqxdh.Shared.VerifySignaturePlacedASat
+  (VerifySignaturePlacedHooksSat)
+open LibsignalBinary.Proofs.E2E.Pqxdh.Shared.VerifySignaturePlacedSat
+  (verifySignature_placed_ok_sat)
 open LibsignalBinary.Proofs.SignalSession.Cli.HooksDehook.MemcpyExactCore
   (HookExactMemcpy hookMemcpy_exact)
 open LibsignalBinary.Proofs.SignalSession.Cli.Run.Proofs.Initiate.LocalCalleesPlacedBudget
   (verifySignatureInnerSpec)
 open LibsignalBinary.Proofs.SignalSession.Cli.Run.Slots.CliHookSatPlacedBudget
-  (CliGhostAllocHooks)
+  (CliGhostAllocHooks cliGhostExterns_blackBoxSat_budget_sat)
+open LibsignalBinary.Proofs.SpecLemmas.SignalSession.Hole3W3VerifySigBbSat
+  (hookOk_blackBoxSpecSat_elim)
 open LibsignalBinary.Proofs.SpqrV1.Poly.EncodeBytes.DefsBudget
   (calleeSavedPreserved_of_stripS_right checkBlockSafeVm checkBytesSafeVm
    isTotalTrapHooks_vmTrapHooks placedLib_rebase_allInstrs_safeVm stripS_pc stripS_readReg64
@@ -104,9 +117,12 @@ private theorem cliGhost_row (mmpl : MultiPlacement) (g : CliGhostHooks) (W : Cl
     (h3 : sym ≠ lsRustReallocSymCli := by decide) (h4 : sym ≠ lsRustAllocZeroedSymCli := by decide)
     (h5 : sym ≠ lsRustNoAllocShimSymCli := by decide) (h6 : sym ≠ lsStringCloneSym := by decide)
     (h7 : sym ≠ lsReadFileSym := by decide) (h8 : sym ≠ lsReadStdinSym := by decide)
-    (h9 : sym ≠ "memset" := by decide) (h10 : sym ≠ "memcpy" := by decide) :
+    (h9 : sym ≠ "memset" := by decide) (h10 : sym ≠ "memcpy" := by decide)
+    (h11 : cliExtraGhostSyms.contains sym = false ∨ g.extra.lookup sym = none := by
+      left; decide) :
     cliGhostExterns g (cliExternsPlaced mmpl W) sym = some f :=
-  (cliGhostExterns_other g _ h1 h2 h3 h4 h5 h6 h7 h8 h9 h10).trans (cliExternsPlaced_row mmpl W hrow)
+  (cliGhostExterns_other g _ h1 h2 h3 h4 h5 h6 h7 h8 h9 h10 h11).trans
+    (cliExternsPlaced_row mmpl W hrow)
 
 private theorem hookSat_of_eq {α : Type} {H H' : LibsignalHooks} {sym : String} {spec : Spec α}
     (heq : H' sym = H sym) (hs : HookSat H sym spec) : HookSat H' sym spec := by
@@ -130,7 +146,7 @@ private theorem w3VerifySigHooks_vsigOnly [LibsignalPlacement]
     {M : AllocCostModel} {A : RustCliAllocBudget M} {lim : BudgetLimits}
     (hG : CliGhostAllocHooks M A lim gh)
     (Y : UnreachedPqxdhPrimitives) :
-    VerifySignaturePlacedHooks (modelPrims Y ⟨W.C, W.Q⟩)
+    VerifySignaturePlacedHooksSat (modelPrims Y ⟨W.C, W.Q⟩)
       (vsigOnlyHooks (cliGhostExterns gh (cliExternsPlaced mmpl W))) where
   memcpy := by
     obtain ⟨f, hf, _, _, _, hok, _, _, _, _, _⟩ := hG.memcpy
@@ -146,10 +162,11 @@ private theorem w3VerifySigHooks_vsigOnly [LibsignalPlacement]
         cliGhostExterns gh (cliExternsPlaced mmpl W) "memset" by
         simp [vsigOnlyHooks, vsigKeepSym, lsVerifyMemsetSym]).trans
       (cliGhostExterns_memset_some gh (cliExternsPlaced mmpl W) hf)
-  blackBox := (show vsigOnlyHooks (cliGhostExterns gh (cliExternsPlaced mmpl W)) lsBlackBoxU8Sym =
-      cliGhostExterns gh (cliExternsPlaced mmpl W) lsBlackBoxU8Sym by
-      simp [vsigOnlyHooks, vsigKeepSym]).trans
-    (cliGhost_row mmpl gh W (blackBox_row_placed mmpl W))
+  blackBox := hookSat_of_eq
+    (show vsigOnlyHooks (cliGhostExterns gh (cliExternsPlaced mmpl W)) lsBlackBoxU8Sym =
+        cliGhostExterns gh (cliExternsPlaced mmpl W) lsBlackBoxU8Sym by
+      simp [vsigOnlyHooks, vsigKeepSym])
+    (cliGhostExterns_blackBoxSat_budget_sat gh (cliExternsPlaced mmpl W) hG.extraOk)
   montToEd := hookSat_of_eq (by simp [vsigOnlyHooks, vsigKeepSym])
     (cliGhostExterns_sat_of_cliExternsPlaced mmpl gh W
       (cliExternsPlaced_toEdwards_sat mmpl W Y (img := default)))
@@ -1056,6 +1073,150 @@ private theorem hookOk_shadowMemcpy [LibsignalPlacement] (tr0 : List State)
     exact hpost.2
   · exact ⟨hkf, hsym, Or.inr hrest⟩
 
+private theorem stripWx_s2Frame_one_block [LibsignalPlacement]
+    {m0 m1 : Memory} {dst : BitVec 64} {len : Nat}
+    {P_post R' : SepProp}
+    (hp_pts : P_post (regionHeap dst len (stripWx m1)))
+    (hmem' : stripWx m0 ⊨ memRegion dst len ∗ R')
+    (hu_rw : m0.RW dst len)
+    (hkf_u : m0.KeepsFrozen m1)
+    (hperm_u : ∀ a, m1.perm a = m0.perm a)
+    (hs2_u : S2Frame m0 m1 [(dst, len)]) :
+    stripWx m1 ⊨ P_post ∗ R' := by
+  let h_pts : Heap := regionHeap dst len (stripWx m1)
+  have hrw_f_swx : (stripWx m1).RW dst len :=
+    (stripWx_rw_iff m1 dst len).mpr fun a ha => hs2_u.2.1.1.1 a (hu_rw a ha)
+  have hm_pts_swx : h_pts.Matches (stripWx m1) :=
+    IsBlock.regionHeap_matches dst len (stripWx m1) hrw_f_swx
+  obtain ⟨h_reg, h_R', hdisj', hp_reg, hp_R', hm_both'⟩ := Satisfies.sepConj_elim hmem'
+  have hm_R' : h_R'.Matches (stripWx m0) := Heap.Matches.of_union_right hdisj' hm_both'
+  obtain ⟨m_r, _, h_reg_eq⟩ := ((IsBlock.memRegion dst len).iff h_reg).mp hp_reg
+  have hdisj_new : h_pts.Disjoint h_R' := by
+    unfold Heap.Disjoint at hdisj' ⊢
+    refine ⟨fun a => ?_,
+      fun _ _ => Or.inl (by simp [h_pts, regionHeap]),
+      fun _ _ => Or.inl (by simp [h_pts, regionHeap]),
+      (fun _ _ _ _ h => by rcases h with ⟨h0, _⟩ | ⟨_, h0⟩ <;> simp [h_pts, regionHeap] at h0),
+      fun _ => Or.inl (by simp [h_pts, regionHeap])⟩
+    by_cases hin : InRegion dst len a
+    · have hr_some : h_reg.phys a = some (.rw (m_r.read8 a)) := by
+        rw [h_reg_eq]; simp [regionHeap, hin]
+      rcases hdisj'.1 a with h1 | h2 | ⟨_, h3, _⟩
+      · rw [hr_some] at h1; cases h1
+      · exact Or.inr (Or.inl h2)
+      · rw [hr_some] at h3; cases h3
+    · exact Or.inl (by dsimp [h_pts]; simp [regionHeap, hin])
+  have hm_R'_swx : h_R'.Matches (stripWx m1) := by
+    unfold Heap.Disjoint at hdisj'
+    unfold Heap.Matches at hm_R' ⊢
+    rcases hs2_u with ⟨hs2_rd, ⟨⟨_, _⟩, ⟨hs2_anon, hs2_pn⟩⟩, hs2_r⟩
+    have hperm_swx : ∀ a, (stripWx m1).perm a = (stripWx m0).perm a :=
+      fun a => stripWx_perm_congr (hperm_u a)
+    refine ⟨fun a c hc => ?_, hm_R'.2.1, fun a hma => ?_⟩
+    · have hout : OutsideRegion dst len a := by
+        by_cases hin : InRegion dst len a
+        · have hr_some : h_reg.phys a = some (.rw (m_r.read8 a)) := by
+            rw [h_reg_eq]; simp [regionHeap, hin]
+          rcases hdisj'.1 a with h1 | h2 | ⟨_, h3, _⟩
+          · rw [hr_some] at h1; cases h1
+          · rw [hc] at h2; cases h2
+          · rw [hr_some] at h3; cases h3
+        · exact (outsideRegion_iff_not_inRegion dst len a).mpr hin
+      have hout_l : ∀ r ∈ [(dst, len)], OutsideRegion r.1 r.2 a := by
+        intro r hr_m; simp only [List.mem_cons, List.not_mem_nil, or_false] at hr_m
+        subst hr_m; exact hout
+      have hcell := hm_R'.1 a c hc
+      cases c with
+      | rw b =>
+        have hp_sw : (stripWx m0).permNoLazy a = some Perm.rw :=
+          Memory.permNoLazy_eq_some_rw_iff.mpr ⟨hcell.2.1, hcell.2.2⟩
+        obtain ⟨hpu, hlfu⟩ :=
+          Memory.permNoLazy_eq_some_rw_iff.mp ((stripWx_permNoLazy_rw_iff m0 a).mp hp_sw)
+        have hru : (m0.perm a).r = true := by rw [hpu]; rfl
+        have hrd' : m1.read8 a = m0.read8 a := hs2_rd a hru hlfu hout_l
+        have hlf' : m1.isLazyFree a = false := (hs2_r a hru hlfu).2
+        have hpu' : m1.perm a = some Perm.rw := (hperm_u a).trans hpu
+        obtain ⟨hp_f, hlf_f⟩ := Memory.permNoLazy_eq_some_rw_iff.mp
+          ((stripWx_permNoLazy_rw_iff m1 a).mpr
+            (Memory.permNoLazy_eq_some_rw_iff.mpr ⟨hpu', hlf'⟩))
+        exact ⟨(stripWx_read8 _ a).trans (hrd'.trans ((stripWx_read8 m0 a).symm.trans hcell.1)),
+          hp_f, hlf_f⟩
+      | ro b =>
+        have hmap_sw : ((stripWx m0).perm a).mapped = true := by
+          cases hpx : (stripWx m0).perm a with
+          | none => rw [hpx] at hcell; cases hcell.2.1
+          | some _ => rfl
+        obtain ⟨_, hlf_eq, _⟩ := stripWx_mapped_props hmap_sw
+        have hlfu : m0.isLazyFree a = false := hlf_eq.symm.trans hcell.2.2
+        have hru : (m0.perm a).r = true := by
+          have h1 := hcell.2.1
+          unfold stripWx at h1
+          rw [(ProofLib.strip_perm_props keepLs (hideWx m0) a).1, hideWx_perm] at h1
+          revert h1
+          rcases m0.perm a with _ | ⟨r, w, x, _, _⟩ <;> intro h1
+          · cases h1
+          · cases r <;> cases w <;> cases x <;> simp [Perm.protNone, Option.r] at h1 ⊢
+        have hrd' : m1.read8 a = m0.read8 a := hs2_rd a hru hlfu hout_l
+        have hlf' : m1.isLazyFree a = false := (hs2_r a hru hlfu).2
+        have hmap_sw' : ((stripWx m1).perm a).mapped = true := by
+          rw [hperm_swx a]; exact hmap_sw
+        obtain ⟨_, hlf_eq', _⟩ := stripWx_mapped_props hmap_sw'
+        exact ⟨(stripWx_read8 _ a).trans (hrd'.trans ((stripWx_read8 m0 a).symm.trans hcell.1)),
+          by rw [hperm_swx a]; exact hcell.2.1, hlf_eq'.trans hlf'⟩
+      | protNone b =>
+        have hmap_sw : ((stripWx m0).perm a).mapped = true := by rw [hcell.2.1]; rfl
+        obtain ⟨_, hlf_eq, _⟩ := stripWx_mapped_props hmap_sw
+        have hlfu : m0.isLazyFree a = false := hlf_eq.symm.trans hcell.2.2
+        have hmap_sw' : ((stripWx m1).perm a).mapped = true := by
+          rw [hperm_swx a]; exact hmap_sw
+        obtain ⟨_, hlf_eq', _⟩ := stripWx_mapped_props hmap_sw'
+        have ⟨hrd', hlf'⟩ :
+            m1.read8 a = m0.read8 a ∧ m1.isLazyFree a = false := by
+          have hpn_sw := hcell.2.1
+          unfold stripWx at hpn_sw
+          rw [ProofLib.strip_perm, hideWx_perm] at hpn_sw
+          cases hpu : m0.perm a with
+          | none => rw [hpu] at hpn_sw; cases hpn_sw
+          | some p =>
+            have ⟨hlf_p, han_p⟩ : p.lazyFree = false ∧ p.anon = true := by
+              have hpu0 := hpu
+              dsimp only [Memory.perm, Perm.rwx] at hpu0
+              revert hpu0
+              rcases m0.cells a with _ | ⟨_ | _, _⟩ <;> intro hpu0 <;> simp at hpu0
+              subst hpu0; exact ⟨rfl, rfl⟩
+            rw [hpu] at hpn_sw
+            rcases p with ⟨r, w, x, lf, an⟩
+            dsimp only at hlf_p han_p; subst hlf_p han_p
+            cases r <;> cases w <;> cases x
+            · exact (hs2_pn a hpu hout_l).2 hlfu
+            · have hfz_u : m0.Frozen a := by unfold Memory.Frozen; rw [hpu]; rfl
+              obtain ⟨hrd0, _, hlf0, _⟩ := hkf_u a hfz_u
+              exact ⟨hrd0, hlf0.trans hlfu⟩
+            · generalize keepLs a = ic at hpn_sw
+              cases ic <;> simp [ProofLib.stripPerm, Perm.protNone] at hpn_sw
+            · simp at hpn_sw
+            · generalize keepLs a = ic at hpn_sw
+              cases ic <;> simp [ProofLib.stripPerm, Perm.protNone] at hpn_sw
+            · generalize keepLs a = ic at hpn_sw
+              cases ic <;> simp [ProofLib.stripPerm, Perm.protNone] at hpn_sw
+            · generalize keepLs a = ic at hpn_sw
+              cases ic <;> simp [ProofLib.stripPerm, Perm.protNone] at hpn_sw
+            · have hru : (m0.perm a).r = true := by rw [hpu]
+              exact ⟨hs2_rd a hru hlfu hout_l, (hs2_r a hru hlfu).2⟩
+        exact ⟨(stripWx_read8 _ a).trans (hrd'.trans ((stripWx_read8 m0 a).symm.trans hcell.1)),
+          (hperm_swx a).trans hcell.2.1, hlf_eq'.trans hlf'⟩
+      | lazy => rw [hperm_swx a]; exact hcell
+      | protNoneLazy => rw [hperm_swx a]; exact hcell
+    · have hm0 := hm_R'.2.2 a hma
+      obtain ⟨hmap_u, _, han_eq⟩ := stripWx_mapped_props hm0.1
+      have han_u' : m1.isAnon a = true := (hs2_anon a ⟨hmap_u, han_eq.symm.trans hm0.2⟩).2
+      have hmap_swx' : ((stripWx m1).perm a).mapped = true := by
+        rw [hperm_swx a]; exact hm0.1
+      obtain ⟨_, _, han_eq'⟩ := stripWx_mapped_props hmap_swx'
+      exact ⟨hmap_swx', han_eq'.trans han_u'⟩
+  exact ProofLib.Satisfies.sepConj_intro hdisj_new hp_pts hp_R'
+    (Heap.Matches.union hm_pts_swx hm_R'_swx)
+
 private theorem hookOk_shadowMemset_region [LibsignalPlacement] (tr0 : List State)
     {f_ms : State → State} (hf_ms_reg : HookOk f_ms sessionMemsetRegionSpec)
     (hvm_ms : ∀ s, VmPreserved s (f_ms s)) :
@@ -1101,145 +1262,13 @@ private theorem hookOk_shadowMemset_region [LibsignalPlacement] (tr0 : List Stat
     refine ⟨⟨by rw [stripWxS_readReg64]; exact hx0_ret,
       by rw [stripWxS_trace, stripWxS_trace]; exact htr_u⟩, ?_⟩
     rw [stripWxS_mem]
-    let h_pts : Heap := regionHeap dst len (stripWx (f_ms u).mem)
     have hrep_len : (List.replicate len val).length = len := List.length_replicate
     have hb_post := IsBlock.pointsToBytes_len (a := dst) hrep_len
-    have hp_pts : (dst ↦ₛ List.replicate len val) h_pts :=
-      (hb_post.iff h_pts).mpr ⟨stripWx (f_ms u).mem,
+    have hp_pts : (dst ↦ₛ List.replicate len val) (regionHeap dst len (stripWx (f_ms u).mem)) :=
+      (hb_post.iff _).mpr ⟨stripWx (f_ms u).mem,
         ⟨by rw [hrep_len]; exact hlen,
          by rw [hrep_len, stripWx_readBytes]; exact hread_u⟩, rfl⟩
-    have hrw_f_swx : (stripWx (f_ms u).mem).RW dst len :=
-      (stripWx_rw_iff (f_ms u).mem dst len).mpr fun a ha => hs2_u.2.1.1.1 a (hu_rw a ha)
-    have hm_pts_swx : h_pts.Matches (stripWx (f_ms u).mem) :=
-      IsBlock.regionHeap_matches dst len (stripWx (f_ms u).mem) hrw_f_swx
-    obtain ⟨h_reg, h_R', hdisj', hp_reg, hp_R', hm_both'⟩ := Satisfies.sepConj_elim hmem'
-    have hm_R' : h_R'.Matches (stripWx u.mem) := Heap.Matches.of_union_right hdisj' hm_both'
-    obtain ⟨m_r, _, h_reg_eq⟩ := ((IsBlock.memRegion dst len).iff h_reg).mp hp_reg
-    have hdisj_new : h_pts.Disjoint h_R' := by
-      unfold Heap.Disjoint at hdisj' ⊢
-      refine ⟨fun a => ?_,
-        fun _ _ => Or.inl (by simp [h_pts, regionHeap]),
-        fun _ _ => Or.inl (by simp [h_pts, regionHeap]),
-        (fun _ _ _ _ h => by rcases h with ⟨h0, _⟩ | ⟨_, h0⟩ <;> simp [h_pts, regionHeap] at h0),
-        fun _ => Or.inl (by simp [h_pts, regionHeap])⟩
-      by_cases hin : InRegion dst len a
-      · have hr_some : h_reg.phys a = some (.rw (m_r.read8 a)) := by
-          rw [h_reg_eq]; simp [regionHeap, hin]
-        rcases hdisj'.1 a with h1 | h2 | ⟨_, h3, _⟩
-        · rw [hr_some] at h1; cases h1
-        · exact Or.inr (Or.inl h2)
-        · rw [hr_some] at h3; cases h3
-      · exact Or.inl (by dsimp [h_pts]; simp [regionHeap, hin])
-    have hm_R'_swx : h_R'.Matches (stripWx (f_ms u).mem) := by
-      unfold Heap.Disjoint at hdisj'
-      unfold Heap.Matches at hm_R' ⊢
-      rcases hs2_u with ⟨hs2_rd, ⟨⟨_, _⟩, ⟨hs2_anon, hs2_pn⟩⟩, hs2_r⟩
-      have hperm_swx : ∀ a, (stripWx (f_ms u).mem).perm a = (stripWx u.mem).perm a :=
-        fun a => stripWx_perm_congr (hperm_u a)
-      refine ⟨fun a c hc => ?_, hm_R'.2.1, fun a hma => ?_⟩
-      · have hout : OutsideRegion dst len a := by
-          by_cases hin : InRegion dst len a
-          · have hr_some : h_reg.phys a = some (.rw (m_r.read8 a)) := by
-              rw [h_reg_eq]; simp [regionHeap, hin]
-            rcases hdisj'.1 a with h1 | h2 | ⟨_, h3, _⟩
-            · rw [hr_some] at h1; cases h1
-            · rw [hc] at h2; cases h2
-            · rw [hr_some] at h3; cases h3
-          · exact (outsideRegion_iff_not_inRegion dst len a).mpr hin
-        have hout_l : ∀ r ∈ [(dst, len)], OutsideRegion r.1 r.2 a := by
-          intro r hr_m; simp only [List.mem_cons, List.not_mem_nil, or_false] at hr_m
-          subst hr_m; exact hout
-        have hcell := hm_R'.1 a c hc
-        cases c with
-        | rw b =>
-          have hp_sw : (stripWx u.mem).permNoLazy a = some Perm.rw :=
-            Memory.permNoLazy_eq_some_rw_iff.mpr ⟨hcell.2.1, hcell.2.2⟩
-          obtain ⟨hpu, hlfu⟩ :=
-            Memory.permNoLazy_eq_some_rw_iff.mp ((stripWx_permNoLazy_rw_iff u.mem a).mp hp_sw)
-          have hru : (u.mem.perm a).r = true := by rw [hpu]; rfl
-          have hrd' : (f_ms u).mem.read8 a = u.mem.read8 a := hs2_rd a hru hlfu hout_l
-          have hlf' : (f_ms u).mem.isLazyFree a = false := (hs2_r a hru hlfu).2
-          have hpu' : (f_ms u).mem.perm a = some Perm.rw := (hperm_u a).trans hpu
-          obtain ⟨hp_f, hlf_f⟩ := Memory.permNoLazy_eq_some_rw_iff.mp
-            ((stripWx_permNoLazy_rw_iff (f_ms u).mem a).mpr
-              (Memory.permNoLazy_eq_some_rw_iff.mpr ⟨hpu', hlf'⟩))
-          exact ⟨(stripWx_read8 _ a).trans (hrd'.trans ((stripWx_read8 u.mem a).symm.trans hcell.1)),
-            hp_f, hlf_f⟩
-        | ro b =>
-          have hmap_sw : ((stripWx u.mem).perm a).mapped = true := by
-            cases hpx : (stripWx u.mem).perm a with
-            | none => rw [hpx] at hcell; cases hcell.2.1
-            | some _ => rfl
-          obtain ⟨_, hlf_eq, _⟩ := stripWx_mapped_props hmap_sw
-          have hlfu : u.mem.isLazyFree a = false := hlf_eq.symm.trans hcell.2.2
-          have hru : (u.mem.perm a).r = true := by
-            have h1 := hcell.2.1
-            unfold stripWx at h1
-            rw [(ProofLib.strip_perm_props keepLs (hideWx u.mem) a).1, hideWx_perm] at h1
-            revert h1
-            rcases u.mem.perm a with _ | ⟨r, w, x, _, _⟩ <;> intro h1
-            · cases h1
-            · cases r <;> cases w <;> cases x <;> simp [Perm.protNone, Option.r] at h1 ⊢
-          have hrd' : (f_ms u).mem.read8 a = u.mem.read8 a := hs2_rd a hru hlfu hout_l
-          have hlf' : (f_ms u).mem.isLazyFree a = false := (hs2_r a hru hlfu).2
-          have hmap_sw' : ((stripWx (f_ms u).mem).perm a).mapped = true := by
-            rw [hperm_swx a]; exact hmap_sw
-          obtain ⟨_, hlf_eq', _⟩ := stripWx_mapped_props hmap_sw'
-          exact ⟨(stripWx_read8 _ a).trans (hrd'.trans ((stripWx_read8 u.mem a).symm.trans hcell.1)),
-            by rw [hperm_swx a]; exact hcell.2.1, hlf_eq'.trans hlf'⟩
-        | protNone b =>
-          have hmap_sw : ((stripWx u.mem).perm a).mapped = true := by rw [hcell.2.1]; rfl
-          obtain ⟨_, hlf_eq, _⟩ := stripWx_mapped_props hmap_sw
-          have hlfu : u.mem.isLazyFree a = false := hlf_eq.symm.trans hcell.2.2
-          have hmap_sw' : ((stripWx (f_ms u).mem).perm a).mapped = true := by
-            rw [hperm_swx a]; exact hmap_sw
-          obtain ⟨_, hlf_eq', _⟩ := stripWx_mapped_props hmap_sw'
-          have ⟨hrd', hlf'⟩ :
-              (f_ms u).mem.read8 a = u.mem.read8 a ∧ (f_ms u).mem.isLazyFree a = false := by
-            have hpn_sw := hcell.2.1
-            unfold stripWx at hpn_sw
-            rw [ProofLib.strip_perm, hideWx_perm] at hpn_sw
-            cases hpu : u.mem.perm a with
-            | none => rw [hpu] at hpn_sw; cases hpn_sw
-            | some p =>
-              have ⟨hlf_p, han_p⟩ : p.lazyFree = false ∧ p.anon = true := by
-                have hpu0 := hpu
-                dsimp only [Memory.perm, Perm.rwx] at hpu0
-                revert hpu0
-                rcases u.mem.cells a with _ | ⟨_ | _, _⟩ <;> intro hpu0 <;> simp at hpu0
-                subst hpu0; exact ⟨rfl, rfl⟩
-              rw [hpu] at hpn_sw
-              rcases p with ⟨r, w, x, lf, an⟩
-              dsimp only at hlf_p han_p; subst hlf_p han_p
-              cases r <;> cases w <;> cases x
-              · exact (hs2_pn a hpu hout_l).2 hlfu
-              · have hfz_u : u.mem.Frozen a := by unfold Memory.Frozen; rw [hpu]; rfl
-                obtain ⟨hrd0, _, hlf0, _⟩ := hkf_u a hfz_u
-                exact ⟨hrd0, hlf0.trans hlfu⟩
-              · generalize keepLs a = ic at hpn_sw
-                cases ic <;> simp [ProofLib.stripPerm, Perm.protNone] at hpn_sw
-              · simp at hpn_sw
-              · generalize keepLs a = ic at hpn_sw
-                cases ic <;> simp [ProofLib.stripPerm, Perm.protNone] at hpn_sw
-              · generalize keepLs a = ic at hpn_sw
-                cases ic <;> simp [ProofLib.stripPerm, Perm.protNone] at hpn_sw
-              · generalize keepLs a = ic at hpn_sw
-                cases ic <;> simp [ProofLib.stripPerm, Perm.protNone] at hpn_sw
-              · have hru : (u.mem.perm a).r = true := by rw [hpu]
-                exact ⟨hs2_rd a hru hlfu hout_l, (hs2_r a hru hlfu).2⟩
-          exact ⟨(stripWx_read8 _ a).trans (hrd'.trans ((stripWx_read8 u.mem a).symm.trans hcell.1)),
-            (hperm_swx a).trans hcell.2.1, hlf_eq'.trans hlf'⟩
-        | lazy => rw [hperm_swx a]; exact hcell
-        | protNoneLazy => rw [hperm_swx a]; exact hcell
-      · have hm0 := hm_R'.2.2 a hma
-        obtain ⟨hmap_u, _, han_eq⟩ := stripWx_mapped_props hm0.1
-        have han_u' : (f_ms u).mem.isAnon a = true := (hs2_anon a ⟨hmap_u, han_eq.symm.trans hm0.2⟩).2
-        have hmap_swx' : ((stripWx (f_ms u).mem).perm a).mapped = true := by
-          rw [hperm_swx a]; exact hm0.1
-        obtain ⟨_, _, han_eq'⟩ := stripWx_mapped_props hmap_swx'
-        exact ⟨hmap_swx', han_eq'.trans han_u'⟩
-    exact ProofLib.Satisfies.sepConj_intro hdisj_new hp_pts hp_R'
-      (Heap.Matches.union hm_pts_swx hm_R'_swx)
+    exact stripWx_s2Frame_one_block hp_pts hmem' hu_rw hkf_u hperm_u hs2_u
 
 private theorem hookOk_shadowMemset [LibsignalPlacement] (tr0 : List State)
     {f_ms : State → State} (hf_ms_reg : HookOk f_ms sessionMemsetRegionSpec)
@@ -1267,10 +1296,82 @@ private theorem hookOk_shadowMemset [LibsignalPlacement] (tr0 : List State)
   · exact False.elim (not_satisfies_false_sepConj he)
   · exact False.elim (not_satisfies_false_sepConj ho)
 
+private noncomputable def shadowBlackBox [LibsignalPlacement] (tr0 : List State)
+    (f_bb : State → State) (s' : State) : State :=
+  match findState tr0 s' with
+  | none => blackBoxHook s'
+  | some u =>
+    @ite State
+      (s'.status = .Running ∧ s'.spAligned = true ∧ s'.mem.RW (s'.sp - 16#64) 16)
+      (Classical.propDecidable _)
+      (stripWxS (f_bb u))
+      (s'.setStatus (.Exception "ext"))
+
+private theorem stripWxS_sp [LibsignalPlacement] (s : State) :
+    (stripWxS s).sp = s.sp := by cases s; rfl
+
+private theorem stripWxS_vmPreserved [LibsignalPlacement] {s1 s2 : State}
+    (h : VmPreserved s1 s2) :
+    VmPreserved (stripWxS s1) (stripWxS s2) := by
+  refine ⟨?_, ?_, fun a => ?_, ?_⟩
+  · cases s1; cases s2; exact h.1
+  · cases s1; cases s2; exact h.2.1
+  · rw [stripWxS_mem, stripWxS_mem]; exact stripWx_perm_congr (h.2.2.1 a)
+  · cases s1; cases s2; exact h.2.2.2
+
+private theorem hookOk_shadowBlackBox [LibsignalPlacement] (tr0 : List State)
+    {f_bb : State → State} (hf_bb : HookOk f_bb blackBoxSpecSat) :
+    HookOk (shadowBlackBox tr0 f_bb) blackBoxSpecSat := by
+  intro v R' s' hrun' hpre' hsp'
+  unfold shadowBlackBox
+  cases hfs : findState tr0 s' with
+  | none => exact blackBoxHook_ok_sat v R' s' hrun' hpre' hsp'
+  | some u =>
+    have hus : stripWxS u = s' := findState_some_stripWxS hfs
+    have hpre_open := hpre'
+    dsimp only [blackBoxSpecSat, blackBoxSpec16, withVmPreserved, withStack, blackBoxSpec,
+      stackAt] at hpre_open
+    rw [sepConj_assoc, satisfies_pure_sepConj] at hpre_open
+    rcases hpre_open with ⟨hx0', hmem'⟩
+    have hrw' : s'.mem.RW (s'.sp - 16#64) 16 :=
+      (IsBlock.memRegion (s'.sp - 16#64) 16).rw hmem'
+    have hcond : s'.status = .Running ∧ s'.spAligned = true ∧ s'.mem.RW (s'.sp - 16#64) 16 :=
+      ⟨hrun', hsp', hrw'⟩
+    dsimp only []
+    simp only [hcond, and_self, ↓reduceIte]
+    subst hus
+    have hu_run : u.status = .Running := by cases u; exact hrun'
+    have hu_sp : u.spAligned = true := by cases u; exact hsp'
+    have hu_x0 : u.readReg64 .x0 = v := by cases u; exact hx0'
+    rw [stripWxS_mem, stripWxS_sp] at hrw' hmem'
+    have hu_rw : u.mem.RW (u.sp - 16#64) 16 :=
+      (stripWx_rw_iff u.mem (u.sp - 16#64) 16).mp hrw'
+    obtain ⟨hkf_u, hsym_u, hret_u, hcc_u, hvm_u, hx0_ret, htr_u, hs2_u⟩ :=
+      hookOk_blackBoxSpecSat_elim hf_bb hu_run hu_x0 hu_sp hu_rw
+    have hkf' : (stripWxS u).mem.KeepsFrozen (stripWxS (f_bb u)).mem := by
+      rw [stripWxS_mem, stripWxS_mem]; exact stripWx_keepsFrozen hkf_u
+    have hsym' : (stripWxS (f_bb u)).symtab = (stripWxS u).symtab := by
+      rw [stripWxS_symtab, stripWxS_symtab]; exact hsym_u
+    refine ⟨hkf', hsym', Or.inl ⟨stripWxS_returned hret_u, stripWxS_ccPreserved hcc_u, ?_⟩⟩
+    dsimp only [blackBoxSpecSat, blackBoxSpec16, withVmPreserved, withStack, blackBoxSpec,
+      stackAt]
+    rw [sepConj_assoc, satisfies_pure_sepConj]
+    refine ⟨stripWxS_vmPreserved hvm_u, ?_⟩
+    rw [sepConj_assoc, satisfies_pure_sepConj]
+    refine ⟨⟨by rw [stripWxS_readReg64]; exact hx0_ret,
+      by rw [stripWxS_trace, stripWxS_trace]; exact htr_u⟩, ?_⟩
+    rw [stripWxS_mem, stripWxS_sp]
+    have hb_post := IsBlock.memRegion (u.sp - 16#64) 16
+    have hp_pts :
+        (memRegion (u.sp - 16#64) 16) (regionHeap (u.sp - 16#64) 16 (stripWx (f_bb u).mem)) :=
+      (hb_post.iff _).mpr ⟨stripWx (f_bb u).mem, trivial, rfl⟩
+    exact stripWx_s2Frame_one_block hp_pts hmem' hu_rw hkf_u hvm_u.perm_eq hs2_u
+
 private noncomputable def shadowVsigHooks [LibsignalPlacement] (tr0 : List State)
     (H : LibsignalHooks) (n : String) : Option (State → State) :=
   if n == lsMemcpySym then (H n).map (shadowMemcpy tr0)
   else if n == lsVerifyMemsetSym then (H n).map (shadowMemset tr0)
+  else if n == lsBlackBoxU8Sym then (H n).map (shadowBlackBox tr0)
   else vsigOnlyHooks H n
 
 private theorem shadowVsigHooks_memcpy [LibsignalPlacement] (tr0 : List State)
@@ -1284,25 +1385,33 @@ private theorem shadowVsigHooks_memset [LibsignalPlacement] (tr0 : List State)
   have h1 : (lsVerifyMemsetSym == lsMemcpySym) = false := by decide
   simp [shadowVsigHooks, h1]
 
+private theorem shadowVsigHooks_blackBox [LibsignalPlacement] (tr0 : List State)
+    (H : LibsignalHooks) :
+    shadowVsigHooks tr0 H lsBlackBoxU8Sym = (H lsBlackBoxU8Sym).map (shadowBlackBox tr0) := by
+  have h1 : (lsBlackBoxU8Sym == lsMemcpySym) = false := by decide
+  have h2 : (lsBlackBoxU8Sym == lsVerifyMemsetSym) = false := by decide
+  simp [shadowVsigHooks, h1, h2]
+
 private theorem shadowVsigHooks_other [LibsignalPlacement] (tr0 : List State)
     (H : LibsignalHooks) {n : String}
     (h1 : (n == lsMemcpySym) = false := by decide)
-    (h2 : (n == lsVerifyMemsetSym) = false := by decide) :
+    (h2 : (n == lsVerifyMemsetSym) = false := by decide)
+    (h3 : (n == lsBlackBoxU8Sym) = false := by decide) :
     shadowVsigHooks tr0 H n = vsigOnlyHooks H n := by
-  simp [shadowVsigHooks, h1, h2]
+  simp [shadowVsigHooks, h1, h2, h3]
 
 private theorem w3VerifySigHooks_shadow [LibsignalPlacement] (tr0 : List State)
     (mmpl : MultiPlacement) (gh : CliGhostHooks) (W : CliHooks)
     {M : AllocCostModel} {A : RustCliAllocBudget M} {lim : BudgetLimits}
     (hG : CliGhostAllocHooks M A lim gh) (Y : UnreachedPqxdhPrimitives) :
-    VerifySignaturePlacedHooks (modelPrims Y ⟨W.C, W.Q⟩)
+    VerifySignaturePlacedHooksSat (modelPrims Y ⟨W.C, W.Q⟩)
       (shadowVsigHooks tr0 (cliGhostExterns gh (cliExternsPlaced mmpl W))) := by
   have hv := w3VerifySigHooks_vsigOnly mmpl gh W hG Y
   let H := cliGhostExterns gh (cliExternsPlaced mmpl W)
   refine
     { memcpy := ?_
       memset := ?_
-      blackBox := (shadowVsigHooks_other tr0 H).trans hv.blackBox
+      blackBox := ?_
       montToEd := hookSat_of_eq (shadowVsigHooks_other tr0 H) hv.montToEd
       compress := hookSat_of_eq (shadowVsigHooks_other tr0 H) hv.compress
       edNeg := hookSat_of_eq (shadowVsigHooks_other tr0 H) hv.edNeg
@@ -1319,6 +1428,11 @@ private theorem w3VerifySigHooks_shadow [LibsignalPlacement] (tr0 : List State)
       cliGhostExterns_memset_some gh (cliExternsPlaced mmpl W) hf
     exact ⟨shadowMemset tr0 f, by rw [shadowVsigHooks_memset (H := H), hH]; rfl,
       hookOk_shadowMemset tr0 hreg hvm pqxdhHookStack⟩
+  · have hbb_sat : HookSat H lsBlackBoxU8Sym blackBoxSpecSat :=
+      cliGhostExterns_blackBoxSat_budget_sat gh (cliExternsPlaced mmpl W) hG.extraOk
+    obtain ⟨f, hH, hok⟩ := hbb_sat
+    exact ⟨shadowBlackBox tr0 f, by rw [shadowVsigHooks_blackBox (H := H), hH]; rfl,
+      hookOk_shadowBlackBox tr0 hok⟩
 
 /-! ### `isAnon` Preservation & Shadow Lockstep -/
 
@@ -1559,14 +1673,28 @@ private theorem shadowVsigHooks_findSome?_active [LibsignalPlacement] (tr0 : Lis
             exact ⟨f, rfl, rfl, rfl, hvm_ms s, fun a hm ha => (hs2.2.1.2.1 a ⟨hm, ha⟩).2⟩
           · simp only [hcond, ↓reduceIte, status_setStatus] at hrun; cases hrun
         · -- lsBlackBoxU8Sym
-          have hrow : H lsBlackBoxU8Sym = some blackBoxHook :=
-            cliGhost_row mmpl gh W (blackBox_row_placed mmpl W)
-          have hsh : shadowVsigHooks tr0 H lsBlackBoxU8Sym = some blackBoxHook :=
-            (shadowVsigHooks_other tr0 H).trans (hk_v.trans hrow)
+          have hbb_sat : HookSat H lsBlackBoxU8Sym blackBoxSpecSat :=
+            cliGhostExterns_blackBoxSat_budget_sat gh (cliExternsPlaced mmpl W) hG.extraOk
+          obtain ⟨f, hH, hok⟩ := hbb_sat
+          have hsh : shadowVsigHooks tr0 H lsBlackBoxU8Sym = some (shadowBlackBox tr0 f) := by
+            rw [shadowVsigHooks_blackBox, hH]; rfl
           rw [hsh] at h; injection h with hf'; subst hf'
-          rw [hrow]; refine ⟨blackBoxHook, rfl, rfl, by cases s; rfl, ?_, fun _ _ ha => ha⟩
-          unfold blackBoxHook
-          exact ⟨⟨rfl, rfl, rfl⟩, rfl, fun _ => rfl, fun _ _ _ => rfl⟩
+          unfold shadowBlackBox at hrun ⊢
+          rw [hfs] at hrun ⊢; dsimp only [] at hrun ⊢
+          by_cases hcond : (stripWxS s).status = .Running ∧ (stripWxS s).spAligned = true ∧
+              (stripWxS s).mem.RW ((stripWxS s).sp - 16#64) 16
+          · simp only [hcond, and_self, ↓reduceIte]
+            rcases hcond with ⟨hr_s', hsp_s', hrw_s'⟩
+            have hu_run : s.status = .Running := by cases s; exact hr_s'
+            have hu_sp : s.spAligned = true := by cases s; exact hsp_s'
+            rw [stripWxS_mem, stripWxS_sp] at hrw_s'
+            have hu_rw : s.mem.RW (s.sp - 16#64) 16 :=
+              (stripWx_rw_iff s.mem _ _).mp hrw_s'
+            obtain ⟨_, _, _, _, hvm, _, _, hs2⟩ :=
+              hookOk_blackBoxSpecSat_elim hok hu_run rfl hu_sp hu_rw
+            rw [hH]
+            exact ⟨f, rfl, rfl, rfl, hvm, fun a hm ha => (hs2.2.1.2.1 a ⟨hm, ha⟩).2⟩
+          · simp only [hcond, ↓reduceIte, status_setStatus] at hrun; cases hrun
         · -- lsVerifyMontToEdSym
           have hrow : H lsVerifyMontToEdSym = some (toEdwardsHook W.Q.montToEd) :=
             cliGhost_row mmpl gh W (toEdwards_row_placed mmpl W)
@@ -1677,8 +1805,12 @@ private theorem shadowVsigHooks_findSome?_active [LibsignalPlacement] (tr0 : Lis
           by_cases hc : (n == lsVerifyMemsetSym) = true
           · rw [beq_iff_eq] at hc; subst hc; simp [vsigKeepSym] at hn
           · simpa using hc
+        have hn_bb : (n == lsBlackBoxU8Sym) = false := by
+          by_cases hc : (n == lsBlackBoxU8Sym) = true
+          · rw [beq_iff_eq] at hc; subst hc; simp [vsigKeepSym] at hn
+          · simpa using hc
         have hsh_eq : shadowVsigHooks tr0 H n = vsigOnlyHooks H n := by
-          simp [shadowVsigHooks, hn_mc, hn_ms]
+          simp [shadowVsigHooks, hn_mc, hn_ms, hn_bb]
         rw [hsh_eq] at h
         cases hHn : H n with
         | none =>
@@ -1700,7 +1832,9 @@ private theorem shadowVsigHooks_isSome_eq [LibsignalPlacement] (tr0 : List State
   · simp [h1]
   · by_cases h2 : (n == lsVerifyMemsetSym) = true
     · simp [h1, h2]
-    · simp [h1, h2]
+    · by_cases h3 : (n == lsBlackBoxU8Sym) = true
+      · simp [h1, h2, h3]
+      · simp [h1, h2, h3]
 
 private theorem shadowVsigHooks_findSome?_isSome [LibsignalPlacement] (tr0 : List State)
     (H : LibsignalHooks) :
@@ -2264,7 +2398,7 @@ private theorem verifySignature_203_vm_ok [LibsignalPlacement]
   let H := cliGhostExterns ghFixed (cliExternsPlaced mmpl W)
   let P := modelPrims Y ⟨W.C, W.Q⟩
   have hprims := VerifySignaturePrims.of_structuralPrims (structuralPrims_initiatorModelPrims Y ⟨W.C, W.Q⟩)
-  have hbase0 := verifySignature_placed_ok (H := vsigOnlyHooks H) hprims
+  have hbase0 := verifySignature_placed_ok_sat (H := vsigOnlyHooks H) hprims
     (w3VerifySigHooks_vsigOnly mmpl ghFixed W hG Y)
   refine subroutine_ok_outcome_intro fun g R s0 hpc hrun hpre_cro hsp => ?_
   obtain ⟨⟨hcl, hro⟩, hpre_vs⟩ := extract_withLsCodeRoLoaded hpre_cro
@@ -2304,7 +2438,7 @@ private theorem verifySignature_203_vm_ok [LibsignalPlacement]
   rcases hbase0.no_fault_before_outcome g' R s0 hpc hrun hpre_P hsp hL0 with
     ⟨sf0, hsteps0, ⟨hret0, hcc0, hpost0⟩ | ⟨_, hp⟩ | ⟨_, _, he⟩ | ⟨_, ho⟩, _⟩
   · obtain ⟨tr0, htr0⟩ := steps_to_stepsList hsteps0
-    have hbase_sh := verifySignature_placed_ok (H := shadowVsigHooks tr0 H) hprims
+    have hbase_sh := verifySignature_placed_ok_sat (H := shadowVsigHooks tr0 H) hprims
       (w3VerifySigHooks_shadow tr0 mmpl ghFixed W hG Y)
     have hLQ : ((blkPC_203).rebase (blkPl_203).base (shadowVsigHooks tr0 H)).CodeLoaded
         (stripWxS s0).mem := by

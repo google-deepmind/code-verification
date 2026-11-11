@@ -536,10 +536,6 @@ theorem idPollStack_covers_publicKeyEq_with_extHookStack :
 private def cliHooksOfPEParams (P : E2E.PEParams) : CliHooks where
   C := P.C
   Q := P.Q
-  bcmp a b := if a = b then 0#64 else 1#64
-  bcmp_ok a b _ := by
-    by_cases h : a = b <;> simp [h]
-  utf8Err _ := (0#64, 0#16)
 
 theorem decIdKitExt_traceOfWith_nil (A : RustAlloc) (img : Obj.Image) (F : FsFiles)
     (peer : AddrGhost) (B : RunBudgets)

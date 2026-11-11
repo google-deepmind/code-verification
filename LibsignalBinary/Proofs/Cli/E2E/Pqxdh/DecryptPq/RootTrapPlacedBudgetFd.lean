@@ -469,9 +469,11 @@ private theorem cliGhost_row (mmpl : Obj.MultiPlacement) (g : CliGhostHooks) (W 
     (h7 : sym ≠ CryptoVerification.SignalSession.lsReadFileSym := by decide)
     (h8 : sym ≠ CryptoVerification.SignalSession.lsReadStdinSym := by decide)
     (h9 : sym ≠ CryptoVerification.SignalSession.lsMemsetSym := by decide)
-    (h10 : sym ≠ CryptoVerification.SignalSession.lsMemcpySym := by decide) :
+    (h10 : sym ≠ CryptoVerification.SignalSession.lsMemcpySym := by decide)
+    (hExtra : CryptoVerification.SignalSession.Cli.RunGlue.cliExtraGhostSyms.contains sym = false := by decide) :
     cliGhostExterns g (cliExternsPlaced mmpl W) sym = some f :=
-  (cliGhostExterns_other g _ h1 h2 h3 h4 h5 h6 h7 h8 h9 h10).trans (cliExternsPlaced_row mmpl W hrow)
+  (cliGhostExterns_other g _ h1 h2 h3 h4 h5 h6 h7 h8 h9 h10 (Or.inl hExtra)).trans
+    (cliExternsPlaced_row mmpl W hrow)
 
 private theorem pqRecv_507_cli_of_spqrRecv [LibsignalPlacement] {M : AllocCostModel}
     {A : RustCliAllocBudget M} {lim : BudgetLimits}
@@ -688,9 +690,9 @@ theorem tryDecryptPqV1_placed_ok_PTight_cli_fd_of_recv_of_tdEnv [LibsignalPlacem
       rw [fromS2_envArgsToGhost_eq]
       exact hseq))
     (cliSeamEnvs_inhabited W.C (spqrV1 W.C.F W.Q.K) hRecv_ne hFmtWrite_ne hFmtInner_ne)
-    (s0_507_cli (A := A') mmpl g W ctl (spqrV1 W.C.F W.Q.K) tdEnv)
+    (s0_507_cli (A := A') mmpl g W hG.extraOk ctl (spqrV1 W.C.F W.Q.K) tdEnv)
     (s1_pinned_507_cli mmpl g W hG' ctl (spqrV1 W.C.F W.Q.K) tdEnv)
-    (s2_507_cli (A := A') mmpl g W ctl)
+    (s2_507_cli (A := A') mmpl g W hG.extraOk ctl)
     (dhStep_pinned_507_cli mmpl g W hG' ctl (spqrV1 W.C.F W.Q.K))
     (s4_507_cli_ofEnv mmpl g W hG' hFmtW' ctl (spqrV1 W.C.F W.Q.K))
     (pqRecv_507_cli_of_spqrRecv mmpl g W hG' hRecv' hFmtI' ctl)
@@ -753,11 +755,11 @@ theorem tryDecryptPqV1_placed_ok_PTight_cli_fd_of_recv [LibsignalPlacement]
     (cliSeamEnvs_inhabited (fmtWriteEnv := FmtWriteEnv) (fmtEnv := FormatInnerEnv)
       W.C (spqrV1 W.C.F W.Q.K)
       spqrRecvBytesEnv_nonempty ⟨[], rfl⟩ ⟨[], rfl⟩)
-    (s0_507_cli (A := A') mmpl g W ctl (spqrV1 W.C.F W.Q.K)
+    (s0_507_cli (A := A') mmpl g W hG.extraOk ctl (spqrV1 W.C.F W.Q.K)
       (TryDecryptCliEnv W.C (spqrV1 W.C.F W.Q.K)))
     (s1_pinned_507_cli mmpl g W hG' ctl (spqrV1 W.C.F W.Q.K)
       (TryDecryptCliEnv W.C (spqrV1 W.C.F W.Q.K)))
-    (s2_507_cli (A := A') mmpl g W ctl)
+    (s2_507_cli (A := A') mmpl g W hG.extraOk ctl)
     (dhStep_pinned_507_cli mmpl g W hG' ctl (spqrV1 W.C.F W.Q.K))
     (s4_507_cli mmpl g W hG' ctl (spqrV1 W.C.F W.Q.K))
     (pqRecv_507_cli_of_spqrRecv mmpl g W hG' hRecv' hFmtI' ctl)

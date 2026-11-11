@@ -17,6 +17,8 @@ public import LibsignalBinary.Proofs.Cli.E2E.Pqxdh.ResponderClosure.Over.StageP2
 public import LibsignalBinary.Proofs.SignalSession.Cli.SpqrV1PlacedSeams
 public import LibsignalBinary.Proofs.SignalSession.Cli.Store.SerGlueXCliPlaced
 public import LibsignalBinary.Proofs.PublicApi.StoreKit.Over.MatchCallee
+public import LibsignalBinary.Proofs.ConsumeMessageKey.FindIndexProofs.CtEqSat -- proof-setup: allow-public-import
+import LibsignalBinary.Proofs.PublicApi.StoreKit.Over.MatchCalleeSat
 public import LibsignalBinary.Proofs.PublicApi.StoreKit.Over.ArchivePromote
 public import LibsignalBinary.Proofs.SignalSession.Cli.KitInst.IdentityKitOkCliPlaced
 public import LibsignalBinary.Proofs.SignalSession.Cli.KitInst.PreKeySpecsPlaced
@@ -31,6 +33,7 @@ import LibsignalBinary.Proofs.SignalSession.Cli.Run.Proofs.DecryptPrekey.Poll.Cl
 import LibsignalBinary.Proofs.SignalSession.Cli.Run.Proofs.DecryptPrekey.Poll.ClosureSpeOwned
 import LibsignalBinary.Proofs.SpqrV1.Kdf.HkdfToSliceExtract
 import LibsignalBinary.Proofs.TripleRatchet.Alloc.Defs
+import LibsignalBinary.Proofs.Cli.E2E.Pqxdh.ResponderClosure.Kits.StageP2PurePlacedBbSat
 
 /-!
 # Relocatable CLI Poll Stage P2 Over-Path (`Path C`) Instantiation
@@ -87,6 +90,8 @@ open CryptoVerification.SignalSession.Cli.RunCompose hiding Bytes
 open CryptoVerification.SignalSession.Cli.RunProofs
 open CryptoVerification.SignalSession.Cli.KitInst
 open CryptoVerification.CliHandshake.RespClosurePlaced
+open LibsignalBinary.Proofs.Cli.E2E.Pqxdh.ResponderClosure.Kits.StageP2PurePlacedBbSat
+  (isSameAccount_4k_placed_ok_on_stageP1_sat)
 
 /-! ## 1. Placed Stage P2 Over-Path (`Path C`) Error & Kit Event Simplifications -/
 
@@ -1036,12 +1041,13 @@ private theorem subroutine_ok_withLsCl_of_spec_map [LibsignalPlacement] {α β :
 /-- Relocatable `PromoteMatchingMissGenPlacedProp` (`lsmpl.base 50`) from `h_bb` on `ext`. -/
 theorem promoteMatchingMissGen_placed_of_blackBox [LibsignalPlacement] {A : RustAlloc}
     {ext : String → Option (State → State)}
-    (h_bb : ext lsBlackBoxU8Sym = some CryptoVerification.LibsignalSession.blackBoxHook) :
+    (h_bb : HookSat ext lsBlackBoxSym
+      LibsignalBinary.Proofs.ConsumeMessageKey.FindIndexProofs.CtEqSat.blackBoxSpecSat) :
     Over.PromoteMatchingMissGenPlacedProp A ext := by
   have h50' : subroutine_ok (lsProg_518 ext) (lsmpl.base 50)
       (withLsCl lsmpl (Over.promoteMatchingSessionMissSpec A)) :=
     ls_subroutine_ok_cl_of_callee (callerProg := lsProg_518 ext)
-      (Over.promote_matching_session_miss_placed_ok h_bb)
+      (LibsignalBinary.Proofs.PublicApi.StoreKit.Over.MatchCalleeSat.promote_matching_session_miss_placed_ok_sat h_bb)
   exact subroutine_ok_withLsCl_of_spec_map
     (fun x : Over.P2PromoteMissGhost =>
       (⟨x.recPtr, x.msgVer, x.serPtr, x.serBytes, x.outPtr, x.g, x.r, x.s⟩ :
@@ -1052,11 +1058,12 @@ theorem promoteMatchingMissGen_placed_of_blackBox [LibsignalPlacement] {A : Rust
 /-- Relocatable `PromoteMatchingMissGenPlacedProp` (`lsmpl.base 50`) at
 `cliGhostExterns gh (cliExternsPlaced mmpl W)`. -/
 theorem cliPromoteMatchingMissGen_placed_ok [LibsignalPlacement]
-    (mmpl : Obj.MultiPlacement) (gh : CliGhostHooks) (W : CliHooks) :
+    (mmpl : Obj.MultiPlacement) (gh : CliGhostHooks) (W : CliHooks)
+    (hBb : HookSat (cliGhostExterns gh (cliExternsPlaced mmpl W)) lsBlackBoxSym
+      LibsignalBinary.Proofs.ConsumeMessageKey.FindIndexProofs.CtEqSat.blackBoxSpecSat) :
     Over.PromoteMatchingMissGenPlacedProp E2E.HooksE.A0
       (cliGhostExterns gh (cliExternsPlaced mmpl W)) :=
-  promoteMatchingMissGen_placed_of_blackBox
-    (IdKit.cliGhostExterns_blackBox mmpl gh W)
+  promoteMatchingMissGen_placed_of_blackBox hBb
 
 /-- Relocatable `PromoteOverGenPlacedProp` (`lsmpl.base 47`) from `SerContractsXPlaced` and
 a Block `51`→`621` `grow_one` contract. -/
@@ -1107,8 +1114,6 @@ theorem cliPromoteOverGen_placed_ok [LibsignalPlacement]
       hh.codecHooks.dealloc
       hh.codecHooks.realloc
       (noAllocShimSpec_eq_sessionShimSpec_over ▸ hh.codecHooks.shim)
-      (Slots.cliGhostExterns_sat_of_cliExternsPlaced mmpl gh W
-        (Slots.cliExternsPlaced_sessionMemmove_sat mmpl W _))
       (hookSat_sessionMemcpy_of_codec _ hh.codecHooks.memcpy)
       (Slots.cliGhostExterns_panic_handle_error mmpl gh W)
       (Slots.cliGhostExterns_panic_handle_alloc_error mmpl gh W))
@@ -1177,8 +1182,8 @@ private theorem cliStageP2PureCalleesPlaced4K_over_of_seams [LibsignalPlacement]
     (hookSat_sessionMemcpy_of_codec allocHookStack hh.codecHooks.memcpy)
     (Slots.cliGhostExterns_panic_handle_error mmpl gh W)
     (Slots.cliGhostExterns_panic_handle_alloc_error mmpl gh W)
-    (Kits.isSameAccount_4k_placed_ok_on_stageP1
-      (IdKit.cliGhostExterns_blackBox mmpl gh W)
+    (isSameAccount_4k_placed_ok_on_stageP1_sat
+      hh.blackBox
       (cliUuidTryParse_placed_ok_over mmpl gh W))
     h_accept
     hS.initialStateMemInv_lsProg75
@@ -1324,62 +1329,85 @@ private theorem cliStageP2BaseCalleesPlaced4K_over [LibsignalPlacement]
     (hookSat_sessionMemcpy_of_codec allocHookStack hh.codecHooks.memcpy)
     (Slots.cliGhostExterns_panic_handle_error mmpl gh W)
     (Slots.cliGhostExterns_panic_handle_alloc_error mmpl gh W)
-    (Kits.isSameAccount_4k_placed_ok_on_stageP1
-      (IdKit.cliGhostExterns_blackBox mmpl gh W)
+    (isSameAccount_4k_placed_ok_on_stageP1_sat
+      hh.blackBox
       (cliUuidTryParse_placed_ok_over mmpl gh W))
 
+private theorem cliDalekMontToEd_placed_sat_over (mmpl : Obj.MultiPlacement) (gh : CliGhostHooks)
+    (W : CliHooks) (X : UnreachedPqxdhPrimitives) :
+    HookSat (cliGhostExterns gh (cliExternsPlaced mmpl W)) ResponderCore.lsDalekMontToEdSym
+      (ResponderCore.dalekMontToEdStubSpec (ofSignalPqxdhPrimitives (modelPrims X ⟨W.C, W.Q⟩))) := by
+  rcases Slots.cliGhostExterns_sat_of_cliExternsPlaced mmpl gh W
+    (Slots.cliExternsPlaced_toEdwards_sat mmpl W X (img := default)) with ⟨f, hrow, hok⟩
+  exact ⟨f, hrow, fun g R s0 hrun hpre hsp =>
+    hok ⟨g.inBytes, g.signBit, g.inPtr, g.outPtr⟩ R s0 hrun hpre hsp⟩
+
+private theorem cliDalekTorsionFree_placed_sat_over (mmpl : Obj.MultiPlacement)
+    (gh : CliGhostHooks) (W : CliHooks) (X : UnreachedPqxdhPrimitives) :
+    HookSat (cliGhostExterns gh (cliExternsPlaced mmpl W)) ResponderCore.lsDalekTorsionFreeSym
+      (Initiator.cryptoBoolRegStubSpec
+        (ofSignalPqxdhPrimitives (modelPrims X ⟨W.C, W.Q⟩)).isTorsionFree 160) := by
+  rcases Slots.cliGhostExterns_sat_of_cliExternsPlaced mmpl gh W
+    (Slots.cliExternsPlaced_torsionFree_sat mmpl W X (img := default)) with ⟨f, hrow, hok⟩
+  exact ⟨f, hrow, fun g R s0 hrun hpre hsp =>
+    hok ⟨g.inPtr, g.inBytes⟩ R s0 hrun hpre hsp⟩
+
 private theorem pqxdhAccept_opt_fields_exactSat_over [LibsignalFullPlacement]
-    {callerProg : Program} {i : Nat}
-    {P : Initiator.Primitives} {C : Crypto} {A : RustAlloc} {H : LibsignalHooks}
-    [IsLsBlockProg callerProg i H]
-    (hWF : Initiator.StructuralPrims P)
-    (hP : ResponderCore.PrimitivesMatchCrypto P C)
-    (hH : LibsignalBinary.Proofs.E2E.Pqxdh.ResponderCore.CryptoPlacedSat.PqxdhPlacedHookContractsExactSat
-      P C A H)
-    (h_memcpy : HookSat H lsMemcpySym framelessMemcpySpec) :
-    subroutine_ok callerProg (lsmpl.base 79)
-      (ResponderCore.pqxdhAcceptOptFieldsFrozenPlacedSpec P A) :=
-  ResponderCore.pqxdhAccept_opt_fields_placed_ok_of_block hWF
-    (ResponderCore.ecPubKeyIsCanonical_placed_ok_cl hWF hH.dalekMontToEd hH.dalekTorsionFree)
-    (hH.calculateAgreement_ok hP)
-    (CryptoVerification.E2E.Pqxdh.Shared.vecAppendElements_fast_placed_ok_cl h_memcpy)
-    (hH.hkdfExtract_ok hP)
-    (hH.hkdfExpandMultiInfo_ok hP)
-    hH.noAllocShim hH.alloc hH.dealloc h_memcpy hH.kyberDecaps
-    hH.handleError hH.handleAllocError
+    (X : UnreachedPqxdhPrimitives) (mmpl : Obj.MultiPlacement) (gh : CliGhostHooks) (W : CliHooks)
+    (hG : Slots.CliGhostA0Hooks E2E.HooksE.A0 gh)
+    (hh : RunHooksPlaced E2E.HooksE.A0 (cliGhostExterns gh (cliExternsPlaced mmpl W))) :
+    subroutine_ok (lsProg_75 (cliGhostExterns gh (cliExternsPlaced mmpl W))) (lsmpl.base 79)
+      (ResponderCore.pqxdhAcceptOptFieldsFrozenPlacedSpec
+        (ofSignalPqxdhPrimitives (modelPrims X ⟨W.C, W.Q⟩)) E2E.HooksE.A0) :=
+  ResponderCore.pqxdhAccept_opt_fields_placed_ok_of_block
+    (cliModelPrims_structural X W)
+    (ResponderCore.ecPubKeyIsCanonical_placed_ok_cl (cliModelPrims_structural X W)
+      (cliDalekMontToEd_placed_sat_over mmpl gh W X)
+      (cliDalekTorsionFree_placed_sat_over mmpl gh W X))
+    (cliPqxdhCalculateAgreement_placed_ok
+      X mmpl gh W hG hh)
+    (CryptoVerification.E2E.Pqxdh.Shared.vecAppendElements_fast_placed_ok_cl hh.codecHooks.memcpy)
+    (cliPqxdhHkdfExtract_placed_ok
+      X mmpl gh W hG hh)
+    (cliPqxdhHkdfExpandMultiInfo_placed_ok
+      X mmpl gh W hG hh)
+    hh.codecHooks.shim hh.codecHooks.alloc hh.codecHooks.dealloc hh.codecHooks.memcpy
+    (Slots.cliGhostExterns_sat_of_cliExternsPlaced mmpl gh W
+      (Slots.cliExternsPlaced_kemDecaps_sat mmpl W X))
+    (Slots.cliGhostExterns_panic_handle_error mmpl gh W)
+    (Slots.cliGhostExterns_panic_handle_alloc_error mmpl gh W)
 
 private theorem pqxdhAccept_err_owned_exactSat_over [LibsignalFullPlacement]
-    {callerProg : Program} {i : Nat}
-    {P : Initiator.Primitives} {C : Crypto} {A : RustAlloc} {H : LibsignalHooks}
-    [IsLsBlockProg callerProg i H]
-    (hWF : Initiator.StructuralPrims P)
-    (hP : ResponderCore.PrimitivesMatchCrypto P C)
-    (hH : LibsignalBinary.Proofs.E2E.Pqxdh.ResponderCore.CryptoPlacedSat.PqxdhPlacedHookContractsExactSat
-      P C A H)
-    (h_memcpy : HookSat H lsMemcpySym framelessMemcpySpec) :
-    subroutine_ok callerProg (lsmpl.base 79)
-      (ResponderCore.pqxdhAcceptErrOwnedFrozenPlacedSpec P A) :=
-  ResponderCore.pqxdhAccept_err_owned_placed_ok_of_block hWF
-    (ResponderCore.ecPubKeyIsCanonical_placed_ok_cl hWF hH.dalekMontToEd hH.dalekTorsionFree)
-    (hH.calculateAgreement_ok hP)
-    hH.noAllocShim hH.alloc hH.dealloc h_memcpy hH.handleError
+    (X : UnreachedPqxdhPrimitives) (mmpl : Obj.MultiPlacement) (gh : CliGhostHooks) (W : CliHooks)
+    (hG : Slots.CliGhostA0Hooks E2E.HooksE.A0 gh)
+    (hh : RunHooksPlaced E2E.HooksE.A0 (cliGhostExterns gh (cliExternsPlaced mmpl W))) :
+    subroutine_ok (lsProg_75 (cliGhostExterns gh (cliExternsPlaced mmpl W))) (lsmpl.base 79)
+      (ResponderCore.pqxdhAcceptErrOwnedFrozenPlacedSpec
+        (ofSignalPqxdhPrimitives (modelPrims X ⟨W.C, W.Q⟩)) E2E.HooksE.A0) :=
+  ResponderCore.pqxdhAccept_err_owned_placed_ok_of_block
+    (cliModelPrims_structural X W)
+    (ResponderCore.ecPubKeyIsCanonical_placed_ok_cl (cliModelPrims_structural X W)
+      (cliDalekMontToEd_placed_sat_over mmpl gh W X)
+      (cliDalekTorsionFree_placed_sat_over mmpl gh W X))
+    (cliPqxdhCalculateAgreement_placed_ok
+      X mmpl gh W hG hh)
+    hh.codecHooks.shim hh.codecHooks.alloc hh.codecHooks.dealloc hh.codecHooks.memcpy
+    (Slots.cliGhostExterns_panic_handle_error mmpl gh W)
 
 private theorem initBobErrOwned_4k_exactSat_over [LibsignalFullPlacement]
-    {P : Initiator.Primitives} {C : Crypto} {A : RustAlloc}
-    {ext : String → Option (State → State)}
-    (hWF : Initiator.StructuralPrims P)
-    (hP : ResponderCore.PrimitivesMatchCrypto P C)
-    (hH : LibsignalBinary.Proofs.E2E.Pqxdh.ResponderCore.CryptoPlacedSat.PqxdhPlacedHookContractsExactSat
-      P C A ext)
-    (h_memcpy : HookSat ext lsMemcpySym framelessMemcpySpec) :
-    subroutine_ok (stageP1ProgPlaced ext) (lsmpl.base 75)
-      (Sub5Placed.initializeBobSessionErrOwnedFrozen4KPlacedSpec P A) :=
+    (X : UnreachedPqxdhPrimitives) (mmpl : Obj.MultiPlacement) (gh : CliGhostHooks) (W : CliHooks)
+    (hG : Slots.CliGhostA0Hooks E2E.HooksE.A0 gh)
+    (hh : RunHooksPlaced E2E.HooksE.A0 (cliGhostExterns gh (cliExternsPlaced mmpl W))) :
+    subroutine_ok (stageP1ProgPlaced (cliGhostExterns gh (cliExternsPlaced mmpl W))) (lsmpl.base 75)
+      (Sub5Placed.initializeBobSessionErrOwnedFrozen4KPlacedSpec
+        (ofSignalPqxdhPrimitives (modelPrims X ⟨W.C, W.Q⟩)) E2E.HooksE.A0) :=
   Sub5Placed.of_responderCore_errOwned_to_4K_frozen_placed <| by
     have hbase :=
       ResponderCore.ls_subroutine_ok_withLsFrozen_of_block
-        (callerProg := stageP1ProgPlaced ext) (calleeProg := lsProg_75 ext) (i := 518) (j := 75)
+        (callerProg := stageP1ProgPlaced (cliGhostExterns gh (cliExternsPlaced mmpl W)))
+        (calleeProg := lsProg_75 (cliGhostExterns gh (cliExternsPlaced mmpl W))) (i := 518) (j := 75)
         (ResponderCore.initializeBobSession_err_owned_frozen_placed_ok_of_accept
-          (pqxdhAccept_err_owned_exactSat_over hWF hP hH h_memcpy))
+          (pqxdhAccept_err_owned_exactSat_over X mmpl gh W hG hh))
     refine subroutine_ok_map_panic hbase ?_
       (fun _ _ _ _ _ _ he => by
         dsimp only [ResponderCore.initializeBobSessionErrOwnedFrozenPlacedSpec,
@@ -1398,25 +1426,27 @@ private theorem initBobErrOwned_4k_exactSat_over [LibsignalFullPlacement]
     exact hpre.2
 
 private theorem initBobOkV1_4k_exactSat_over [LibsignalFullPlacement]
-    {P : Initiator.Primitives} {C : Crypto} {A : RustAlloc} {F : ShaCompress}
-    {ext : String → Option (State → State)}
-    (hWF : Initiator.StructuralPrims P)
-    (hP : ResponderCore.PrimitivesMatchCrypto P C)
-    (hH : LibsignalBinary.Proofs.E2E.Pqxdh.ResponderCore.CryptoPlacedSat.PqxdhPlacedHookContractsExactSat
-      P C A ext)
-    (h_memcpy : HookSat ext lsMemcpySym framelessMemcpySpec)
-    (hMemcpySess : HookSat ext lsMemcpySym sessionMemcpyRegionSpec)
+    (X : UnreachedPqxdhPrimitives) (mmpl : Obj.MultiPlacement) (gh : CliGhostHooks) (W : CliHooks)
+    (hG : Slots.CliGhostA0Hooks E2E.HooksE.A0 gh)
+    (hh : RunHooksPlaced E2E.HooksE.A0 (cliGhostExterns gh (cliExternsPlaced mmpl W)))
     (hinit : CryptoVerification.Cli.E2E.V1.InitialStateMemInvPlacedOk
-      (LibsignalPublicApi.StoreKit.LibsignalCodeRoLoaded lsmpl) A F ext) :
-    Kits.InitializeBobV1FrozenOkPlaced4K P A F ext :=
+      (LibsignalPublicApi.StoreKit.LibsignalCodeRoLoaded lsmpl) E2E.HooksE.A0 W.C.F
+      (cliGhostExterns gh (cliExternsPlaced mmpl W))) :
+    Kits.InitializeBobV1FrozenOkPlaced4K
+      (ofSignalPqxdhPrimitives (modelPrims X ⟨W.C, W.Q⟩)) E2E.HooksE.A0 W.C.F
+      (cliGhostExterns gh (cliExternsPlaced mmpl W)) :=
   Kits.InitializeBobV1MemInvOkPlaced.to_4K fun s0 inp ikBPk spkBPk argPtr pqskPtr ctSlicePtr ctBufPtr
       ratchetKeyPairPtr outPtr drKey Frame
       hfr hrun hpc hsp hpqr hx0 hx1 hx8 htr hrep hopk hwell hik hspk hacc =>
-    Kits.ls_sepWPp_of_block (callerProg := stageP1ProgPlaced ext) (calleeProg := lsProg_75 ext)
+    Kits.ls_sepWPp_of_block
+      (callerProg := stageP1ProgPlaced (cliGhostExterns gh (cliExternsPlaced mmpl W)))
+      (calleeProg := lsProg_75 (cliGhostExterns gh (cliExternsPlaced mmpl W)))
       (i := 518) (j := 75) (LibsignalCodeLoaded.of_codeLoaded hfr.2)
       (CryptoVerification.Cli.E2E.V1.initializeBobSession_ok_v1_frozen_placed_of_accept
-        hWF hH.noAllocShim hH.alloc hH.dealloc hMemcpySess hH.handleError
-        (pqxdhAccept_opt_fields_exactSat_over hWF hP hH h_memcpy)
+        (cliModelPrims_structural X W) hh.codecHooks.shim hh.codecHooks.alloc hh.codecHooks.dealloc
+        (hookSat_sessionMemcpyRegion_of_codec hh.codecHooks.memcpy)
+        (Slots.cliGhostExterns_panic_handle_error mmpl gh W)
+        (pqxdhAccept_opt_fields_exactSat_over X mmpl gh W hG hh)
         (CryptoVerification.Cli.E2E.V1.initialStateMemInvPlacedOk_mono
           (fun _ h => ⟨LibsignalCodeLoaded.of_codeLoaded h.2, h.1⟩) hinit)
         s0 inp ikBPk spkBPk argPtr pqskPtr ctSlicePtr ctBufPtr ratchetKeyPairPtr outPtr drKey Frame
@@ -1470,16 +1500,8 @@ theorem stageP2PathCOver_qpan_cli_full_placed_of_seams [LibsignalFullPlacement]
         (cliModelPrims_structural X W)
         (cliStageP2ClosureHooksPlaced_over mmpl gh W hh)
         (cliStageP2BaseCalleesPlaced4K_over mmpl gh W hh)
-        (initBobErrOwned_4k_exactSat_over
-          (cliModelPrims_structural X W) (cliModelPrims_matchCrypto X W)
-          (cliResponderPqxdhHookContractsPlaced X mmpl gh W hG hh)
-          hh.codecHooks.memcpy)
-        (initBobOkV1_4k_exactSat_over
-          (cliModelPrims_structural X W) (cliModelPrims_matchCrypto X W)
-          (cliResponderPqxdhHookContractsPlaced X mmpl gh W hG hh)
-          hh.codecHooks.memcpy
-          (hookSat_sessionMemcpyRegion_of_codec hh.codecHooks.memcpy)
-          hSpqr.initialStateMemInv_lsProg75)
+        (initBobErrOwned_4k_exactSat_over X mmpl gh W hG hh)
+        (initBobOkV1_4k_exactSat_over X mmpl gh W hG hh hSpqr.initialStateMemInv_lsProg75)
         (cliPollIdKitPlaced E2E.HooksE.A0 F0 peer (cliKitStk B))
         (cliPollSelfKitPlaced E2E.HooksE.A0 F0 peer (cliKitStk B))
         (cliPollSelf_vtablesPlacedOk F0 peer (cliKitStk B) hDropNz)

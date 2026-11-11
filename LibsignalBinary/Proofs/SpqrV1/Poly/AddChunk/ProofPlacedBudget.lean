@@ -9,6 +9,7 @@ limitations under the License.
 
 module
 
+public import LibsignalBinary.Proofs.HookDischarge.Libc.Memmove -- proof-setup: allow-public-import
 public import LibsignalBinary.Proofs.SpqrV1.Poly.AddChunk.ProofPlacedBudgetAux
 import LibsignalBinary.Proofs.SpqrV1.Poly.EncoderIntoPb.Defs
 import ProofLib.SepLogic.WPp
@@ -35,7 +36,7 @@ open scoped CryptoVerification.CodeLayout
 open scoped CryptoVerification.SpqrV1.Poly.AddChunk.AddChunkNorm
 open CryptoVerification (LibsignalPlacement blkPC_419 blkPl_419 lsmpl)
 open CryptoVerification.LibsignalSpqrV1 (Chunk GF16 NUM_POLYS PolyDecoder Pt SortedSetPt)
-open CryptoVerification.LibsignalTripleRatchet (sessionMemmoveSpec)
+open LibsignalBinary.Proofs.HookDischarge.Libc.Memmove (sessionMemmoveBoundedSpec)
 open CryptoVerification.SpqrV1.Alloc (growOneStack spqrMemmoveSym)
 open CryptoVerification.SpqrV1.Poly (
   boolByte chunkAt chunkIndexOff polyDecoderAt polyDecoderIsCompleteOff
@@ -127,7 +128,7 @@ theorem addChunk_body_placed_wpp [LibsignalPlacement]
     {M : AllocCostModel} {A : RustCliAllocBudget M} {lim : BudgetLimits}
     {ext : String → Option (State → State)}
     (hmemmove_sat : HookSat (Rust.withPanics ext) spqrMemmoveSym
-      (withAllocVmPreserved (sessionMemmoveSpec growOneStack)))
+      (withAllocVmPreserved (sessionMemmoveBoundedSpec growOneStack)))
     (hgrow_full : subroutine_ok ((blkPC_419).rebase (blkPl_419).base (Rust.withPanics ext))
       (lsmpl.base 357) (withAllocCallPreserved (growOnePtFullSpec M A lim)))
     (hgrow_empty : subroutine_ok ((blkPC_419).rebase (blkPl_419).base (Rust.withPanics ext))
@@ -310,7 +311,7 @@ theorem addChunk_loop_placed_wpp [LibsignalPlacement]
     {M : AllocCostModel} {A : RustCliAllocBudget M} {lim : BudgetLimits}
     {ext : String → Option (State → State)}
     (hmemmove_sat : HookSat (Rust.withPanics ext) spqrMemmoveSym
-      (withAllocVmPreserved (sessionMemmoveSpec growOneStack)))
+      (withAllocVmPreserved (sessionMemmoveBoundedSpec growOneStack)))
     (hgrow_full : subroutine_ok ((blkPC_419).rebase (blkPl_419).base (Rust.withPanics ext))
       (lsmpl.base 357) (withAllocCallPreserved (growOnePtFullSpec M A lim)))
     (hgrow_empty : subroutine_ok ((blkPC_419).rebase (blkPl_419).base (Rust.withPanics ext))
@@ -542,7 +543,7 @@ theorem add_chunk_bsearch_placed_ok_ext [LibsignalPlacement]
     {M : AllocCostModel} {A : RustCliAllocBudget M} {lim : BudgetLimits}
     {ext : String → Option (State → State)}
     (hmemmove_sat : HookSat (Rust.withPanics ext) spqrMemmoveSym
-      (withAllocVmPreserved (sessionMemmoveSpec growOneStack)))
+      (withAllocVmPreserved (sessionMemmoveBoundedSpec growOneStack)))
     (hgrow_full : subroutine_ok ((blkPC_419).rebase (blkPl_419).base (Rust.withPanics ext))
       (lsmpl.base 357) (withAllocCallPreserved (growOnePtFullSpec M A lim)))
     (hgrow_empty : subroutine_ok ((blkPC_419).rebase (blkPl_419).base (Rust.withPanics ext))
@@ -598,7 +599,7 @@ theorem add_chunk_placed_ok_ext [LibsignalPlacement]
     {M : AllocCostModel} {A : RustCliAllocBudget M} {lim : BudgetLimits}
     {ext : String → Option (State → State)}
     (hmemmove_sat : HookSat (Rust.withPanics ext) spqrMemmoveSym
-      (withAllocVmPreserved (sessionMemmoveSpec growOneStack)))
+      (withAllocVmPreserved (sessionMemmoveBoundedSpec growOneStack)))
     (hgrow_full : subroutine_ok ((blkPC_419).rebase (blkPl_419).base (Rust.withPanics ext))
       (lsmpl.base 357) (withAllocCallPreserved (growOnePtFullSpec M A lim)))
     (hgrow_empty : subroutine_ok ((blkPC_419).rebase (blkPl_419).base (Rust.withPanics ext))
@@ -662,7 +663,7 @@ theorem add_chunk_placed_ok_x [LibsignalPlacement]
     {M : AllocCostModel} {A : RustCliAllocBudget M} {lim : BudgetLimits}
     {ext : String → Option (State → State)}
     (hmemmove_sat : HookSat (Rust.withPanics ext) spqrMemmoveSym
-      (withAllocVmPreserved (sessionMemmoveSpec growOneStack)))
+      (withAllocVmPreserved (sessionMemmoveBoundedSpec growOneStack)))
     (hgrow_full : subroutine_ok ((blkPC_419).rebase (blkPl_419).base (Rust.withPanics ext))
       (lsmpl.base 357) (withAllocCallPreserved (growOnePtFullSpec M A lim)))
     (hgrow_empty : subroutine_ok ((blkPC_419).rebase (blkPl_419).base (Rust.withPanics ext))

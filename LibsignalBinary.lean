@@ -634,6 +634,7 @@ import LibsignalBinary.Proofs.SpecLemmas.SignalSession.ElfFrozen
 import LibsignalBinary.Proofs.SpecLemmas.SignalSession.Hole3PksmAux
 import LibsignalBinary.Proofs.SpecLemmas.SignalSession.Hole3W1InnerTight
 import LibsignalBinary.Proofs.SpecLemmas.SignalSession.Hole3W1InnerTightGlue
+import LibsignalBinary.Proofs.SpecLemmas.SignalSession.Hole3W3VerifySigBbSat
 import LibsignalBinary.Proofs.SpecLemmas.SignalSession.Hole3W4DecPkArmAB
 import LibsignalBinary.Proofs.SpecLemmas.SignalSession.Hole3W4DecPkArmC
 import LibsignalBinary.Proofs.SpecLemmas.SignalSession.Hole3W4DecPkArmUP

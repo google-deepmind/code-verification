@@ -5,19 +5,20 @@ schema_version = 1
 alink_rule_version = "v0.3.2"
 atomics_mode = "alpha"
 recipe = "engine"
-config_count = 2
+config_count = 3
 configs = [
   "third_party/libsignal/libsignal-session/translation.toml",
   "third_party/libsignal/libsignal-session/cli/io/translation.toml",
+  "third_party/libsignal/libsignal-session/cli/rt/translation.toml",
 ]
 engine_commit = "c2ef2f44e5988bf39d73cbf7fb5c784417818bd3"
-engine_stock_link_json_sha256 = "0a4e7ecf49ebd86f014121a7a995a0d7671bfbf81e2f6b757dfa7b2d63bb91db"
+engine_stock_link_json_sha256 = "70f8d7be7c7033ad468f4d12c45f7b08e4df0c6d142146732ad8b7ec3ecda9b4"
 rustc_version = "1.98.1"
 zig_version = "0.16.0"
 lld_version = "LLD 22.1.8 (/checkout/src/llvm-project/llvm 52ed14fcd56afc30f9cccd8ca8ce237c2eef7e04) (compatible with GNU linkers)"
 lld_version_prefix = "LLD 22.1.8"
-elf_sha256 = "2f20c836342437a882b5882c34eab604e4f23b2b388c2b2a0696eeda51cddc7e"
-elf_size = 617448
+elf_sha256 = "50066cbd732256eb5f19f93d1d98800914336b7926225de3ebfa0bb37eca98ce"
+elf_size = 619032
 x_count = 149
 x_sha256 = "d694832a2ecc03001f0f845ffd04515dcd76af2a1bb2abc2d79423b09b4c15ad"
 hooked_externs_count = 144
@@ -29,8 +30,9 @@ x_minus_hooked_externs = [
   "read",
   "write",
 ]
-real_hook_reached = ["memcmp", "write"]
+real_hook_reached = ["write"]
 real_proved = [
+  "_RINvCsdqpLrhraQXi_6subtle9black_boxhECs2wR8L9wiBdT_16curve25519_dalek",
   "_RNvCs1njKG4L9aB3_7___rustc12___rust_alloc",
   "_RNvCs1njKG4L9aB3_7___rustc14___rust_dealloc",
   "_RNvCs1njKG4L9aB3_7___rustc14___rust_realloc",
@@ -38,12 +40,22 @@ real_proved = [
   "_RNvCs1njKG4L9aB3_7___rustc35___rust_no_alloc_shim_is_unstable_v2",
   "_RNvCs9Xul1Kjr0QF_16libsignal_cli_io10read_stdin",
   "_RNvCs9Xul1Kjr0QF_16libsignal_cli_io9read_file",
+  "_RNvMs5_NtCsfr5T3GFabw_3std4timeNtB5_10SystemTime14duration_since",
+  "_RNvNtNtCskxtBwYRO61I_4core3str8converts9from_utf8",
+  "_RNvNtNtCskxtBwYRO61I_4core5slice6memchr7memrchr",
+  "_RNvXs6_NtCsfr5T3GFabw_3std4timeNtB5_10SystemTimeINtNtNtCskxtBwYRO61I_4core3ops5arith3AddNtNtBR_4time8DurationE3add",
+  "_RNvXsa_NtCscSWoUTnaXmu_12x25519_dalek6x25519NtB5_12StaticSecretNtNtNtCskxtBwYRO61I_4core3ops4drop4Drop4drop",
+  "_RNvXse_NtCscSWoUTnaXmu_12x25519_dalek6x25519NtB5_12SharedSecretNtNtNtCskxtBwYRO61I_4core3ops4drop4Drop4drop",
   "__errno_location",
+  "bcmp",
   "close",
+  "memcmp",
   "memcpy",
+  "memmove",
   "memset",
   "open",
   "read",
+  "strlen",
 ]
 failstop_z = [
   "_RINvNtCskxtBwYRO61I_4core9panicking13assert_failedjjEB4_",
@@ -148,11 +160,12 @@ lld_argv = [
   "--build-id=none",
   "--strip-debug",
   "-T",
-  "third_party/libsignal/libsignal-session/cli-elf/stock.ld",
+  "third_party/libsignal/libsignal-session/cli-elf/stock/stock_c2.ld",
   "--no-relax",
   "--undefined=session_message_encrypt",
   "--undefined=session_message_decrypt_signal",
   "--undefined=session_signal_message_parse",
+  "--undefined=_RINvCsdqpLrhraQXi_6subtle9black_boxhECs2wR8L9wiBdT_16curve25519_dalek",
   "--undefined=_RNvMs4_NtCs69KKACWg7bl_5alloc7raw_vecINtB5_6RawVecINtNtB7_3vec3VechEE8grow_oneCsfr5T3GFabw_3std",
   "--undefined=_RNvMs4_NtCs69KKACWg7bl_5alloc7raw_vecINtB5_6RawVecINtNtNtCslhx8g8CthFc_5gimli4read4unit14AttributeValueINtNtBR_12endian_slice11EndianSliceNtNtBT_9endianity12LittleEndianEjEE8grow_oneCsfr5T3GFabw_3std",
   "--undefined=_RNvMs4_NtCs69KKACWg7bl_5alloc7raw_vecINtB5_6RawVecNtNtB7_6string6StringE8grow_oneCsfr5T3GFabw_3std",
@@ -160,7 +173,14 @@ lld_argv = [
   "--undefined=_RNvMs4_NtCs69KKACWg7bl_5alloc7raw_vecINtB5_6RawVecNtNtCs9xXbyXU8IDi_9addr2line8function15FunctionAddressE8grow_oneCsfr5T3GFabw_3std",
   "--undefined=_RNvMs4_NtCs69KKACWg7bl_5alloc7raw_vecINtB5_6RawVecNtNtNtCsfr5T3GFabw_3std3ffi6os_str8OsStringE8grow_oneBS_",
   "--undefined=_RNvMs4_NtCs69KKACWg7bl_5alloc7raw_vecINtB5_6RawVechE8grow_oneB7_",
+  "--undefined=_RNvMs5_NtCsfr5T3GFabw_3std4timeNtB5_10SystemTime14duration_since",
+  "--undefined=_RNvNtNtCskxtBwYRO61I_4core3str8converts9from_utf8",
+  "--undefined=_RNvNtNtCskxtBwYRO61I_4core5slice6memchr7memrchr",
+  "--undefined=_RNvXs4_NtCs2wR8L9wiBdT_16curve25519_dalek10montgomeryNtB5_15MontgomeryPointNtCsjhEzohgaBbG_7zeroize7Zeroize7zeroize",
   "--undefined=_RNvXs4_NtCs69KKACWg7bl_5alloc6stringNtB5_6StringNtNtCskxtBwYRO61I_4core5clone5Clone5clone",
+  "--undefined=_RNvXs6_NtCsfr5T3GFabw_3std4timeNtB5_10SystemTimeINtNtNtCskxtBwYRO61I_4core3ops5arith3AddNtNtBR_4time8DurationE3add",
+  "--undefined=_RNvXsa_NtCscSWoUTnaXmu_12x25519_dalek6x25519NtB5_12StaticSecretNtNtNtCskxtBwYRO61I_4core3ops4drop4Drop4drop",
+  "--undefined=_RNvXse_NtCscSWoUTnaXmu_12x25519_dalek6x25519NtB5_12SharedSecretNtNtNtCskxtBwYRO61I_4core3ops4drop4Drop4drop",
   "--print-gc-sections",
   "--why-extract=why-extract.tsv",
   "-Map=link.map",
@@ -335,6 +355,12 @@ lld_argv = [
   "work/lib0_11.o",
   "work/lib0_12.o",
   "work/lib1_0.o",
+  "work/lib2_0.o",
+  "work/lib2_1.o",
+  "work/lib2_2.o",
+  "work/lib2_3.o",
+  "work/lib2_4.o",
+  "work/lib2_5.o",
   "--start-group",
   "work/main_rust.o",
   "work/self-contained/libc.a",
@@ -344,6 +370,77 @@ lld_argv = [
   "work/self-contained/crtend.o",
   "work/self-contained/crtn.o",
 ]
+cli_hook_table_placed = [
+  "_RNvCs65XVORQObL2_12libcrux_hmac4hmac",
+  "_RNvCs9Xul1Kjr0QF_16libsignal_cli_io10write_file",
+  "_RNvCs9Xul1Kjr0QF_16libsignal_cli_io12write_stdout",
+  "_RNvMNtCs2wR8L9wiBdT_16curve25519_dalek6scalarNtB2_6Scalar20from_bytes_mod_order",
+  "_RNvMNtCs2wR8L9wiBdT_16curve25519_dalek6scalarNtB2_6Scalar25from_bytes_mod_order_wide",
+  "_RNvMs0_NtNtCs1mK0QScfTrZ_14libcrux_ml_kem8mlkem76811incrementalNtB5_22KeyPairCompressedBytes3pk1",
+  "_RNvMs0_NtNtCs1mK0QScfTrZ_14libcrux_ml_kem8mlkem76811incrementalNtB5_22KeyPairCompressedBytes3pk2",
+  "_RNvMs0_NtNtCs1mK0QScfTrZ_14libcrux_ml_kem8mlkem76811incrementalNtB5_22KeyPairCompressedBytes9from_seed",
+  "_RNvMs5_NtCs2wR8L9wiBdT_16curve25519_dalek10montgomeryNtB5_15MontgomeryPoint10to_edwards",
+  "_RNvMs6_NtCscSWoUTnaXmu_12x25519_dalek6x25519NtB5_12StaticSecret14diffie_hellman",
+  "_RNvMsg_NtCs2wR8L9wiBdT_16curve25519_dalek7edwardsNtB5_12EdwardsPoint8compress",
+  "_RNvMsw_NtCs2wR8L9wiBdT_16curve25519_dalek7edwardsNtB5_12EdwardsPoint35vartime_double_scalar_mul_basepoint",
+  "_RNvMsx_NtCs2wR8L9wiBdT_16curve25519_dalek7edwardsNtB5_12EdwardsPoint15is_torsion_free",
+  "_RNvNtCsbKnPy0UR4Ui_13signal_crypto7aes_cbc19aes_256_cbc_decrypt",
+  "_RNvNtCsbKnPy0UR4Ui_13signal_crypto7aes_cbc19aes_256_cbc_encrypt",
+  "_RNvNtCsbvWyylYiyxg_4sha26sha25611compress256",
+  "_RNvNtCsbvWyylYiyxg_4sha26sha51211compress512",
+  "_RNvNtCskxtBwYRO61I_4core3fmt5write",
+  "_RNvNtNtCs1mK0QScfTrZ_14libcrux_ml_kem8mlkem76811incremental12encapsulate1",
+  "_RNvNtNtCs1mK0QScfTrZ_14libcrux_ml_kem8mlkem76811incremental12encapsulate2",
+  "_RNvNtNtCs1mK0QScfTrZ_14libcrux_ml_kem8mlkem76811incremental17validate_pk_bytes",
+  "_RNvNtNtCs1mK0QScfTrZ_14libcrux_ml_kem8mlkem76811incremental26decapsulate_compressed_key",
+  "_RNvNtNtCs1mK0QScfTrZ_14libcrux_ml_kem9mlkem10245kyber11decapsulate",
+  "_RNvNtNtCs1mK0QScfTrZ_14libcrux_ml_kem9mlkem10245kyber11encapsulate",
+  "_RNvNvNtCs69KKACWg7bl_5alloc3fmt6format12format_inner",
+  "_RNvXs8_NtCscSWoUTnaXmu_12x25519_dalek6x25519NtB5_9PublicKeyINtNtCskxtBwYRO61I_4core7convert4FromRNtB5_12StaticSecretE4from",
+  "_RNvXso_NtCs2wR8L9wiBdT_16curve25519_dalek7edwardsNtB5_12EdwardsPointNtNtNtCskxtBwYRO61I_4core3ops5arith3Neg3neg",
+]
+cli_dehooked_syms_placed = [
+  "_RINvCsdqpLrhraQXi_6subtle9black_boxhECs2wR8L9wiBdT_16curve25519_dalek",
+  "_RNvCs1njKG4L9aB3_7___rustc12___rust_alloc",
+  "_RNvCs1njKG4L9aB3_7___rustc14___rust_dealloc",
+  "_RNvCs1njKG4L9aB3_7___rustc14___rust_realloc",
+  "_RNvCs1njKG4L9aB3_7___rustc19___rust_alloc_zeroed",
+  "_RNvCs1njKG4L9aB3_7___rustc35___rust_no_alloc_shim_is_unstable_v2",
+  "_RNvCs9Xul1Kjr0QF_16libsignal_cli_io10read_stdin",
+  "_RNvCs9Xul1Kjr0QF_16libsignal_cli_io9read_file",
+  "_RNvMs5_NtCsfr5T3GFabw_3std4timeNtB5_10SystemTime14duration_since",
+  "_RNvNtNtCskxtBwYRO61I_4core3str8converts9from_utf8",
+  "_RNvNtNtCskxtBwYRO61I_4core5slice6memchr7memrchr",
+  "_RNvXs6_NtCsfr5T3GFabw_3std4timeNtB5_10SystemTimeINtNtNtCskxtBwYRO61I_4core3ops5arith3AddNtNtBR_4time8DurationE3add",
+  "_RNvXsa_NtCscSWoUTnaXmu_12x25519_dalek6x25519NtB5_12StaticSecretNtNtNtCskxtBwYRO61I_4core3ops4drop4Drop4drop",
+  "_RNvXse_NtCscSWoUTnaXmu_12x25519_dalek6x25519NtB5_12SharedSecretNtNtNtCskxtBwYRO61I_4core3ops4drop4Drop4drop",
+  "bcmp",
+  "memcpy",
+  "memmove",
+  "memset",
+  "strlen",
+]
+cli_panic_symbols_placed = [
+  "_RINvNtCskxtBwYRO61I_4core9panicking13assert_failedjjEB4_",
+  "_RINvNtCskxtBwYRO61I_4core9panicking13assert_failedyyEB4_",
+  "_RNvNtCs69KKACWg7bl_5alloc5alloc18handle_alloc_error",
+  "_RNvNtCs69KKACWg7bl_5alloc7raw_vec12handle_error",
+  "_RNvNtCskxtBwYRO61I_4core6option13expect_failed",
+  "_RNvNtCskxtBwYRO61I_4core6option13unwrap_failed",
+  "_RNvNtCskxtBwYRO61I_4core6result13unwrap_failed",
+  "_RNvNtCskxtBwYRO61I_4core9panicking18panic_bounds_check",
+  "_RNvNtCskxtBwYRO61I_4core9panicking19assert_failed_inner",
+  "_RNvNtCskxtBwYRO61I_4core9panicking5panic",
+  "_RNvNtCskxtBwYRO61I_4core9panicking9panic_fmt",
+  "_RNvNtNtCskxtBwYRO61I_4core5slice5index16slice_index_fail",
+  "_RNvNtNtCskxtBwYRO61I_4core9panicking11panic_const24panic_const_add_overflow",
+  "_RNvNtNtCskxtBwYRO61I_4core9panicking11panic_const24panic_const_mul_overflow",
+  "_RNvNtNtCskxtBwYRO61I_4core9panicking11panic_const24panic_const_shl_overflow",
+  "_RNvNtNtCskxtBwYRO61I_4core9panicking11panic_const24panic_const_sub_overflow",
+  "_RNvNtNtCskxtBwYRO61I_4core9panicking11panic_const28panic_const_async_fn_resumed",
+  "_RNvNvMs_NtCs69KKACWg7bl_5alloc3vecINtB6_3VecppE6remove13assert_failed",
+]
+cli_binary_pq_sha256 = "535dd455c6e406ba2663ff4cff7aa35caf81fa03645a153f1573bda2ca50607f"
 
 [[sysroot_trims]]
 image_idx = 0
@@ -383,13 +480,292 @@ kept_sections = [
   ".text._RNvXs4_NtCs69KKACWg7bl_5alloc6stringNtB5_6StringNtNtCskxtBwYRO61I_4core5clone5Clone5clone",
 ]
 
+[[sysroot_trims]]
+image_idx = 2
+object = "lib2_0.o"
+object_sha256 = "549db8da24af44680ab4c67e017b11ca8a3fbe9cb3e8a9470ef99b0bb74e5c60"
+rlib = "libcore-276de952897abe1c.rlib"
+member = "core-276de952897abe1c.core.ef3dda841aee4344-cgu.0.rcgu.o"
+member_sha256 = "26d3f8992398f28a5e6d2d5e44807b07dd4f841b8de025da1066bf8501de1de1"
+keep_set_sha256 = "47e6772e48ee2c95d8e03827c1162a6758020e781f56c2bafa6a47e09366086f"
+kept_sections = [
+  ".data.rel.ro..Lanon.8d92bed9e8e7b068fae37f7046779d90.216",
+  ".data.rel.ro..Lanon.8d92bed9e8e7b068fae37f7046779d90.217",
+  ".rodata.str1.1",
+  ".text._RNvNtNtCskxtBwYRO61I_4core5slice6memchr7memrchr",
+]
+
+[[sysroot_trims]]
+image_idx = 2
+object = "lib2_1.o"
+object_sha256 = "af8ac10dcb7951e00d44feb9f267bdd2f68283a7baad9c559ac9f2a788eb6007"
+rlib = "libcore-276de952897abe1c.rlib"
+member = "core-276de952897abe1c.core.ef3dda841aee4344-cgu.0.rcgu.o"
+member_sha256 = "26d3f8992398f28a5e6d2d5e44807b07dd4f841b8de025da1066bf8501de1de1"
+keep_set_sha256 = "4f70bf549022d6f1ccdfbdd13609ffe69d044652c0ee2174355d5d91f5fecdba"
+kept_sections = [
+  ".rodata..Lanon.8d92bed9e8e7b068fae37f7046779d90.208",
+  ".text._RNvNtNtCskxtBwYRO61I_4core3str8converts9from_utf8",
+]
+
+[[sysroot_trims]]
+image_idx = 2
+object = "lib2_2.o"
+object_sha256 = "6ec1dfbc758c040efef465c5644d77702d2e5798068f08b76ae59c4e9ec4a6dd"
+rlib = "libstd-96c9fe7a07d47cf2.rlib"
+member = "std-96c9fe7a07d47cf2.std.2e66b1facfa492c-cgu.0.rcgu.o"
+member_sha256 = "d5f890bc180a13054d49f8dfd74afb16a1bd997c3eeea009ceda7234cd2b197b"
+keep_set_sha256 = "c8e5ac358b17c0df1edf3ba4aafc0ae3832cad6aacba7a9229c04f2de53b216a"
+kept_sections = [
+  ".data.rel.ro..Lanon.5394cca77e622eba6ee760626b780c72.153",
+  ".rodata..Lanon.5394cca77e622eba6ee760626b780c72.151",
+  ".rodata.cst16",
+  ".rodata.str1.1",
+  ".text._RNvMNtNtNtNtCsfr5T3GFabw_3std3sys3pal4unix4timeNtB2_8Timespec12sub_timespec",
+  ".text._RNvMs5_NtCsfr5T3GFabw_3std4timeNtB5_10SystemTime14duration_since",
+]
+
+[[sysroot_trims]]
+image_idx = 2
+object = "lib2_3.o"
+object_sha256 = "9c0f86c4e6b34ebdc5300a2ffa4c1c4bc49ad34e24af5089e7e6f6d1a3cf2618"
+rlib = "libcurve25519_dalek-c7366f106db98a9c.rlib"
+member = "curve25519_dalek-c7366f106db98a9c.curve25519_dalek.1d77ca7acaab0e03-cgu.0.rcgu.o"
+member_sha256 = "248cc2de4366da1f4a0818f40827cd0ae7ad44bb2c1ddea434634f512412bf47"
+keep_set_sha256 = "ac143d390720379e5d1121de7534b7a1707ac6b0fa4f2934d05f640075241de1"
+kept_sections = [
+  ".text._RINvCsdqpLrhraQXi_6subtle9black_boxhECs2wR8L9wiBdT_16curve25519_dalek",
+  ".text._RNvXs4_NtCs2wR8L9wiBdT_16curve25519_dalek10montgomeryNtB5_15MontgomeryPointNtCsjhEzohgaBbG_7zeroize7Zeroize7zeroize",
+]
+
+[[sysroot_trims]]
+image_idx = 2
+object = "lib2_4.o"
+object_sha256 = "a747bf4693bbe877a750af8fbebab53d5e0d54cb6a587947a50c95e7fef6f2ed"
+rlib = "libx25519_dalek-93ab6b057b4c9272.rlib"
+member = "x25519_dalek-93ab6b057b4c9272.x25519_dalek.9617d460537667a0-cgu.0.rcgu.o"
+member_sha256 = "7a7959f5774fdafe9243f21cf3a0b58d36dfc4ff299a938832cc938587bd01da"
+keep_set_sha256 = "fad343352e997fc33d9b6bfe0f11cf29ea8e2b73c939da2c3f29997b97e0dc09"
+kept_sections = [
+  ".text._RNvXs1_NtCscSWoUTnaXmu_12x25519_dalek6x25519NtB5_9PublicKeyNtCsjhEzohgaBbG_7zeroize7Zeroize7zeroize",
+  ".text._RNvXs4_NtCscSWoUTnaXmu_12x25519_dalek6x25519NtB5_15EphemeralSecretNtNtNtCskxtBwYRO61I_4core3ops4drop4Drop4drop",
+]
+
+[[sysroot_trims]]
+image_idx = 2
+object = "lib2_5.o"
+object_sha256 = "474d59404916bffb58bb4ee5952b9f6cbc422e6922974ad95d79c713a84812ad"
+rlib = "libstd-96c9fe7a07d47cf2.rlib"
+member = "std-96c9fe7a07d47cf2.std.2e66b1facfa492c-cgu.0.rcgu.o"
+member_sha256 = "d5f890bc180a13054d49f8dfd74afb16a1bd997c3eeea009ceda7234cd2b197b"
+keep_set_sha256 = "eb6e662997594080c4a5b72c3d839f66c0dd957038c614a3edc5e7c8b7063ee9"
+kept_sections = [
+  ".rodata..Lanon.5394cca77e622eba6ee760626b780c72.687",
+  ".text._RNvXs6_NtCsfr5T3GFabw_3std4timeNtB5_10SystemTimeINtNtNtCskxtBwYRO61I_4core3ops5arith3AddNtNtBR_4time8DurationE3add",
+]
+
+[[lib2_objects]]
+name = "lib2_0.o"
+path = "work/lib2_0.o"
+sha256 = "549db8da24af44680ab4c67e017b11ca8a3fbe9cb3e8a9470ef99b0bb74e5c60"
+size = 5320
+config_index = 2
+defined_symbols = [
+  "_RNvNtNtCskxtBwYRO61I_4core5slice6memchr7memrchr",
+]
+rlib = "libcore-276de952897abe1c.rlib"
+rlib_sha256 = ""
+member = "core-276de952897abe1c.core.ef3dda841aee4344-cgu.0.rcgu.o"
+member_sha256 = "26d3f8992398f28a5e6d2d5e44807b07dd4f841b8de025da1066bf8501de1de1"
+keep_set_sha256 = "47e6772e48ee2c95d8e03827c1162a6758020e781f56c2bafa6a47e09366086f"
+kept_sections = [
+  ".data.rel.ro..Lanon.8d92bed9e8e7b068fae37f7046779d90.216",
+  ".data.rel.ro..Lanon.8d92bed9e8e7b068fae37f7046779d90.217",
+  ".rodata.str1.1",
+  ".text._RNvNtNtCskxtBwYRO61I_4core5slice6memchr7memrchr",
+]
+roots = [
+  "_RNvNtNtCskxtBwYRO61I_4core5slice6memchr7memrchr",
+]
+
+[[lib2_objects]]
+name = "lib2_1.o"
+path = "work/lib2_1.o"
+sha256 = "af8ac10dcb7951e00d44feb9f267bdd2f68283a7baad9c559ac9f2a788eb6007"
+size = 1784
+config_index = 2
+defined_symbols = [
+  "_RNvNtNtCskxtBwYRO61I_4core3str8converts9from_utf8",
+]
+rlib = "libcore-276de952897abe1c.rlib"
+rlib_sha256 = ""
+member = "core-276de952897abe1c.core.ef3dda841aee4344-cgu.0.rcgu.o"
+member_sha256 = "26d3f8992398f28a5e6d2d5e44807b07dd4f841b8de025da1066bf8501de1de1"
+keep_set_sha256 = "4f70bf549022d6f1ccdfbdd13609ffe69d044652c0ee2174355d5d91f5fecdba"
+kept_sections = [
+  ".rodata..Lanon.8d92bed9e8e7b068fae37f7046779d90.208",
+  ".text._RNvNtNtCskxtBwYRO61I_4core3str8converts9from_utf8",
+]
+roots = [
+  "_RNvNtNtCskxtBwYRO61I_4core3str8converts9from_utf8",
+]
+
+[[lib2_objects]]
+name = "lib2_2.o"
+path = "work/lib2_2.o"
+sha256 = "6ec1dfbc758c040efef465c5644d77702d2e5798068f08b76ae59c4e9ec4a6dd"
+size = 9584
+config_index = 2
+defined_symbols = [
+  "_RNvMs5_NtCsfr5T3GFabw_3std4timeNtB5_10SystemTime14duration_since",
+]
+rlib = "libstd-96c9fe7a07d47cf2.rlib"
+rlib_sha256 = ""
+member = "std-96c9fe7a07d47cf2.std.2e66b1facfa492c-cgu.0.rcgu.o"
+member_sha256 = "d5f890bc180a13054d49f8dfd74afb16a1bd997c3eeea009ceda7234cd2b197b"
+keep_set_sha256 = "c8e5ac358b17c0df1edf3ba4aafc0ae3832cad6aacba7a9229c04f2de53b216a"
+kept_sections = [
+  ".data.rel.ro..Lanon.5394cca77e622eba6ee760626b780c72.153",
+  ".rodata..Lanon.5394cca77e622eba6ee760626b780c72.151",
+  ".rodata.cst16",
+  ".rodata.str1.1",
+  ".text._RNvMNtNtNtNtCsfr5T3GFabw_3std3sys3pal4unix4timeNtB2_8Timespec12sub_timespec",
+  ".text._RNvMs5_NtCsfr5T3GFabw_3std4timeNtB5_10SystemTime14duration_since",
+]
+roots = [
+  "_RNvMs5_NtCsfr5T3GFabw_3std4timeNtB5_10SystemTime14duration_since",
+]
+
+[[lib2_objects]]
+name = "lib2_3.o"
+path = "work/lib2_3.o"
+sha256 = "9c0f86c4e6b34ebdc5300a2ffa4c1c4bc49ad34e24af5089e7e6f6d1a3cf2618"
+size = 1576
+config_index = 2
+defined_symbols = [
+  "_RINvCsdqpLrhraQXi_6subtle9black_boxhECs2wR8L9wiBdT_16curve25519_dalek",
+  "_RNvXs4_NtCs2wR8L9wiBdT_16curve25519_dalek10montgomeryNtB5_15MontgomeryPointNtCsjhEzohgaBbG_7zeroize7Zeroize7zeroize",
+  "_RNvXsl_NtCs2wR8L9wiBdT_16curve25519_dalek6scalarNtB5_6ScalarNtCsjhEzohgaBbG_7zeroize7Zeroize7zeroize",
+  "_RNvXsw_NtCs2wR8L9wiBdT_16curve25519_dalek9ristrettoNtB5_19CompressedRistrettoNtCsjhEzohgaBbG_7zeroize7Zeroize7zeroize",
+]
+rlib = "libcurve25519_dalek-c7366f106db98a9c.rlib"
+rlib_sha256 = ""
+member = "curve25519_dalek-c7366f106db98a9c.curve25519_dalek.1d77ca7acaab0e03-cgu.0.rcgu.o"
+member_sha256 = "248cc2de4366da1f4a0818f40827cd0ae7ad44bb2c1ddea434634f512412bf47"
+keep_set_sha256 = "ac143d390720379e5d1121de7534b7a1707ac6b0fa4f2934d05f640075241de1"
+kept_sections = [
+  ".text._RINvCsdqpLrhraQXi_6subtle9black_boxhECs2wR8L9wiBdT_16curve25519_dalek",
+  ".text._RNvXs4_NtCs2wR8L9wiBdT_16curve25519_dalek10montgomeryNtB5_15MontgomeryPointNtCsjhEzohgaBbG_7zeroize7Zeroize7zeroize",
+]
+roots = [
+  "_RINvCsdqpLrhraQXi_6subtle9black_boxhECs2wR8L9wiBdT_16curve25519_dalek",
+  "_RNvXs4_NtCs2wR8L9wiBdT_16curve25519_dalek10montgomeryNtB5_15MontgomeryPointNtCsjhEzohgaBbG_7zeroize7Zeroize7zeroize",
+]
+
+[[lib2_objects]]
+name = "lib2_4.o"
+path = "work/lib2_4.o"
+sha256 = "a747bf4693bbe877a750af8fbebab53d5e0d54cb6a587947a50c95e7fef6f2ed"
+size = 1848
+config_index = 2
+defined_symbols = [
+  "_RNvXs1_NtCscSWoUTnaXmu_12x25519_dalek6x25519NtB5_9PublicKeyNtCsjhEzohgaBbG_7zeroize7Zeroize7zeroize",
+  "_RNvXs4_NtCscSWoUTnaXmu_12x25519_dalek6x25519NtB5_15EphemeralSecretNtNtNtCskxtBwYRO61I_4core3ops4drop4Drop4drop",
+  "_RNvXsa_NtCscSWoUTnaXmu_12x25519_dalek6x25519NtB5_12StaticSecretNtNtNtCskxtBwYRO61I_4core3ops4drop4Drop4drop",
+  "_RNvXse_NtCscSWoUTnaXmu_12x25519_dalek6x25519NtB5_12SharedSecretNtNtNtCskxtBwYRO61I_4core3ops4drop4Drop4drop",
+]
+rlib = "libx25519_dalek-93ab6b057b4c9272.rlib"
+rlib_sha256 = ""
+member = "x25519_dalek-93ab6b057b4c9272.x25519_dalek.9617d460537667a0-cgu.0.rcgu.o"
+member_sha256 = "7a7959f5774fdafe9243f21cf3a0b58d36dfc4ff299a938832cc938587bd01da"
+keep_set_sha256 = "fad343352e997fc33d9b6bfe0f11cf29ea8e2b73c939da2c3f29997b97e0dc09"
+kept_sections = [
+  ".text._RNvXs1_NtCscSWoUTnaXmu_12x25519_dalek6x25519NtB5_9PublicKeyNtCsjhEzohgaBbG_7zeroize7Zeroize7zeroize",
+  ".text._RNvXs4_NtCscSWoUTnaXmu_12x25519_dalek6x25519NtB5_15EphemeralSecretNtNtNtCskxtBwYRO61I_4core3ops4drop4Drop4drop",
+]
+roots = [
+  "_RNvXsa_NtCscSWoUTnaXmu_12x25519_dalek6x25519NtB5_12StaticSecretNtNtNtCskxtBwYRO61I_4core3ops4drop4Drop4drop",
+  "_RNvXse_NtCscSWoUTnaXmu_12x25519_dalek6x25519NtB5_12SharedSecretNtNtNtCskxtBwYRO61I_4core3ops4drop4Drop4drop",
+]
+
+[[lib2_objects]]
+name = "lib2_5.o"
+path = "work/lib2_5.o"
+sha256 = "474d59404916bffb58bb4ee5952b9f6cbc422e6922974ad95d79c713a84812ad"
+size = 1280
+config_index = 2
+defined_symbols = [
+  "_RNvXs6_NtCsfr5T3GFabw_3std4timeNtB5_10SystemTimeINtNtNtCskxtBwYRO61I_4core3ops5arith3AddNtNtBR_4time8DurationE3add",
+]
+rlib = "libstd-96c9fe7a07d47cf2.rlib"
+rlib_sha256 = ""
+member = "std-96c9fe7a07d47cf2.std.2e66b1facfa492c-cgu.0.rcgu.o"
+member_sha256 = "d5f890bc180a13054d49f8dfd74afb16a1bd997c3eeea009ceda7234cd2b197b"
+keep_set_sha256 = "eb6e662997594080c4a5b72c3d839f66c0dd957038c614a3edc5e7c8b7063ee9"
+kept_sections = [
+  ".rodata..Lanon.5394cca77e622eba6ee760626b780c72.687",
+  ".text._RNvXs6_NtCsfr5T3GFabw_3std4timeNtB5_10SystemTimeINtNtNtCskxtBwYRO61I_4core3ops5arith3AddNtNtBR_4time8DurationE3add",
+]
+roots = [
+  "_RNvXs6_NtCsfr5T3GFabw_3std4timeNtB5_10SystemTimeINtNtNtCskxtBwYRO61I_4core3ops5arith3AddNtNtBR_4time8DurationE3add",
+]
+
+[[retired_stub_slots]]
+symbol = "_RINvCsdqpLrhraQXi_6subtle9black_boxhECs2wR8L9wiBdT_16curve25519_dalek"
+retired_symbol = "__retired_3"
+retired_section = ".text.__retired_3"
+orig_addr = "0x46890c"
+size = 4
+
+[[retired_stub_slots]]
+symbol = "_RNvMs5_NtCsfr5T3GFabw_3std4timeNtB5_10SystemTime14duration_since"
+retired_symbol = "__retired_2"
+retired_section = ".text.__retired_2"
+orig_addr = "0x468938"
+size = 4
+
+[[retired_stub_slots]]
+symbol = "_RNvNtNtCskxtBwYRO61I_4core3str8converts9from_utf8"
+retired_symbol = "__retired_1"
+retired_section = ".text.__retired_1"
+orig_addr = "0x4689bc"
+size = 4
+
+[[retired_stub_slots]]
+symbol = "_RNvNtNtCskxtBwYRO61I_4core5slice6memchr7memrchr"
+retired_symbol = "__retired_0"
+retired_section = ".text.__retired_0"
+orig_addr = "0x4689c4"
+size = 4
+
+[[retired_stub_slots]]
+symbol = "_RNvXs6_NtCsfr5T3GFabw_3std4timeNtB5_10SystemTimeINtNtNtCskxtBwYRO61I_4core3ops5arith3AddNtNtBR_4time8DurationE3add"
+retired_symbol = "__retired_6"
+retired_section = ".text.__retired_6"
+orig_addr = "0x4689ec"
+size = 4
+
+[[retired_stub_slots]]
+symbol = "_RNvXsa_NtCscSWoUTnaXmu_12x25519_dalek6x25519NtB5_12StaticSecretNtNtNtCskxtBwYRO61I_4core3ops4drop4Drop4drop"
+retired_symbol = "__retired_4"
+retired_section = ".text.__retired_4"
+orig_addr = "0x468a0c"
+size = 4
+
+[[retired_stub_slots]]
+symbol = "_RNvXse_NtCscSWoUTnaXmu_12x25519_dalek6x25519NtB5_12SharedSecretNtNtNtCskxtBwYRO61I_4core3ops4drop4Drop4drop"
+retired_symbol = "__retired_5"
+retired_section = ".text.__retired_5"
+orig_addr = "0x468a14"
+size = 4
+
 [displaced_weak_elf_addrs]
 __aarch64_cas8_acq_rel = "0x468a3c"
 __aarch64_ldadd8_rel = "0x468a40"
 __aarch64_ldadd8_relax = "0x468a44"
 
 [stock_lld_arg_files]
-"third_party/libsignal/libsignal-session/cli-elf/stock.ld" = "ddd8dd9df46f6ed840fe35ec185cd754cd82a2e18d608b5c6268779b1e5c4daa"
+"third_party/libsignal/libsignal-session/cli-elf/stock/stock_c2.ld" = "a9066f2183c8fa29b7412913628dd3d316ac3990a1868cca3e23b0c4b8757459"
 
 [x_per_image]
 0 = [
@@ -551,11 +927,15 @@ __aarch64_ldadd8_relax = "0x468a44"
   "read",
   "write",
 ]
+2 = [
+  "_RNvNtCskxtBwYRO61I_4core6option13expect_failed",
+  "_RNvNtNtCskxtBwYRO61I_4core5slice5index16slice_index_fail",
+]
 
 [w3_pin]
 elf_name = "libsignal-cli.elf"
-elf_sha256 = "2f20c836342437a882b5882c34eab604e4f23b2b388c2b2a0696eeda51cddc7e"
-elf_size = 617448
+elf_sha256 = "50066cbd732256eb5f19f93d1d98800914336b7926225de3ebfa0bb37eca98ce"
+elf_size = 619032
 elf_entry = "0x46a000"
 main_elf_addr = "0x467408"
 lean_pin_path = "LibsignalBinary/Specifications/SignalSession/CliElf.lean"
@@ -571,6 +951,15 @@ _RNvCs9Xul1Kjr0QF_16libsignal_cli_io9read_file = "0x4691b4"
 _RNvCs9Xul1Kjr0QF_16libsignal_cli_io10read_stdin = "0x469000"
 _RNvCs9Xul1Kjr0QF_16libsignal_cli_io10write_file = "0x468724"
 _RNvCs9Xul1Kjr0QF_16libsignal_cli_io12write_stdout = "0x468854"
+
+[w3_pin.placed_exports.2]
+_RINvCsdqpLrhraQXi_6subtle9black_boxhECs2wR8L9wiBdT_16curve25519_dalek = "0x46ea94"
+_RNvMs5_NtCsfr5T3GFabw_3std4timeNtB5_10SystemTime14duration_since = "0x46ea44"
+_RNvNtNtCskxtBwYRO61I_4core3str8converts9from_utf8 = "0x46e6e4"
+_RNvNtNtCskxtBwYRO61I_4core5slice6memchr7memrchr = "0x46e5bc"
+_RNvXs6_NtCsfr5T3GFabw_3std4timeNtB5_10SystemTimeINtNtNtCskxtBwYRO61I_4core3ops5arith3AddNtNtBR_4time8DurationE3add = "0x46eca4"
+_RNvXsa_NtCscSWoUTnaXmu_12x25519_dalek6x25519NtB5_12StaticSecretNtNtNtCskxtBwYRO61I_4core3ops4drop4Drop4drop = "0x46eba8"
+_RNvXse_NtCscSWoUTnaXmu_12x25519_dalek6x25519NtB5_12SharedSecretNtNtNtCskxtBwYRO61I_4core3ops4drop4Drop4drop = "0x46eba4"
 
 [runtime_archives]
 "compiler_builtins.a" = "e9ede836762ee857758dcacd0a75f42eb68a7220d8c490648ef2c34a3b0d9958"
@@ -591,9 +980,9 @@ source_sha256 = "b1ea6c885b72ada33a0a52d4a8df3efdd0ddab579455e8853b5d85340a24da5
 
 [stub_object]
 name = "extern_stubs_clean.o"
-sha256 = "ea88d803608b5fcb1c9bbec41a273d5121ff2735af5bc927ea9fb18b1d253573"
-size = 38288
-symbol_count = 129
+sha256 = "7e1f69f3178c59a0b16d2eb32823547692f31faec62bbc2399a7610a925bafc3"
+size = 36928
+symbol_count = 122
 
 [g6_rebuild_pins.harness_object]
 name = "main_rust.o"
@@ -620,7 +1009,7 @@ build_recipe = "cargo build -Zbuild-std=core,alloc,std,panic_abort --target aarc
 
 [s2_real_body_lock.bcmp]
 definer_class = "R"
-elf_addr = "0x468ba8"
+elf_addr = "0x469a40"
 size = 4
 input_section = ".text.bcmp"
 source_file = "libc.a"
@@ -638,11 +1027,11 @@ member_name = "bcmp.lo"
 member_file_sha = "9fdd6311a2502468ad67727017a186bc0189d78a58cc525e1466516f0408cba5"
 byte_equal = true
 member_text_relocs = 1
-bcmp_branch_target = "0x468b74"
+bcmp_branch_target = "0x469a0c"
 
 [s2_real_body_lock.memcmp]
 definer_class = "R"
-elf_addr = "0x468b74"
+elf_addr = "0x469a0c"
 size = 52
 input_section = ".text.memcmp"
 source_file = "libc.a"
@@ -684,7 +1073,7 @@ member_text_relocs = 0
 
 [s2_real_body_lock.memmove]
 definer_class = "R"
-elf_addr = "0x468a4c"
+elf_addr = "0x4698e4"
 size = 296
 input_section = ".text.memmove"
 source_file = "libc.a"
@@ -693,7 +1082,7 @@ sha256 = "1e57042165b65670bd83a6fba77a375595b5a444a6d5b611ced91e60bf0be4de"
 archive_sha256 = "b03473b6f1efb72f700f561b4407a88885b37e0edb5cdb2a64de0df5499e813f"
 input_binding = "STB_GLOBAL"
 text_sha = "c12d467225cb80b716bf2937af29adf446439046c9ff9a980eb4c4daf6875508"
-body_sha256 = "29f73b1800a3451387a2493ccfc81f74c325d4d73dd81f7adbd98c9a7a2ecc32"
+body_sha256 = "6490c2a56810c33dda3e5fa1e2b5baa64ecbf9121806f5191e1541b9db74baa4"
 relocs = [
   { offset = 104, r_type = 282, r_type_name = "R_AARCH64_JUMP26", target_symbol = "memcpy", addend = 0 },
 ]
@@ -725,7 +1114,7 @@ member_text_relocs = 0
 
 [s2_real_body_lock.strlen]
 definer_class = "R"
-elf_addr = "0x468bac"
+elf_addr = "0x469a44"
 size = 88
 input_section = ".text.strlen"
 source_file = "libc.a"
@@ -761,7 +1150,7 @@ elf_addr = "0x46f020"
 size = 8
 input_section = ".data._RNvCs4Dv7yoBiUx4_3log20MAX_LOG_LEVEL_FILTER"
 source_file = "extern_stubs_clean.o"
-sha256 = "ea88d803608b5fcb1c9bbec41a273d5121ff2735af5bc927ea9fb18b1d253573"
+sha256 = "7e1f69f3178c59a0b16d2eb32823547692f31faec62bbc2399a7610a925bafc3"
 
 [d1_extern_data_lock.kept._RNvNtNtNtNtCs2wR8L9wiBdT_16curve25519_dalek7backend6serial3u649constants23ED25519_BASEPOINT_TABLE]
 demangled_name = "curve25519_dalek::backend::serial::u64::constants::ED25519_BASEPOINT_TABLE"
@@ -771,7 +1160,7 @@ elf_addr = "0x46f028"
 size = 8
 input_section = ".data._RNvNtNtNtNtCs2wR8L9wiBdT_16curve25519_dalek7backend6serial3u649constants23ED25519_BASEPOINT_TABLE"
 source_file = "extern_stubs_clean.o"
-sha256 = "ea88d803608b5fcb1c9bbec41a273d5121ff2735af5bc927ea9fb18b1d253573"
+sha256 = "7e1f69f3178c59a0b16d2eb32823547692f31faec62bbc2399a7610a925bafc3"
 
 [n_undef_map."rdl_shim.o".calloc]
 class = "R"
@@ -823,17 +1212,19 @@ sha256 = "ad86fd633bd070e609d33cedbe731d40498443e42b33af62db82a36481eca8b4"
 elf_addr = "0x46da2c"
 
 [definers._RINvCsdqpLrhraQXi_6subtle9black_boxhECs2wR8L9wiBdT_16curve25519_dalek]
-class = "Z"
+class = "S"
 demangled = "subtle::black_box::<u8>"
 images = [0]
-source_file = "extern_stubs_clean.o"
-sha256 = "ea88d803608b5fcb1c9bbec41a273d5121ff2735af5bc927ea9fb18b1d253573"
-elf_addr = "0x46890c"
-size = 4
+source_file = "lib2_3.o"
+sha256 = "9c0f86c4e6b34ebdc5300a2ffa4c1c4bc49ad34e24af5089e7e6f6d1a3cf2618"
+elf_addr = "0x46ea94"
+size = 20
 input_section = ".text._RINvCsdqpLrhraQXi_6subtle9black_boxhECs2wR8L9wiBdT_16curve25519_dalek"
 input_binding = "STB_GLOBAL"
+body_sha256 = "ff526bddf26d2e61ad4732a8b26d51bc2f4af6c80fd7cf02a5ff42ddde3ae49a"
+reloc_count = 0
 in_engine_hooked_externs = true
-is_hook_key = true
+is_hook_key = false
 is_panic_symbol = false
 
 [definers._RINvNtCskxtBwYRO61I_4core9panicking13assert_failedjjEB4_]
@@ -841,7 +1232,7 @@ class = "Z"
 demangled = "core::panicking::assert_failed::<usize, usize>"
 images = [0]
 source_file = "extern_stubs_clean.o"
-sha256 = "ea88d803608b5fcb1c9bbec41a273d5121ff2735af5bc927ea9fb18b1d253573"
+sha256 = "7e1f69f3178c59a0b16d2eb32823547692f31faec62bbc2399a7610a925bafc3"
 elf_addr = "0x468910"
 size = 4
 input_section = ".text._RINvNtCskxtBwYRO61I_4core9panicking13assert_failedjjEB4_"
@@ -855,7 +1246,7 @@ class = "Z"
 demangled = "core::panicking::assert_failed::<u64, u64>"
 images = [0]
 source_file = "extern_stubs_clean.o"
-sha256 = "ea88d803608b5fcb1c9bbec41a273d5121ff2735af5bc927ea9fb18b1d253573"
+sha256 = "7e1f69f3178c59a0b16d2eb32823547692f31faec62bbc2399a7610a925bafc3"
 elf_addr = "0x468914"
 size = 4
 input_section = ".text._RINvNtCskxtBwYRO61I_4core9panicking13assert_failedyyEB4_"
@@ -949,7 +1340,7 @@ class = "Z"
 demangled = "log::MAX_LOG_LEVEL_FILTER"
 images = [0]
 source_file = "extern_stubs_clean.o"
-sha256 = "ea88d803608b5fcb1c9bbec41a273d5121ff2735af5bc927ea9fb18b1d253573"
+sha256 = "7e1f69f3178c59a0b16d2eb32823547692f31faec62bbc2399a7610a925bafc3"
 elf_addr = "0x46f020"
 size = 8
 input_section = ".data._RNvCs4Dv7yoBiUx4_3log20MAX_LOG_LEVEL_FILTER"
@@ -963,7 +1354,7 @@ class = "Z"
 demangled = "libcrux_hmac::hmac"
 images = [0]
 source_file = "extern_stubs_clean.o"
-sha256 = "ea88d803608b5fcb1c9bbec41a273d5121ff2735af5bc927ea9fb18b1d253573"
+sha256 = "7e1f69f3178c59a0b16d2eb32823547692f31faec62bbc2399a7610a925bafc3"
 elf_addr = "0x468918"
 size = 4
 input_section = ".text._RNvCs65XVORQObL2_12libcrux_hmac4hmac"
@@ -1041,7 +1432,7 @@ class = "Z"
 demangled = "<curve25519_dalek::scalar::Scalar>::from_bytes_mod_order"
 images = [0]
 source_file = "extern_stubs_clean.o"
-sha256 = "ea88d803608b5fcb1c9bbec41a273d5121ff2735af5bc927ea9fb18b1d253573"
+sha256 = "7e1f69f3178c59a0b16d2eb32823547692f31faec62bbc2399a7610a925bafc3"
 elf_addr = "0x46891c"
 size = 4
 input_section = ".text._RNvMNtCs2wR8L9wiBdT_16curve25519_dalek6scalarNtB2_6Scalar20from_bytes_mod_order"
@@ -1055,7 +1446,7 @@ class = "Z"
 demangled = "<curve25519_dalek::scalar::Scalar>::from_bytes_mod_order_wide"
 images = [0]
 source_file = "extern_stubs_clean.o"
-sha256 = "ea88d803608b5fcb1c9bbec41a273d5121ff2735af5bc927ea9fb18b1d253573"
+sha256 = "7e1f69f3178c59a0b16d2eb32823547692f31faec62bbc2399a7610a925bafc3"
 elf_addr = "0x468920"
 size = 4
 input_section = ".text._RNvMNtCs2wR8L9wiBdT_16curve25519_dalek6scalarNtB2_6Scalar25from_bytes_mod_order_wide"
@@ -1105,7 +1496,7 @@ class = "Z"
 demangled = "<libcrux_ml_kem::mlkem768::incremental::KeyPairCompressedBytes>::pk1"
 images = [0]
 source_file = "extern_stubs_clean.o"
-sha256 = "ea88d803608b5fcb1c9bbec41a273d5121ff2735af5bc927ea9fb18b1d253573"
+sha256 = "7e1f69f3178c59a0b16d2eb32823547692f31faec62bbc2399a7610a925bafc3"
 elf_addr = "0x468924"
 size = 4
 input_section = ".text._RNvMs0_NtNtCs1mK0QScfTrZ_14libcrux_ml_kem8mlkem76811incrementalNtB5_22KeyPairCompressedBytes3pk1"
@@ -1119,7 +1510,7 @@ class = "Z"
 demangled = "<libcrux_ml_kem::mlkem768::incremental::KeyPairCompressedBytes>::pk2"
 images = [0]
 source_file = "extern_stubs_clean.o"
-sha256 = "ea88d803608b5fcb1c9bbec41a273d5121ff2735af5bc927ea9fb18b1d253573"
+sha256 = "7e1f69f3178c59a0b16d2eb32823547692f31faec62bbc2399a7610a925bafc3"
 elf_addr = "0x468928"
 size = 4
 input_section = ".text._RNvMs0_NtNtCs1mK0QScfTrZ_14libcrux_ml_kem8mlkem76811incrementalNtB5_22KeyPairCompressedBytes3pk2"
@@ -1133,7 +1524,7 @@ class = "Z"
 demangled = "<libcrux_ml_kem::mlkem768::incremental::KeyPairCompressedBytes>::from_seed"
 images = [0]
 source_file = "extern_stubs_clean.o"
-sha256 = "ea88d803608b5fcb1c9bbec41a273d5121ff2735af5bc927ea9fb18b1d253573"
+sha256 = "7e1f69f3178c59a0b16d2eb32823547692f31faec62bbc2399a7610a925bafc3"
 elf_addr = "0x46892c"
 size = 4
 input_section = ".text._RNvMs0_NtNtCs1mK0QScfTrZ_14libcrux_ml_kem8mlkem76811incrementalNtB5_22KeyPairCompressedBytes9from_seed"
@@ -1156,7 +1547,7 @@ class = "Z"
 demangled = "<std::sys::sync::once::futex::Once>::call"
 images = [0]
 source_file = "extern_stubs_clean.o"
-sha256 = "ea88d803608b5fcb1c9bbec41a273d5121ff2735af5bc927ea9fb18b1d253573"
+sha256 = "7e1f69f3178c59a0b16d2eb32823547692f31faec62bbc2399a7610a925bafc3"
 elf_addr = "0x468930"
 size = 4
 input_section = ".text._RNvMs0_NtNtNtNtCsfr5T3GFabw_3std3sys4sync4once5futexNtB5_4Once4call"
@@ -1206,7 +1597,7 @@ class = "Z"
 demangled = "<curve25519_dalek::montgomery::MontgomeryPoint>::to_edwards"
 images = [0]
 source_file = "extern_stubs_clean.o"
-sha256 = "ea88d803608b5fcb1c9bbec41a273d5121ff2735af5bc927ea9fb18b1d253573"
+sha256 = "7e1f69f3178c59a0b16d2eb32823547692f31faec62bbc2399a7610a925bafc3"
 elf_addr = "0x468934"
 size = 4
 input_section = ".text._RNvMs5_NtCs2wR8L9wiBdT_16curve25519_dalek10montgomeryNtB5_15MontgomeryPoint10to_edwards"
@@ -1225,17 +1616,19 @@ is_hook_key = false
 is_panic_symbol = false
 
 [definers._RNvMs5_NtCsfr5T3GFabw_3std4timeNtB5_10SystemTime14duration_since]
-class = "Z"
+class = "S"
 demangled = "<std::time::SystemTime>::duration_since"
 images = [0]
-source_file = "extern_stubs_clean.o"
-sha256 = "ea88d803608b5fcb1c9bbec41a273d5121ff2735af5bc927ea9fb18b1d253573"
-elf_addr = "0x468938"
-size = 4
+source_file = "lib2_2.o"
+sha256 = "6ec1dfbc758c040efef465c5644d77702d2e5798068f08b76ae59c4e9ec4a6dd"
+elf_addr = "0x46ea44"
+size = 80
 input_section = ".text._RNvMs5_NtCsfr5T3GFabw_3std4timeNtB5_10SystemTime14duration_since"
 input_binding = "STB_GLOBAL"
+body_sha256 = "b3c4dcd9e9261b6571d1d94fd25d9d13d7b9685828e27f052c75e781c039db06"
+reloc_count = 1
 in_engine_hooked_externs = true
-is_hook_key = true
+is_hook_key = false
 is_panic_symbol = false
 
 [definers._RNvMs5_NtCsfr5T3GFabw_3std4timeNtB5_10SystemTime3now]
@@ -1279,7 +1672,7 @@ class = "Z"
 demangled = "<x25519_dalek::x25519::StaticSecret>::diffie_hellman"
 images = [0]
 source_file = "extern_stubs_clean.o"
-sha256 = "ea88d803608b5fcb1c9bbec41a273d5121ff2735af5bc927ea9fb18b1d253573"
+sha256 = "7e1f69f3178c59a0b16d2eb32823547692f31faec62bbc2399a7610a925bafc3"
 elf_addr = "0x46893c"
 size = 4
 input_section = ".text._RNvMs6_NtCscSWoUTnaXmu_12x25519_dalek6x25519NtB5_12StaticSecret14diffie_hellman"
@@ -1320,7 +1713,7 @@ class = "Z"
 demangled = "<core::fmt::Formatter>::debug_tuple_field1_finish"
 images = [0]
 source_file = "extern_stubs_clean.o"
-sha256 = "ea88d803608b5fcb1c9bbec41a273d5121ff2735af5bc927ea9fb18b1d253573"
+sha256 = "7e1f69f3178c59a0b16d2eb32823547692f31faec62bbc2399a7610a925bafc3"
 elf_addr = "0x468940"
 size = 4
 input_section = ".text._RNvMsa_NtCskxtBwYRO61I_4core3fmtNtB5_9Formatter25debug_tuple_field1_finish"
@@ -1352,7 +1745,7 @@ class = "Z"
 demangled = "<core::fmt::Formatter>::debug_struct_field2_finish"
 images = [0]
 source_file = "extern_stubs_clean.o"
-sha256 = "ea88d803608b5fcb1c9bbec41a273d5121ff2735af5bc927ea9fb18b1d253573"
+sha256 = "7e1f69f3178c59a0b16d2eb32823547692f31faec62bbc2399a7610a925bafc3"
 elf_addr = "0x468944"
 size = 4
 input_section = ".text._RNvMsa_NtCskxtBwYRO61I_4core3fmtNtB5_9Formatter26debug_struct_field2_finish"
@@ -1366,7 +1759,7 @@ class = "Z"
 demangled = "<core::fmt::Formatter>::pad"
 images = [0]
 source_file = "extern_stubs_clean.o"
-sha256 = "ea88d803608b5fcb1c9bbec41a273d5121ff2735af5bc927ea9fb18b1d253573"
+sha256 = "7e1f69f3178c59a0b16d2eb32823547692f31faec62bbc2399a7610a925bafc3"
 elf_addr = "0x468948"
 size = 4
 input_section = ".text._RNvMsa_NtCskxtBwYRO61I_4core3fmtNtB5_9Formatter3pad"
@@ -1380,7 +1773,7 @@ class = "Z"
 demangled = "<core::fmt::Formatter>::write_str"
 images = [0]
 source_file = "extern_stubs_clean.o"
-sha256 = "ea88d803608b5fcb1c9bbec41a273d5121ff2735af5bc927ea9fb18b1d253573"
+sha256 = "7e1f69f3178c59a0b16d2eb32823547692f31faec62bbc2399a7610a925bafc3"
 elf_addr = "0x46894c"
 size = 4
 input_section = ".text._RNvMsa_NtCskxtBwYRO61I_4core3fmtNtB5_9Formatter9write_str"
@@ -1394,7 +1787,7 @@ class = "Z"
 demangled = "<u32>::_fmt"
 images = [0]
 source_file = "extern_stubs_clean.o"
-sha256 = "ea88d803608b5fcb1c9bbec41a273d5121ff2735af5bc927ea9fb18b1d253573"
+sha256 = "7e1f69f3178c59a0b16d2eb32823547692f31faec62bbc2399a7610a925bafc3"
 elf_addr = "0x468950"
 size = 4
 input_section = ".text._RNvMsa_NtNtNtCskxtBwYRO61I_4core3fmt3num3impm4__fmt"
@@ -1408,7 +1801,7 @@ class = "Z"
 demangled = "<curve25519_dalek::edwards::EdwardsPoint>::compress"
 images = [0]
 source_file = "extern_stubs_clean.o"
-sha256 = "ea88d803608b5fcb1c9bbec41a273d5121ff2735af5bc927ea9fb18b1d253573"
+sha256 = "7e1f69f3178c59a0b16d2eb32823547692f31faec62bbc2399a7610a925bafc3"
 elf_addr = "0x468954"
 size = 4
 input_section = ".text._RNvMsg_NtCs2wR8L9wiBdT_16curve25519_dalek7edwardsNtB5_12EdwardsPoint8compress"
@@ -1422,7 +1815,7 @@ class = "Z"
 demangled = "<curve25519_dalek::edwards::EdwardsPoint>::vartime_double_scalar_mul_basepoint"
 images = [0]
 source_file = "extern_stubs_clean.o"
-sha256 = "ea88d803608b5fcb1c9bbec41a273d5121ff2735af5bc927ea9fb18b1d253573"
+sha256 = "7e1f69f3178c59a0b16d2eb32823547692f31faec62bbc2399a7610a925bafc3"
 elf_addr = "0x468958"
 size = 4
 input_section = ".text._RNvMsw_NtCs2wR8L9wiBdT_16curve25519_dalek7edwardsNtB5_12EdwardsPoint35vartime_double_scalar_mul_basepoint"
@@ -1436,7 +1829,7 @@ class = "Z"
 demangled = "<curve25519_dalek::edwards::EdwardsPoint>::is_torsion_free"
 images = [0]
 source_file = "extern_stubs_clean.o"
-sha256 = "ea88d803608b5fcb1c9bbec41a273d5121ff2735af5bc927ea9fb18b1d253573"
+sha256 = "7e1f69f3178c59a0b16d2eb32823547692f31faec62bbc2399a7610a925bafc3"
 elf_addr = "0x46895c"
 size = 4
 input_section = ".text._RNvMsx_NtCs2wR8L9wiBdT_16curve25519_dalek7edwardsNtB5_12EdwardsPoint15is_torsion_free"
@@ -1459,7 +1852,7 @@ class = "Z"
 demangled = "alloc::alloc::handle_alloc_error"
 images = [0]
 source_file = "extern_stubs_clean.o"
-sha256 = "ea88d803608b5fcb1c9bbec41a273d5121ff2735af5bc927ea9fb18b1d253573"
+sha256 = "7e1f69f3178c59a0b16d2eb32823547692f31faec62bbc2399a7610a925bafc3"
 elf_addr = "0x468960"
 size = 4
 input_section = ".text._RNvNtCs69KKACWg7bl_5alloc5alloc18handle_alloc_error"
@@ -1473,7 +1866,7 @@ class = "Z"
 demangled = "alloc::raw_vec::handle_error"
 images = [0, 1]
 source_file = "extern_stubs_clean.o"
-sha256 = "ea88d803608b5fcb1c9bbec41a273d5121ff2735af5bc927ea9fb18b1d253573"
+sha256 = "7e1f69f3178c59a0b16d2eb32823547692f31faec62bbc2399a7610a925bafc3"
 elf_addr = "0x468964"
 size = 4
 input_section = ".text._RNvNtCs69KKACWg7bl_5alloc7raw_vec12handle_error"
@@ -1487,7 +1880,7 @@ class = "Z"
 demangled = "signal_crypto::aes_cbc::aes_256_cbc_decrypt"
 images = [0]
 source_file = "extern_stubs_clean.o"
-sha256 = "ea88d803608b5fcb1c9bbec41a273d5121ff2735af5bc927ea9fb18b1d253573"
+sha256 = "7e1f69f3178c59a0b16d2eb32823547692f31faec62bbc2399a7610a925bafc3"
 elf_addr = "0x468968"
 size = 4
 input_section = ".text._RNvNtCsbKnPy0UR4Ui_13signal_crypto7aes_cbc19aes_256_cbc_decrypt"
@@ -1501,7 +1894,7 @@ class = "Z"
 demangled = "signal_crypto::aes_cbc::aes_256_cbc_encrypt"
 images = [0]
 source_file = "extern_stubs_clean.o"
-sha256 = "ea88d803608b5fcb1c9bbec41a273d5121ff2735af5bc927ea9fb18b1d253573"
+sha256 = "7e1f69f3178c59a0b16d2eb32823547692f31faec62bbc2399a7610a925bafc3"
 elf_addr = "0x46896c"
 size = 4
 input_section = ".text._RNvNtCsbKnPy0UR4Ui_13signal_crypto7aes_cbc19aes_256_cbc_encrypt"
@@ -1515,7 +1908,7 @@ class = "Z"
 demangled = "sha2::sha256::compress256"
 images = [0]
 source_file = "extern_stubs_clean.o"
-sha256 = "ea88d803608b5fcb1c9bbec41a273d5121ff2735af5bc927ea9fb18b1d253573"
+sha256 = "7e1f69f3178c59a0b16d2eb32823547692f31faec62bbc2399a7610a925bafc3"
 elf_addr = "0x468970"
 size = 4
 input_section = ".text._RNvNtCsbvWyylYiyxg_4sha26sha25611compress256"
@@ -1529,7 +1922,7 @@ class = "Z"
 demangled = "sha2::sha512::compress512"
 images = [0]
 source_file = "extern_stubs_clean.o"
-sha256 = "ea88d803608b5fcb1c9bbec41a273d5121ff2735af5bc927ea9fb18b1d253573"
+sha256 = "7e1f69f3178c59a0b16d2eb32823547692f31faec62bbc2399a7610a925bafc3"
 elf_addr = "0x468974"
 size = 4
 input_section = ".text._RNvNtCsbvWyylYiyxg_4sha26sha51211compress512"
@@ -1552,7 +1945,7 @@ class = "Z"
 demangled = "core::fmt::write"
 images = [0]
 source_file = "extern_stubs_clean.o"
-sha256 = "ea88d803608b5fcb1c9bbec41a273d5121ff2735af5bc927ea9fb18b1d253573"
+sha256 = "7e1f69f3178c59a0b16d2eb32823547692f31faec62bbc2399a7610a925bafc3"
 elf_addr = "0x468978"
 size = 4
 input_section = ".text._RNvNtCskxtBwYRO61I_4core3fmt5write"
@@ -1573,9 +1966,9 @@ is_panic_symbol = false
 [definers._RNvNtCskxtBwYRO61I_4core6option13expect_failed]
 class = "Z"
 demangled = "core::option::expect_failed"
-images = [0]
+images = [0, 2]
 source_file = "extern_stubs_clean.o"
-sha256 = "ea88d803608b5fcb1c9bbec41a273d5121ff2735af5bc927ea9fb18b1d253573"
+sha256 = "7e1f69f3178c59a0b16d2eb32823547692f31faec62bbc2399a7610a925bafc3"
 elf_addr = "0x46897c"
 size = 4
 input_section = ".text._RNvNtCskxtBwYRO61I_4core6option13expect_failed"
@@ -1589,7 +1982,7 @@ class = "Z"
 demangled = "core::option::unwrap_failed"
 images = [0]
 source_file = "extern_stubs_clean.o"
-sha256 = "ea88d803608b5fcb1c9bbec41a273d5121ff2735af5bc927ea9fb18b1d253573"
+sha256 = "7e1f69f3178c59a0b16d2eb32823547692f31faec62bbc2399a7610a925bafc3"
 elf_addr = "0x468980"
 size = 4
 input_section = ".text._RNvNtCskxtBwYRO61I_4core6option13unwrap_failed"
@@ -1603,7 +1996,7 @@ class = "Z"
 demangled = "core::result::unwrap_failed"
 images = [0]
 source_file = "extern_stubs_clean.o"
-sha256 = "ea88d803608b5fcb1c9bbec41a273d5121ff2735af5bc927ea9fb18b1d253573"
+sha256 = "7e1f69f3178c59a0b16d2eb32823547692f31faec62bbc2399a7610a925bafc3"
 elf_addr = "0x468984"
 size = 4
 input_section = ".text._RNvNtCskxtBwYRO61I_4core6result13unwrap_failed"
@@ -1617,7 +2010,7 @@ class = "Z"
 demangled = "core::panicking::panic_bounds_check"
 images = [0]
 source_file = "extern_stubs_clean.o"
-sha256 = "ea88d803608b5fcb1c9bbec41a273d5121ff2735af5bc927ea9fb18b1d253573"
+sha256 = "7e1f69f3178c59a0b16d2eb32823547692f31faec62bbc2399a7610a925bafc3"
 elf_addr = "0x468988"
 size = 4
 input_section = ".text._RNvNtCskxtBwYRO61I_4core9panicking18panic_bounds_check"
@@ -1631,7 +2024,7 @@ class = "Z"
 demangled = "core::panicking::assert_failed_inner"
 images = [0]
 source_file = "extern_stubs_clean.o"
-sha256 = "ea88d803608b5fcb1c9bbec41a273d5121ff2735af5bc927ea9fb18b1d253573"
+sha256 = "7e1f69f3178c59a0b16d2eb32823547692f31faec62bbc2399a7610a925bafc3"
 elf_addr = "0x46898c"
 size = 4
 input_section = ".text._RNvNtCskxtBwYRO61I_4core9panicking19assert_failed_inner"
@@ -1645,7 +2038,7 @@ class = "Z"
 demangled = "core::panicking::panic"
 images = [0]
 source_file = "extern_stubs_clean.o"
-sha256 = "ea88d803608b5fcb1c9bbec41a273d5121ff2735af5bc927ea9fb18b1d253573"
+sha256 = "7e1f69f3178c59a0b16d2eb32823547692f31faec62bbc2399a7610a925bafc3"
 elf_addr = "0x468990"
 size = 4
 input_section = ".text._RNvNtCskxtBwYRO61I_4core9panicking5panic"
@@ -1659,7 +2052,7 @@ class = "Z"
 demangled = "core::panicking::panic_fmt"
 images = [0]
 source_file = "extern_stubs_clean.o"
-sha256 = "ea88d803608b5fcb1c9bbec41a273d5121ff2735af5bc927ea9fb18b1d253573"
+sha256 = "7e1f69f3178c59a0b16d2eb32823547692f31faec62bbc2399a7610a925bafc3"
 elf_addr = "0x468994"
 size = 4
 input_section = ".text._RNvNtCskxtBwYRO61I_4core9panicking9panic_fmt"
@@ -1673,7 +2066,7 @@ class = "Z"
 demangled = "cpufeatures::aarch64::getauxval_hwcap"
 images = [0]
 source_file = "extern_stubs_clean.o"
-sha256 = "ea88d803608b5fcb1c9bbec41a273d5121ff2735af5bc927ea9fb18b1d253573"
+sha256 = "7e1f69f3178c59a0b16d2eb32823547692f31faec62bbc2399a7610a925bafc3"
 elf_addr = "0x468998"
 size = 4
 input_section = ".text._RNvNtCslWItzXo2NmA_11cpufeatures7aarch6415getauxval_hwcap"
@@ -1687,7 +2080,7 @@ class = "Z"
 demangled = "libcrux_ml_kem::mlkem768::incremental::encapsulate1"
 images = [0]
 source_file = "extern_stubs_clean.o"
-sha256 = "ea88d803608b5fcb1c9bbec41a273d5121ff2735af5bc927ea9fb18b1d253573"
+sha256 = "7e1f69f3178c59a0b16d2eb32823547692f31faec62bbc2399a7610a925bafc3"
 elf_addr = "0x46899c"
 size = 4
 input_section = ".text._RNvNtNtCs1mK0QScfTrZ_14libcrux_ml_kem8mlkem76811incremental12encapsulate1"
@@ -1701,7 +2094,7 @@ class = "Z"
 demangled = "libcrux_ml_kem::mlkem768::incremental::encapsulate2"
 images = [0]
 source_file = "extern_stubs_clean.o"
-sha256 = "ea88d803608b5fcb1c9bbec41a273d5121ff2735af5bc927ea9fb18b1d253573"
+sha256 = "7e1f69f3178c59a0b16d2eb32823547692f31faec62bbc2399a7610a925bafc3"
 elf_addr = "0x4689a0"
 size = 4
 input_section = ".text._RNvNtNtCs1mK0QScfTrZ_14libcrux_ml_kem8mlkem76811incremental12encapsulate2"
@@ -1715,7 +2108,7 @@ class = "Z"
 demangled = "libcrux_ml_kem::mlkem768::incremental::validate_pk_bytes"
 images = [0]
 source_file = "extern_stubs_clean.o"
-sha256 = "ea88d803608b5fcb1c9bbec41a273d5121ff2735af5bc927ea9fb18b1d253573"
+sha256 = "7e1f69f3178c59a0b16d2eb32823547692f31faec62bbc2399a7610a925bafc3"
 elf_addr = "0x4689a4"
 size = 4
 input_section = ".text._RNvNtNtCs1mK0QScfTrZ_14libcrux_ml_kem8mlkem76811incremental17validate_pk_bytes"
@@ -1729,7 +2122,7 @@ class = "Z"
 demangled = "libcrux_ml_kem::mlkem768::incremental::decapsulate_compressed_key"
 images = [0]
 source_file = "extern_stubs_clean.o"
-sha256 = "ea88d803608b5fcb1c9bbec41a273d5121ff2735af5bc927ea9fb18b1d253573"
+sha256 = "7e1f69f3178c59a0b16d2eb32823547692f31faec62bbc2399a7610a925bafc3"
 elf_addr = "0x4689a8"
 size = 4
 input_section = ".text._RNvNtNtCs1mK0QScfTrZ_14libcrux_ml_kem8mlkem76811incremental26decapsulate_compressed_key"
@@ -1743,7 +2136,7 @@ class = "Z"
 demangled = "libcrux_ml_kem::mlkem1024::kyber::decapsulate"
 images = [0]
 source_file = "extern_stubs_clean.o"
-sha256 = "ea88d803608b5fcb1c9bbec41a273d5121ff2735af5bc927ea9fb18b1d253573"
+sha256 = "7e1f69f3178c59a0b16d2eb32823547692f31faec62bbc2399a7610a925bafc3"
 elf_addr = "0x4689ac"
 size = 4
 input_section = ".text._RNvNtNtCs1mK0QScfTrZ_14libcrux_ml_kem9mlkem10245kyber11decapsulate"
@@ -1757,7 +2150,7 @@ class = "Z"
 demangled = "libcrux_ml_kem::mlkem1024::kyber::encapsulate"
 images = [0]
 source_file = "extern_stubs_clean.o"
-sha256 = "ea88d803608b5fcb1c9bbec41a273d5121ff2735af5bc927ea9fb18b1d253573"
+sha256 = "7e1f69f3178c59a0b16d2eb32823547692f31faec62bbc2399a7610a925bafc3"
 elf_addr = "0x4689b0"
 size = 4
 input_section = ".text._RNvNtNtCs1mK0QScfTrZ_14libcrux_ml_kem9mlkem10245kyber11encapsulate"
@@ -1771,7 +2164,7 @@ class = "Z"
 demangled = "libcrux_ml_kem::mlkem1024::kyber::generate_key_pair"
 images = [0]
 source_file = "extern_stubs_clean.o"
-sha256 = "ea88d803608b5fcb1c9bbec41a273d5121ff2735af5bc927ea9fb18b1d253573"
+sha256 = "7e1f69f3178c59a0b16d2eb32823547692f31faec62bbc2399a7610a925bafc3"
 elf_addr = "0x4689b4"
 size = 4
 input_section = ".text._RNvNtNtCs1mK0QScfTrZ_14libcrux_ml_kem9mlkem10245kyber17generate_key_pair"
@@ -1839,7 +2232,7 @@ class = "Z"
 demangled = "std::sync::lazy_lock::panic_poisoned"
 images = [0]
 source_file = "extern_stubs_clean.o"
-sha256 = "ea88d803608b5fcb1c9bbec41a273d5121ff2735af5bc927ea9fb18b1d253573"
+sha256 = "7e1f69f3178c59a0b16d2eb32823547692f31faec62bbc2399a7610a925bafc3"
 elf_addr = "0x4689b8"
 size = 4
 input_section = ".text._RNvNtNtCsfr5T3GFabw_3std4sync9lazy_lock14panic_poisoned"
@@ -1849,25 +2242,27 @@ is_hook_key = false
 is_panic_symbol = false
 
 [definers._RNvNtNtCskxtBwYRO61I_4core3str8converts9from_utf8]
-class = "Z"
+class = "S"
 demangled = "core::str::converts::from_utf8"
 images = [0]
-source_file = "extern_stubs_clean.o"
-sha256 = "ea88d803608b5fcb1c9bbec41a273d5121ff2735af5bc927ea9fb18b1d253573"
-elf_addr = "0x4689bc"
-size = 4
+source_file = "lib2_1.o"
+sha256 = "af8ac10dcb7951e00d44feb9f267bdd2f68283a7baad9c559ac9f2a788eb6007"
+elf_addr = "0x46e6e4"
+size = 624
 input_section = ".text._RNvNtNtCskxtBwYRO61I_4core3str8converts9from_utf8"
 input_binding = "STB_GLOBAL"
+body_sha256 = "6d109a49582674ac1181991a1077d7e2eecf8e41e1d96a8547793e887f49227a"
+reloc_count = 2
 in_engine_hooked_externs = true
-is_hook_key = true
+is_hook_key = false
 is_panic_symbol = false
 
 [definers._RNvNtNtCskxtBwYRO61I_4core5slice5index16slice_index_fail]
 class = "Z"
 demangled = "core::slice::index::slice_index_fail"
-images = [0]
+images = [0, 2]
 source_file = "extern_stubs_clean.o"
-sha256 = "ea88d803608b5fcb1c9bbec41a273d5121ff2735af5bc927ea9fb18b1d253573"
+sha256 = "7e1f69f3178c59a0b16d2eb32823547692f31faec62bbc2399a7610a925bafc3"
 elf_addr = "0x4689c0"
 size = 4
 input_section = ".text._RNvNtNtCskxtBwYRO61I_4core5slice5index16slice_index_fail"
@@ -1886,17 +2281,19 @@ is_hook_key = false
 is_panic_symbol = false
 
 [definers._RNvNtNtCskxtBwYRO61I_4core5slice6memchr7memrchr]
-class = "Z"
+class = "S"
 demangled = "core::slice::memchr::memrchr"
 images = [0]
-source_file = "extern_stubs_clean.o"
-sha256 = "ea88d803608b5fcb1c9bbec41a273d5121ff2735af5bc927ea9fb18b1d253573"
-elf_addr = "0x4689c4"
-size = 4
+source_file = "lib2_0.o"
+sha256 = "549db8da24af44680ab4c67e017b11ca8a3fbe9cb3e8a9470ef99b0bb74e5c60"
+elf_addr = "0x46e5bc"
+size = 296
 input_section = ".text._RNvNtNtCskxtBwYRO61I_4core5slice6memchr7memrchr"
 input_binding = "STB_GLOBAL"
+body_sha256 = "b14c4579b64786d11c865013c2e6a31039cb2c2c1f7536a6e586a9bf1cc3f783"
+reloc_count = 6
 in_engine_hooked_externs = true
-is_hook_key = true
+is_hook_key = false
 is_panic_symbol = false
 
 [definers._RNvNtNtCskxtBwYRO61I_4core9panicking11panic_const24panic_const_add_overflow]
@@ -1904,7 +2301,7 @@ class = "Z"
 demangled = "core::panicking::panic_const::panic_const_add_overflow"
 images = [0]
 source_file = "extern_stubs_clean.o"
-sha256 = "ea88d803608b5fcb1c9bbec41a273d5121ff2735af5bc927ea9fb18b1d253573"
+sha256 = "7e1f69f3178c59a0b16d2eb32823547692f31faec62bbc2399a7610a925bafc3"
 elf_addr = "0x4689c8"
 size = 4
 input_section = ".text._RNvNtNtCskxtBwYRO61I_4core9panicking11panic_const24panic_const_add_overflow"
@@ -1918,7 +2315,7 @@ class = "Z"
 demangled = "core::panicking::panic_const::panic_const_mul_overflow"
 images = [0]
 source_file = "extern_stubs_clean.o"
-sha256 = "ea88d803608b5fcb1c9bbec41a273d5121ff2735af5bc927ea9fb18b1d253573"
+sha256 = "7e1f69f3178c59a0b16d2eb32823547692f31faec62bbc2399a7610a925bafc3"
 elf_addr = "0x4689cc"
 size = 4
 input_section = ".text._RNvNtNtCskxtBwYRO61I_4core9panicking11panic_const24panic_const_mul_overflow"
@@ -1932,7 +2329,7 @@ class = "Z"
 demangled = "core::panicking::panic_const::panic_const_shl_overflow"
 images = [0]
 source_file = "extern_stubs_clean.o"
-sha256 = "ea88d803608b5fcb1c9bbec41a273d5121ff2735af5bc927ea9fb18b1d253573"
+sha256 = "7e1f69f3178c59a0b16d2eb32823547692f31faec62bbc2399a7610a925bafc3"
 elf_addr = "0x4689d0"
 size = 4
 input_section = ".text._RNvNtNtCskxtBwYRO61I_4core9panicking11panic_const24panic_const_shl_overflow"
@@ -1946,7 +2343,7 @@ class = "Z"
 demangled = "core::panicking::panic_const::panic_const_sub_overflow"
 images = [0]
 source_file = "extern_stubs_clean.o"
-sha256 = "ea88d803608b5fcb1c9bbec41a273d5121ff2735af5bc927ea9fb18b1d253573"
+sha256 = "7e1f69f3178c59a0b16d2eb32823547692f31faec62bbc2399a7610a925bafc3"
 elf_addr = "0x4689d4"
 size = 4
 input_section = ".text._RNvNtNtCskxtBwYRO61I_4core9panicking11panic_const24panic_const_sub_overflow"
@@ -1960,7 +2357,7 @@ class = "Z"
 demangled = "core::panicking::panic_const::panic_const_async_fn_resumed"
 images = [0]
 source_file = "extern_stubs_clean.o"
-sha256 = "ea88d803608b5fcb1c9bbec41a273d5121ff2735af5bc927ea9fb18b1d253573"
+sha256 = "7e1f69f3178c59a0b16d2eb32823547692f31faec62bbc2399a7610a925bafc3"
 elf_addr = "0x4689d8"
 size = 4
 input_section = ".text._RNvNtNtCskxtBwYRO61I_4core9panicking11panic_const28panic_const_async_fn_resumed"
@@ -2001,7 +2398,7 @@ class = "Z"
 demangled = "curve25519_dalek::backend::serial::u64::constants::ED25519_BASEPOINT_TABLE"
 images = [0]
 source_file = "extern_stubs_clean.o"
-sha256 = "ea88d803608b5fcb1c9bbec41a273d5121ff2735af5bc927ea9fb18b1d253573"
+sha256 = "7e1f69f3178c59a0b16d2eb32823547692f31faec62bbc2399a7610a925bafc3"
 elf_addr = "0x46f028"
 size = 8
 input_section = ".data._RNvNtNtNtNtCs2wR8L9wiBdT_16curve25519_dalek7backend6serial3u649constants23ED25519_BASEPOINT_TABLE"
@@ -2015,7 +2412,7 @@ class = "Z"
 demangled = "_RNvNvMs_NtCs69KKACWg7bl_5alloc3vecINtB6_3VecppE6remove13assert_failed"
 images = [0]
 source_file = "extern_stubs_clean.o"
-sha256 = "ea88d803608b5fcb1c9bbec41a273d5121ff2735af5bc927ea9fb18b1d253573"
+sha256 = "7e1f69f3178c59a0b16d2eb32823547692f31faec62bbc2399a7610a925bafc3"
 elf_addr = "0x4689dc"
 size = 4
 input_section = ".text._RNvNvMs_NtCs69KKACWg7bl_5alloc3vecINtB6_3VecppE6remove13assert_failed"
@@ -2029,7 +2426,7 @@ class = "Z"
 demangled = "alloc::fmt::format::format_inner"
 images = [0]
 source_file = "extern_stubs_clean.o"
-sha256 = "ea88d803608b5fcb1c9bbec41a273d5121ff2735af5bc927ea9fb18b1d253573"
+sha256 = "7e1f69f3178c59a0b16d2eb32823547692f31faec62bbc2399a7610a925bafc3"
 elf_addr = "0x4689e0"
 size = 4
 input_section = ".text._RNvNvNtCs69KKACWg7bl_5alloc3fmt6format12format_inner"
@@ -2043,7 +2440,7 @@ class = "Z"
 demangled = "<u8 as core::fmt::Display>::fmt"
 images = [0]
 source_file = "extern_stubs_clean.o"
-sha256 = "ea88d803608b5fcb1c9bbec41a273d5121ff2735af5bc927ea9fb18b1d253573"
+sha256 = "7e1f69f3178c59a0b16d2eb32823547692f31faec62bbc2399a7610a925bafc3"
 elf_addr = "0x4689e4"
 size = 4
 input_section = ".text._RNvXNtNtNtCskxtBwYRO61I_4core3fmt3num3imphNtB6_7Display3fmt"
@@ -2057,7 +2454,7 @@ class = "Z"
 demangled = "<log::__private_api::GlobalLogger as log::Log>::log"
 images = [0]
 source_file = "extern_stubs_clean.o"
-sha256 = "ea88d803608b5fcb1c9bbec41a273d5121ff2735af5bc927ea9fb18b1d253573"
+sha256 = "7e1f69f3178c59a0b16d2eb32823547692f31faec62bbc2399a7610a925bafc3"
 elf_addr = "0x4689e8"
 size = 4
 input_section = ".text._RNvXs0_NtCs4Dv7yoBiUx4_3log13___private_apiNtB5_12GlobalLoggerNtB7_3Log3log"
@@ -2076,17 +2473,19 @@ is_hook_key = false
 is_panic_symbol = false
 
 [definers._RNvXs6_NtCsfr5T3GFabw_3std4timeNtB5_10SystemTimeINtNtNtCskxtBwYRO61I_4core3ops5arith3AddNtNtBR_4time8DurationE3add]
-class = "Z"
+class = "S"
 demangled = "<std::time::SystemTime as core::ops::arith::Add<core::time::Duration>>::add"
 images = [0]
-source_file = "extern_stubs_clean.o"
-sha256 = "ea88d803608b5fcb1c9bbec41a273d5121ff2735af5bc927ea9fb18b1d253573"
-elf_addr = "0x4689ec"
-size = 4
+source_file = "lib2_5.o"
+sha256 = "474d59404916bffb58bb4ee5952b9f6cbc422e6922974ad95d79c713a84812ad"
+elf_addr = "0x46eca4"
+size = 96
 input_section = ".text._RNvXs6_NtCsfr5T3GFabw_3std4timeNtB5_10SystemTimeINtNtNtCskxtBwYRO61I_4core3ops5arith3AddNtNtBR_4time8DurationE3add"
 input_binding = "STB_GLOBAL"
+body_sha256 = "3bf66eb09df85c5fcec193de18a1e9472d9f29f5dd2cdfe6d2a14eb5129a08d4"
+reloc_count = 3
 in_engine_hooked_externs = true
-is_hook_key = true
+is_hook_key = false
 is_panic_symbol = false
 
 [definers._RNvXs6_NtNtCskxtBwYRO61I_4core3fmt3numjNtB7_8LowerHex3fmt]
@@ -2094,7 +2493,7 @@ class = "Z"
 demangled = "<usize as core::fmt::LowerHex>::fmt"
 images = [0]
 source_file = "extern_stubs_clean.o"
-sha256 = "ea88d803608b5fcb1c9bbec41a273d5121ff2735af5bc927ea9fb18b1d253573"
+sha256 = "7e1f69f3178c59a0b16d2eb32823547692f31faec62bbc2399a7610a925bafc3"
 elf_addr = "0x4689f0"
 size = 4
 input_section = ".text._RNvXs6_NtNtCskxtBwYRO61I_4core3fmt3numjNtB7_8LowerHex3fmt"
@@ -2108,7 +2507,7 @@ class = "Z"
 demangled = "<x25519_dalek::x25519::PublicKey as core::convert::From<&x25519_dalek::x25519::StaticSecret>>::from"
 images = [0]
 source_file = "extern_stubs_clean.o"
-sha256 = "ea88d803608b5fcb1c9bbec41a273d5121ff2735af5bc927ea9fb18b1d253573"
+sha256 = "7e1f69f3178c59a0b16d2eb32823547692f31faec62bbc2399a7610a925bafc3"
 elf_addr = "0x4689f4"
 size = 4
 input_section = ".text._RNvXs8_NtCscSWoUTnaXmu_12x25519_dalek6x25519NtB5_9PublicKeyINtNtCskxtBwYRO61I_4core7convert4FromRNtB5_12StaticSecretE4from"
@@ -2122,7 +2521,7 @@ class = "Z"
 demangled = "<usize as core::fmt::UpperHex>::fmt"
 images = [0]
 source_file = "extern_stubs_clean.o"
-sha256 = "ea88d803608b5fcb1c9bbec41a273d5121ff2735af5bc927ea9fb18b1d253573"
+sha256 = "7e1f69f3178c59a0b16d2eb32823547692f31faec62bbc2399a7610a925bafc3"
 elf_addr = "0x4689f8"
 size = 4
 input_section = ".text._RNvXs8_NtNtCskxtBwYRO61I_4core3fmt3numjNtB7_8UpperHex3fmt"
@@ -2136,7 +2535,7 @@ class = "Z"
 demangled = "<u32 as core::fmt::Display>::fmt"
 images = [0]
 source_file = "extern_stubs_clean.o"
-sha256 = "ea88d803608b5fcb1c9bbec41a273d5121ff2735af5bc927ea9fb18b1d253573"
+sha256 = "7e1f69f3178c59a0b16d2eb32823547692f31faec62bbc2399a7610a925bafc3"
 elf_addr = "0x4689fc"
 size = 4
 input_section = ".text._RNvXs8_NtNtNtCskxtBwYRO61I_4core3fmt3num3impmNtB9_7Display3fmt"
@@ -2177,7 +2576,7 @@ class = "Z"
 demangled = "<&curve25519_dalek::scalar::Scalar as core::ops::arith::Mul<&curve25519_dalek::edwards::EdwardsBasepointTable>>::mul"
 images = [0]
 source_file = "extern_stubs_clean.o"
-sha256 = "ea88d803608b5fcb1c9bbec41a273d5121ff2735af5bc927ea9fb18b1d253573"
+sha256 = "7e1f69f3178c59a0b16d2eb32823547692f31faec62bbc2399a7610a925bafc3"
 elf_addr = "0x468a00"
 size = 4
 input_section = ".text._RNvXsX_NtCs2wR8L9wiBdT_16curve25519_dalek7edwardsRNtNtB7_6scalar6ScalarINtNtNtCskxtBwYRO61I_4core3ops5arith3MulRNtB5_21EdwardsBasepointTableE3mul"
@@ -2191,7 +2590,7 @@ class = "Z"
 demangled = "<hex::BytesToHexChars as core::iter::traits::iterator::Iterator>::next"
 images = [0]
 source_file = "extern_stubs_clean.o"
-sha256 = "ea88d803608b5fcb1c9bbec41a273d5121ff2735af5bc927ea9fb18b1d253573"
+sha256 = "7e1f69f3178c59a0b16d2eb32823547692f31faec62bbc2399a7610a925bafc3"
 elf_addr = "0x468a04"
 size = 4
 input_section = ".text._RNvXs_CsdZv6vxPi7MZ_3hexNtB4_15BytesToHexCharsNtNtNtNtCskxtBwYRO61I_4core4iter6traits8iterator8Iterator4next"
@@ -2205,7 +2604,7 @@ class = "Z"
 demangled = "<hex::BytesToHexChars as core::iter::traits::iterator::Iterator>::size_hint"
 images = [0]
 source_file = "extern_stubs_clean.o"
-sha256 = "ea88d803608b5fcb1c9bbec41a273d5121ff2735af5bc927ea9fb18b1d253573"
+sha256 = "7e1f69f3178c59a0b16d2eb32823547692f31faec62bbc2399a7610a925bafc3"
 elf_addr = "0x468a08"
 size = 4
 input_section = ".text._RNvXs_CsdZv6vxPi7MZ_3hexNtB4_15BytesToHexCharsNtNtNtNtCskxtBwYRO61I_4core4iter6traits8iterator8Iterator9size_hint"
@@ -2224,17 +2623,19 @@ is_hook_key = false
 is_panic_symbol = false
 
 [definers._RNvXsa_NtCscSWoUTnaXmu_12x25519_dalek6x25519NtB5_12StaticSecretNtNtNtCskxtBwYRO61I_4core3ops4drop4Drop4drop]
-class = "Z"
+class = "S"
 demangled = "<x25519_dalek::x25519::StaticSecret as core::ops::drop::Drop>::drop"
 images = [0]
-source_file = "extern_stubs_clean.o"
-sha256 = "ea88d803608b5fcb1c9bbec41a273d5121ff2735af5bc927ea9fb18b1d253573"
-elf_addr = "0x468a0c"
-size = 4
-input_section = ".text._RNvXsa_NtCscSWoUTnaXmu_12x25519_dalek6x25519NtB5_12StaticSecretNtNtNtCskxtBwYRO61I_4core3ops4drop4Drop4drop"
+source_file = "lib2_4.o"
+sha256 = "a747bf4693bbe877a750af8fbebab53d5e0d54cb6a587947a50c95e7fef6f2ed"
+elf_addr = "0x46eba8"
+size = 252
+input_section = ".text._RNvXs4_NtCscSWoUTnaXmu_12x25519_dalek6x25519NtB5_15EphemeralSecretNtNtNtCskxtBwYRO61I_4core3ops4drop4Drop4drop"
 input_binding = "STB_GLOBAL"
+body_sha256 = "2e8d60b6430f38c0b44129bd5df80bd964335c784016f4d652dc317e0a36192d"
+reloc_count = 0
 in_engine_hooked_externs = true
-is_hook_key = true
+is_hook_key = false
 is_panic_symbol = false
 
 [definers._RNvXsa_NtCskxtBwYRO61I_4core4timeNtB5_8DurationNtNtB7_3fmt5Debug3fmt]
@@ -2260,7 +2661,7 @@ class = "Z"
 demangled = "<u64 as core::fmt::Display>::fmt"
 images = [0]
 source_file = "extern_stubs_clean.o"
-sha256 = "ea88d803608b5fcb1c9bbec41a273d5121ff2735af5bc927ea9fb18b1d253573"
+sha256 = "7e1f69f3178c59a0b16d2eb32823547692f31faec62bbc2399a7610a925bafc3"
 elf_addr = "0x468a10"
 size = 4
 input_section = ".text._RNvXsd_NtNtNtCskxtBwYRO61I_4core3fmt3num3impyNtB9_7Display3fmt"
@@ -2270,17 +2671,19 @@ is_hook_key = false
 is_panic_symbol = false
 
 [definers._RNvXse_NtCscSWoUTnaXmu_12x25519_dalek6x25519NtB5_12SharedSecretNtNtNtCskxtBwYRO61I_4core3ops4drop4Drop4drop]
-class = "Z"
+class = "S"
 demangled = "<x25519_dalek::x25519::SharedSecret as core::ops::drop::Drop>::drop"
 images = [0]
-source_file = "extern_stubs_clean.o"
-sha256 = "ea88d803608b5fcb1c9bbec41a273d5121ff2735af5bc927ea9fb18b1d253573"
-elf_addr = "0x468a14"
+source_file = "lib2_4.o"
+sha256 = "a747bf4693bbe877a750af8fbebab53d5e0d54cb6a587947a50c95e7fef6f2ed"
+elf_addr = "0x46eba4"
 size = 4
-input_section = ".text._RNvXse_NtCscSWoUTnaXmu_12x25519_dalek6x25519NtB5_12SharedSecretNtNtNtCskxtBwYRO61I_4core3ops4drop4Drop4drop"
+input_section = ".text._RNvXs1_NtCscSWoUTnaXmu_12x25519_dalek6x25519NtB5_9PublicKeyNtCsjhEzohgaBbG_7zeroize7Zeroize7zeroize"
 input_binding = "STB_GLOBAL"
+body_sha256 = "309faf9c862dcd913ab41a4b2e21a070ed224354b72e9d38f21807e59c39ed09"
+reloc_count = 1
 in_engine_hooked_externs = true
-is_hook_key = true
+is_hook_key = false
 is_panic_symbol = false
 
 [definers._RNvXse_NtNtCskxtBwYRO61I_4core3fmt3numhNtB7_8LowerHex3fmt]
@@ -2288,7 +2691,7 @@ class = "Z"
 demangled = "<u8 as core::fmt::LowerHex>::fmt"
 images = [0]
 source_file = "extern_stubs_clean.o"
-sha256 = "ea88d803608b5fcb1c9bbec41a273d5121ff2735af5bc927ea9fb18b1d253573"
+sha256 = "7e1f69f3178c59a0b16d2eb32823547692f31faec62bbc2399a7610a925bafc3"
 elf_addr = "0x468a18"
 size = 4
 input_section = ".text._RNvXse_NtNtCskxtBwYRO61I_4core3fmt3numhNtB7_8LowerHex3fmt"
@@ -2311,7 +2714,7 @@ class = "Z"
 demangled = "<u8 as core::fmt::UpperHex>::fmt"
 images = [0]
 source_file = "extern_stubs_clean.o"
-sha256 = "ea88d803608b5fcb1c9bbec41a273d5121ff2735af5bc927ea9fb18b1d253573"
+sha256 = "7e1f69f3178c59a0b16d2eb32823547692f31faec62bbc2399a7610a925bafc3"
 elf_addr = "0x468a1c"
 size = 4
 input_section = ".text._RNvXsg_NtNtCskxtBwYRO61I_4core3fmt3numhNtB7_8UpperHex3fmt"
@@ -2325,7 +2728,7 @@ class = "Z"
 demangled = "<str as core::fmt::Debug>::fmt"
 images = [0]
 source_file = "extern_stubs_clean.o"
-sha256 = "ea88d803608b5fcb1c9bbec41a273d5121ff2735af5bc927ea9fb18b1d253573"
+sha256 = "7e1f69f3178c59a0b16d2eb32823547692f31faec62bbc2399a7610a925bafc3"
 elf_addr = "0x468a20"
 size = 4
 input_section = ".text._RNvXsh_NtCskxtBwYRO61I_4core3fmteNtB5_5Debug3fmt"
@@ -2339,7 +2742,7 @@ class = "Z"
 demangled = "<str as core::fmt::Display>::fmt"
 images = [0]
 source_file = "extern_stubs_clean.o"
-sha256 = "ea88d803608b5fcb1c9bbec41a273d5121ff2735af5bc927ea9fb18b1d253573"
+sha256 = "7e1f69f3178c59a0b16d2eb32823547692f31faec62bbc2399a7610a925bafc3"
 elf_addr = "0x468a24"
 size = 4
 input_section = ".text._RNvXsi_NtCskxtBwYRO61I_4core3fmteNtB5_7Display3fmt"
@@ -2353,7 +2756,7 @@ class = "Z"
 demangled = "<usize as core::fmt::Display>::fmt"
 images = [0]
 source_file = "extern_stubs_clean.o"
-sha256 = "ea88d803608b5fcb1c9bbec41a273d5121ff2735af5bc927ea9fb18b1d253573"
+sha256 = "7e1f69f3178c59a0b16d2eb32823547692f31faec62bbc2399a7610a925bafc3"
 elf_addr = "0x468a28"
 size = 4
 input_section = ".text._RNvXsi_NtNtNtCskxtBwYRO61I_4core3fmt3num3impjNtB9_7Display3fmt"
@@ -2385,7 +2788,7 @@ class = "Z"
 demangled = "<curve25519_dalek::edwards::EdwardsPoint as core::ops::arith::Neg>::neg"
 images = [0]
 source_file = "extern_stubs_clean.o"
-sha256 = "ea88d803608b5fcb1c9bbec41a273d5121ff2735af5bc927ea9fb18b1d253573"
+sha256 = "7e1f69f3178c59a0b16d2eb32823547692f31faec62bbc2399a7610a925bafc3"
 elf_addr = "0x468a2c"
 size = 4
 input_section = ".text._RNvXso_NtCs2wR8L9wiBdT_16curve25519_dalek7edwardsNtB5_12EdwardsPointNtNtNtCskxtBwYRO61I_4core3ops5arith3Neg3neg"
@@ -2426,7 +2829,7 @@ class = "Z"
 demangled = "<curve25519_dalek::scalar::Scalar as core::ops::arith::Mul>::mul"
 images = [0]
 source_file = "extern_stubs_clean.o"
-sha256 = "ea88d803608b5fcb1c9bbec41a273d5121ff2735af5bc927ea9fb18b1d253573"
+sha256 = "7e1f69f3178c59a0b16d2eb32823547692f31faec62bbc2399a7610a925bafc3"
 elf_addr = "0x468a30"
 size = 4
 input_section = ".text._RNvXsv_NtCs2wR8L9wiBdT_16curve25519_dalek6scalarNtB5_6ScalarNtNtNtCskxtBwYRO61I_4core3ops5arith3Mul3mul"
@@ -2449,7 +2852,7 @@ class = "Z"
 demangled = "<u32 as core::fmt::UpperHex>::fmt"
 images = [0]
 source_file = "extern_stubs_clean.o"
-sha256 = "ea88d803608b5fcb1c9bbec41a273d5121ff2735af5bc927ea9fb18b1d253573"
+sha256 = "7e1f69f3178c59a0b16d2eb32823547692f31faec62bbc2399a7610a925bafc3"
 elf_addr = "0x468a34"
 size = 4
 input_section = ".text._RNvXsw_NtNtCskxtBwYRO61I_4core3fmt3nummNtB7_8UpperHex3fmt"
@@ -2472,7 +2875,7 @@ class = "Z"
 demangled = "<curve25519_dalek::scalar::Scalar as core::ops::arith::Add>::add"
 images = [0]
 source_file = "extern_stubs_clean.o"
-sha256 = "ea88d803608b5fcb1c9bbec41a273d5121ff2735af5bc927ea9fb18b1d253573"
+sha256 = "7e1f69f3178c59a0b16d2eb32823547692f31faec62bbc2399a7610a925bafc3"
 elf_addr = "0x468a38"
 size = 4
 input_section = ".text._RNvXsz_NtCs2wR8L9wiBdT_16curve25519_dalek6scalarNtB5_6ScalarNtNtNtCskxtBwYRO61I_4core3ops5arith3Add3add"
@@ -2486,7 +2889,7 @@ class = "Z"
 demangled = "__aarch64_cas8_acq_rel"
 images = [0]
 source_file = "extern_stubs_clean.o"
-sha256 = "ea88d803608b5fcb1c9bbec41a273d5121ff2735af5bc927ea9fb18b1d253573"
+sha256 = "7e1f69f3178c59a0b16d2eb32823547692f31faec62bbc2399a7610a925bafc3"
 elf_addr = "0x468a3c"
 size = 4
 input_section = ".text.__aarch64_cas8_acq_rel"
@@ -2500,7 +2903,7 @@ class = "Z"
 demangled = "__aarch64_ldadd8_rel"
 images = [0]
 source_file = "extern_stubs_clean.o"
-sha256 = "ea88d803608b5fcb1c9bbec41a273d5121ff2735af5bc927ea9fb18b1d253573"
+sha256 = "7e1f69f3178c59a0b16d2eb32823547692f31faec62bbc2399a7610a925bafc3"
 elf_addr = "0x468a40"
 size = 4
 input_section = ".text.__aarch64_ldadd8_rel"
@@ -2514,7 +2917,7 @@ class = "Z"
 demangled = "__aarch64_ldadd8_relax"
 images = [0]
 source_file = "extern_stubs_clean.o"
-sha256 = "ea88d803608b5fcb1c9bbec41a273d5121ff2735af5bc927ea9fb18b1d253573"
+sha256 = "7e1f69f3178c59a0b16d2eb32823547692f31faec62bbc2399a7610a925bafc3"
 elf_addr = "0x468a44"
 size = 4
 input_section = ".text.__aarch64_ldadd8_relax"
@@ -2549,7 +2952,7 @@ source_file = "libc.a"
 archive_member = "bcmp.lo"
 sha256 = "9fdd6311a2502468ad67727017a186bc0189d78a58cc525e1466516f0408cba5"
 archive_sha256 = "b03473b6f1efb72f700f561b4407a88885b37e0edb5cdb2a64de0df5499e813f"
-elf_addr = "0x468ba8"
+elf_addr = "0x469a40"
 size = 4
 input_section = ".text.bcmp"
 input_binding = "STB_GLOBAL"
@@ -2557,7 +2960,7 @@ body_sha256 = "49e2198ec504754f77fdd1d2977c13cdac39abd18c1b2a410f9ae6345000eb51"
 reloc_count = 1
 byte_equal = true
 in_engine_hooked_externs = true
-is_hook_key = true
+is_hook_key = false
 is_panic_symbol = false
 
 [definers.close]
@@ -2583,7 +2986,7 @@ class = "Z"
 demangled = "libsignal_session_rng_fill"
 images = [0]
 source_file = "extern_stubs_clean.o"
-sha256 = "ea88d803608b5fcb1c9bbec41a273d5121ff2735af5bc927ea9fb18b1d253573"
+sha256 = "7e1f69f3178c59a0b16d2eb32823547692f31faec62bbc2399a7610a925bafc3"
 elf_addr = "0x468a48"
 size = 4
 input_section = ".text.libsignal_session_rng_fill"
@@ -2600,7 +3003,7 @@ source_file = "libc.a"
 archive_member = "memcmp.lo"
 sha256 = "6c4bd001de16c86defb61ee0e8e62b53987a6d0e5e72637cf73df46b81fe3f4a"
 archive_sha256 = "b03473b6f1efb72f700f561b4407a88885b37e0edb5cdb2a64de0df5499e813f"
-elf_addr = "0x468b74"
+elf_addr = "0x469a0c"
 size = 52
 input_section = ".text.memcmp"
 input_binding = "STB_GLOBAL"
@@ -2638,15 +3041,15 @@ source_file = "libc.a"
 archive_member = "memmove.lo"
 sha256 = "1e57042165b65670bd83a6fba77a375595b5a444a6d5b611ced91e60bf0be4de"
 archive_sha256 = "b03473b6f1efb72f700f561b4407a88885b37e0edb5cdb2a64de0df5499e813f"
-elf_addr = "0x468a4c"
+elf_addr = "0x4698e4"
 size = 296
 input_section = ".text.memmove"
 input_binding = "STB_GLOBAL"
-body_sha256 = "29f73b1800a3451387a2493ccfc81f74c325d4d73dd81f7adbd98c9a7a2ecc32"
+body_sha256 = "6490c2a56810c33dda3e5fa1e2b5baa64ecbf9121806f5191e1541b9db74baa4"
 reloc_count = 1
 byte_equal = true
 in_engine_hooked_externs = true
-is_hook_key = true
+is_hook_key = false
 is_panic_symbol = false
 
 [definers.memset]
@@ -2712,7 +3115,7 @@ source_file = "libc.a"
 archive_member = "strlen.lo"
 sha256 = "485bad76aa759b278a152412850885ad84fab30893998d18337c2d1d1d56ec81"
 archive_sha256 = "b03473b6f1efb72f700f561b4407a88885b37e0edb5cdb2a64de0df5499e813f"
-elf_addr = "0x468bac"
+elf_addr = "0x469a44"
 size = 88
 input_section = ".text.strlen"
 input_binding = "STB_GLOBAL"
@@ -2720,7 +3123,7 @@ body_sha256 = "571c771cac9cac1c9fd88c8e866dd609ce09c23f158e4817e8dab007c93ba1ec"
 reloc_count = 0
 byte_equal = true
 in_engine_hooked_externs = true
-is_hook_key = true
+is_hook_key = false
 is_panic_symbol = false
 
 [definers.write]

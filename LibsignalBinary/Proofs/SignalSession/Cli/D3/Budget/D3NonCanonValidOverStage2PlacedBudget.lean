@@ -439,6 +439,7 @@ theorem stageP2Over_qpan_cli_d3_placed_of_pathC [LibsignalPlacement] {M : AllocC
       DecPkGhost → SessionRecord (List (BitVec 8)) → List AllocEvent → Prop}
     (hPathC : StageP2PathCOverQpanCliD3InStmt A lim PromEnv P2OverErrEnv P2OverOkEnv)
     (hPromMiss : ∀ (mmpl : Obj.MultiPlacement) (gh : CliGhostHooks) (W : CliHooks),
+      RunHooksPlaced A lim (cliGhostExterns gh (cliExternsPlaced mmpl W)) →
       PromoteMatchingMissGenPlacedProp A.repAlloc (cliGhostExterns gh (cliExternsPlaced mmpl W)))
     (hPromOver : ∀ (mmpl : Obj.MultiPlacement) (gh : CliGhostHooks) (W : CliHooks),
       RunHooksPlaced A lim (cliGhostExterns gh (cliExternsPlaced mmpl W)) →
@@ -451,7 +452,7 @@ theorem stageP2Over_qpan_cli_d3_placed_of_pathC [LibsignalPlacement] {M : AllocC
   have hr_scope : scopeIn r :=
     hsub r (scope_of_loadRec_some hfPeer hload)
   exact hPathC X mmpl gh W B S Scope y st_b g1 r s_old s0 s1 sp rngPtr v_a8 v_b8 v_d0 Q Qpan
-    (hPromMiss mmpl gh W) (hPromOver mmpl gh W hh) hh hfits hcoins hd3False
+    (hPromMiss mmpl gh W hh) (hPromOver mmpl gh W hh) hh hfits hcoins hd3False
     hsub hfPeer hcur hr_scope hnot htrust hg1
     hfs hCode1 htr01 hsp1 hsp0 hsp_sub hpc1 hrun1 halign1 hregs1
     (fun sf Pf hpcf hrunf hstepsf hspf hcsf hvregsf hinvf
@@ -477,11 +478,11 @@ theorem decPk_d3_validOver_stage2_placedBudget [LibsignalPlacement] {M : AllocCo
         (withLsCl lsmpl (growOneVecU8BudgetSpec M A lim))) :
     StageP2OverQpanCliD3PlacedBudgetStmt A lim P2OverErrEnv P2OverOkEnv :=
   stageP2Over_qpan_cli_d3_placed_of_pathC hPathC
-    (cliPromoteMatchingMissGen_placed_ok A.repAlloc)
+    (fun mmpl gh W hh => cliPromoteMatchingMissGen_placed_ok A.repAlloc mmpl gh W hh.blackBox)
     (fun mmpl gh W hh =>
       cliPromoteOverGen_placed_ok mmpl gh W
         ⟨hh.alloc, hh.allocFs, hh.panics, hh.memcpyRO, hh.bcmp, hh.fs, hh.utf8, hh.memrchr,
-          hh.codecHooks, hh.allocZeroed, hh.stringClone, hh.formatInner⟩
+          hh.codecHooks, hh.allocZeroed, hh.stringClone, hh.formatInner, hh.blackBox⟩
         (hGrow mmpl gh W) (hRaw mmpl gh W))
 
 /-! ## 4. `[LibsignalFullPlacement]` / `LibsignalFrozen` Twins -/
@@ -752,6 +753,7 @@ theorem stageP2Over_qpan_cli_d3_full_placed_of_pathC [LibsignalPlacement] {M : A
       DecPkGhost → SessionRecord (List (BitVec 8)) → List AllocEvent → Prop}
     (hPathC : StageP2PathCOverQpanCliD3FrozenInStmt A lim PromEnv P2OverErrEnv P2OverOkEnv)
     (hPromMiss : ∀ (mmpl : Obj.MultiPlacement) (gh : CliGhostHooks) (W : CliHooks),
+      RunHooksPlaced A lim (cliGhostExterns gh (cliExternsPlaced mmpl W)) →
       PromoteMatchingMissGenPlacedProp A.repAlloc (cliGhostExterns gh (cliExternsPlaced mmpl W)))
     (hPromOver : ∀ (mmpl : Obj.MultiPlacement) (gh : CliGhostHooks) (W : CliHooks),
       RunHooksPlaced A lim (cliGhostExterns gh (cliExternsPlaced mmpl W)) →
@@ -764,7 +766,7 @@ theorem stageP2Over_qpan_cli_d3_full_placed_of_pathC [LibsignalPlacement] {M : A
   have hr_scope : scopeIn r :=
     hsub r (scope_of_loadRec_some hfPeer hload)
   exact hPathC X mmpl gh W B S Scope y st_b g1 r s_old s0 s1 sp rngPtr v_a8 v_b8 v_d0 Q Qpan
-    (hPromMiss mmpl gh W) (hPromOver mmpl gh W hh) hh hfits hcoins hd3False
+    (hPromMiss mmpl gh W hh) (hPromOver mmpl gh W hh) hh hfits hcoins hd3False
     hsub hfPeer hcur hr_scope hnot htrust hg1
     hfs hCode1 htr01 hsp1 hsp0 hsp_sub hpc1 hrun1 halign1 hregs1
     (fun sf Pf hpcf hrunf hstepsf hspf hcsf hvregsf hinvf
@@ -788,11 +790,11 @@ theorem decPk_d3_validOver_stage2_full_placedBudget [LibsignalPlacement] {M : Al
         (withLsCl lsmpl (growOneVecU8BudgetSpec M A lim))) :
     StageP2OverQpanCliD3FrozenPlacedBudgetStmt A lim P2OverErrEnv P2OverOkEnv :=
   stageP2Over_qpan_cli_d3_full_placed_of_pathC hPathC
-    (cliPromoteMatchingMissGen_placed_ok A.repAlloc)
+    (fun mmpl gh W hh => cliPromoteMatchingMissGen_placed_ok A.repAlloc mmpl gh W hh.blackBox)
     (fun mmpl gh W hh =>
       cliPromoteOverGen_placed_ok mmpl gh W
         ⟨hh.alloc, hh.allocFs, hh.panics, hh.memcpyRO, hh.bcmp, hh.fs, hh.utf8, hh.memrchr,
-          hh.codecHooks, hh.allocZeroed, hh.stringClone, hh.formatInner⟩
+          hh.codecHooks, hh.allocZeroed, hh.stringClone, hh.formatInner, hh.blackBox⟩
         (hGrow mmpl gh W) (hRaw mmpl gh W))
 
 /-! ## 5. Pointwise `(X, mmpl, gh, W)` `LibsignalFrozen` Twins -/
@@ -1067,8 +1069,9 @@ theorem stageP2Over_qpan_cli_d3_at_full_placed_of_pathC [LibsignalPlacement] {M 
       DecPkGhost → SessionRecord (List (BitVec 8)) → List AllocEvent → Prop}
     (hPathC : StageP2PathCOverQpanCliD3FrozenAtInStmt A lim X mmpl gh W PromEnv
       P2OverErrEnv P2OverOkEnv)
-    (hPromMiss : PromoteMatchingMissGenPlacedProp A.repAlloc
-      (cliGhostExterns gh (cliExternsPlaced mmpl W)))
+    (hPromMiss : RunHooksPlaced A lim (cliGhostExterns gh (cliExternsPlaced mmpl W)) →
+      PromoteMatchingMissGenPlacedProp A.repAlloc
+        (cliGhostExterns gh (cliExternsPlaced mmpl W)))
     (hPromOver : RunHooksPlaced A lim (cliGhostExterns gh (cliExternsPlaced mmpl W)) →
       PromoteOverGenPlacedWithEnvProp M A lim PromEnv
         (cliGhostExterns gh (cliExternsPlaced mmpl W))) :
@@ -1079,7 +1082,7 @@ theorem stageP2Over_qpan_cli_d3_at_full_placed_of_pathC [LibsignalPlacement] {M 
   have hr_scope : scopeIn r :=
     hsub r (scope_of_loadRec_some hfPeer hload)
   exact hPathC B S Scope y st_b g1 r s_old s0 s1 sp rngPtr v_a8 v_b8 v_d0 Q Qpan
-    hPromMiss (hPromOver hh) hh hfits hcoins hd3False
+    (hPromMiss hh) (hPromOver hh) hh hfits hcoins hd3False
     hsub hfPeer hcur hr_scope hnot htrust hg1
     hfs hCode1 htr01 hsp1 hsp0 hsp_sub hpc1 hrun1 halign1 hregs1
     (fun sf Pf hpcf hrunf hstepsf hspf hcsf hvregsf hinvf
@@ -1103,11 +1106,11 @@ theorem decPk_d3_validOver_stage2_at_full_placedBudget [LibsignalPlacement] {M :
       (lsmpl.base 621) (withLsCl lsmpl (growOneVecU8BudgetSpec M A lim))) :
     StageP2OverQpanCliD3FrozenAtPlacedBudgetStmt A lim X mmpl gh W P2OverErrEnv P2OverOkEnv :=
   stageP2Over_qpan_cli_d3_at_full_placed_of_pathC hPathC
-    (cliPromoteMatchingMissGen_placed_ok A.repAlloc mmpl gh W)
+    (fun hh => cliPromoteMatchingMissGen_placed_ok A.repAlloc mmpl gh W hh.blackBox)
     (fun hh =>
       cliPromoteOverGen_placed_ok mmpl gh W
         ⟨hh.alloc, hh.allocFs, hh.panics, hh.memcpyRO, hh.bcmp, hh.fs, hh.utf8, hh.memrchr,
-          hh.codecHooks, hh.allocZeroed, hh.stringClone, hh.formatInner⟩
+          hh.codecHooks, hh.allocZeroed, hh.stringClone, hh.formatInner, hh.blackBox⟩
         hGrow hRaw)
 
 end LibsignalBinary.Proofs.SignalSession.Cli.D3.Budget.D3NonCanonValidOverStage2PlacedBudget

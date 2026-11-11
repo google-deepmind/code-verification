@@ -9,8 +9,10 @@ limitations under the License.
 
 module
 
+public import LibsignalBinary.Proofs.ConsumeMessageKey.FindIndexProofs.CtEqSat
 public import LibsignalBinary.Proofs.SignalSession.Cli.KitInst.IdentityKitOkPlaced
 public import LibsignalBinary.Proofs.SignalSession.Cli.Run.ReadFileHookPlaced
+public import LibsignalBinary.Proofs.SignalSession.Cli.Run.Slots.ExtraGhostSpecs
 
 /-!
 # Placed CLI Instantiation of `IdentityStoreKitPlacedOkI`
@@ -38,21 +40,14 @@ open CryptoVerification.SignalSession CryptoVerification.SignalSession.Cli
 open CryptoVerification.SignalSession.Cli.MainHops
 open CryptoVerification.SignalSession.Cli.RunGlue
 
-theorem blackBox_row_placed (mmpl : Obj.MultiPlacement) (W : CliHooks) :
-    (lsBlackBoxU8Sym, CryptoVerification.LibsignalSession.blackBoxHook) ∈
-      cliHookTablePlaced mmpl W :=
-  List.mem_append_right _ (List.mem_of_getElem? (i := 11) rfl)
-
-theorem cliExternsPlaced_blackBox (mmpl : Obj.MultiPlacement) (W : CliHooks) :
-    cliExternsPlaced mmpl W lsBlackBoxU8Sym =
-      some CryptoVerification.LibsignalSession.blackBoxHook :=
-  cliExternsPlaced_row mmpl W (blackBox_row_placed mmpl W)
-
-theorem cliGhostExterns_blackBox (mmpl : Obj.MultiPlacement) (g : CliGhostHooks) (W : CliHooks) :
-    cliGhostExterns g (cliExternsPlaced mmpl W) lsBlackBoxU8Sym =
-      some CryptoVerification.LibsignalSession.blackBoxHook :=
-  (cliGhostExterns_other g _ (by decide) (by decide) (by decide)
-    (by decide) (by decide) (by decide)).trans (cliExternsPlaced_blackBox mmpl W)
+theorem cliGhostExterns_blackBox_sat [LibsignalPlacement]
+    (mmpl : Obj.MultiPlacement) (g : CliGhostHooks) (W : CliHooks)
+    (hOk : LibsignalBinary.Proofs.SignalSession.Cli.Run.Slots.ExtraGhostSpecs.ExtraSpecOk g) :
+    HookSat (cliGhostExterns g (cliExternsPlaced mmpl W)) lsBlackBoxU8Sym
+      LibsignalBinary.Proofs.ConsumeMessageKey.FindIndexProofs.CtEqSat.blackBoxSpecSat :=
+  LibsignalBinary.Proofs.SignalSession.Cli.Run.Slots.ExtraGhostSpecs.hookSat_cliGhostExterns_of_extraOk
+    g (cliExternsPlaced mmpl W) hOk
+    (fun _ _ h => h.findReceiverBlackBox_budget_ok (by decide) (by decide))
 
 theorem cliIdentityVtablesCli_placed [LibsignalPlacement] {F0 : FsFiles} {peer : AddrGhost}
     {s1 s2 s3 s4 : Nat} (hDropNz : lsmpl.base 547 ≠ 0#64) :
@@ -61,8 +56,70 @@ theorem cliIdentityVtablesCli_placed [LibsignalPlacement] {F0 : FsFiles} {peer :
         cliIdentityVtRoSym) :=
   cliIdentityKitSpecPlaced_vtables hDropNz
 
-/-- `IdentityStoreKitPlacedRoClOkI` for CLI `IdentityFiles` at
+/-- `HookSat`-backed `IdentityStoreKitPlacedRoClOkI` for CLI `IdentityFiles` at
 `cliGhostExterns g (cliExternsPlaced mmpl W)`. -/
+theorem cliIdKitRoClOkIE_cli_placed_sat [LibsignalPlacement] (mmpl : Obj.MultiPlacement)
+    (g : CliGhostHooks) (W : CliHooks) {F0 : FsFiles}
+    {peer : AddrGhost} {readStk s1 s2 s3 s4 : Nat}
+    {vtSym : String} {readProg : Program} {jRead : Nat}
+    [IsLsBlockProg readProg jRead (cliGhostExterns g (cliExternsPlaced mmpl W))]
+    (hDropNz : lsmpl.base 547 ≠ 0#64)
+    (hOk : LibsignalBinary.Proofs.SignalSession.Cli.Run.Slots.ExtraGhostSpecs.ExtraSpecOk g)
+    (hh : RunSkeleton.RunHooksPlaced E2E.HooksE.A0
+      (cliGhostExterns g (cliExternsPlaced mmpl W)))
+    (hRead : subroutine_ok readProg (lsρ lsReadFileSym)
+      (readFileSpecPlaced cliIo.rd cliWrOk E2E.HooksE.A0 readStk))
+    (hs1 : trustShimNeedPlaced ≤ s1) (hs2 : trustPollNeedPlaced readStk ≤ s2)
+    (hs3 : saveShimNeedPlaced ≤ s3) (hs4 : savePollNeedPlaced readStk ≤ s4)
+    (hjRead : jRead < 619 := by decide)
+    (hjRead_unmut : (jRead ∈ libsignalMutatedBlocks) = false := by decide) :
+    IdentityStoreKitPlacedRoClOkI
+      (cliIdentityKitSpecPlaced E2E.HooksE.A0 cliIo.rd F0 cliWrOk peer s1 s2 s3 s4 vtSym)
+      (cliGhostExterns g (cliExternsPlaced mmpl W)) :=
+  cliIdKitRoClOkIE_placed_sat
+    (readProg := readProg)
+    (jRead := jRead)
+    hDropNz
+    (fun _ hp => hp.2)
+    hh
+    (RunSkeleton.cliReadFilePlaced_rocl_ok mmpl g W readStk hRead)
+    (cliGhostExterns_blackBox_sat mmpl g W hOk)
+    hs1 hs2 hs3 hs4
+    hjRead hjRead_unmut
+
+/-- `HookSat`-backed `IdentityStoreKitPlacedOkI` for CLI `IdentityFiles` at
+`cliGhostExterns g (cliExternsPlaced mmpl W)`. -/
+theorem cliIdKitOkIE_cli_placed_sat [LibsignalPlacement] (mmpl : Obj.MultiPlacement)
+    (g : CliGhostHooks) (W : CliHooks) {F0 : FsFiles}
+    {peer : AddrGhost} {readStk s1 s2 s3 s4 : Nat}
+    {vtSym : String} {readProg : Program} {jRead : Nat}
+    [IsLsBlockProg readProg jRead (cliGhostExterns g (cliExternsPlaced mmpl W))]
+    (hDropNz : lsmpl.base 547 ≠ 0#64)
+    (hOk : LibsignalBinary.Proofs.SignalSession.Cli.Run.Slots.ExtraGhostSpecs.ExtraSpecOk g)
+    (hh : RunSkeleton.RunHooksPlaced E2E.HooksE.A0
+      (cliGhostExterns g (cliExternsPlaced mmpl W)))
+    (hRead : subroutine_ok readProg (lsρ lsReadFileSym)
+      (readFileSpecPlaced cliIo.rd cliWrOk E2E.HooksE.A0 readStk))
+    (hs1 : trustShimNeedPlaced ≤ s1) (hs2 : trustPollNeedPlaced readStk ≤ s2)
+    (hs3 : saveShimNeedPlaced ≤ s3) (hs4 : savePollNeedPlaced readStk ≤ s4)
+    (hjRead : jRead < 619 := by decide)
+    (hjRead_unmut : (jRead ∈ libsignalMutatedBlocks) = false := by decide) :
+    IdentityStoreKitPlacedOkI
+      (cliIdentityKitSpecPlaced E2E.HooksE.A0 cliIo.rd F0 cliWrOk peer s1 s2 s3 s4 vtSym)
+      (cliGhostExterns g (cliExternsPlaced mmpl W)) :=
+  cliIdKitOkIE_placed_sat
+    (readProg := readProg)
+    (jRead := jRead)
+    hDropNz
+    (fun _ hp => hp.2)
+    hh
+    (RunSkeleton.cliReadFilePlaced_rocl_ok mmpl g W readStk hRead)
+    (cliGhostExterns_blackBox_sat mmpl g W hOk)
+    hs1 hs2 hs3 hs4
+    hjRead hjRead_unmut
+
+/-- `IdentityStoreKitPlacedRoClOkI` for CLI `IdentityFiles` at
+`cliGhostExterns g (cliExternsPlaced mmpl W)` (via `hh.blackBox`). -/
 theorem cliIdKitRoClOkIE_cli_placed [LibsignalPlacement] (mmpl : Obj.MultiPlacement)
     (g : CliGhostHooks) (W : CliHooks) {F0 : FsFiles}
     {peer : AddrGhost} {readStk s1 s2 s3 s4 : Nat}
@@ -80,19 +137,19 @@ theorem cliIdKitRoClOkIE_cli_placed [LibsignalPlacement] (mmpl : Obj.MultiPlacem
     IdentityStoreKitPlacedRoClOkI
       (cliIdentityKitSpecPlaced E2E.HooksE.A0 cliIo.rd F0 cliWrOk peer s1 s2 s3 s4 vtSym)
       (cliGhostExterns g (cliExternsPlaced mmpl W)) :=
-  cliIdKitRoClOkIE_placed
+  cliIdKitRoClOkIE_placed_sat
     (readProg := readProg)
     (jRead := jRead)
     hDropNz
     (fun _ hp => hp.2)
     hh
     (RunSkeleton.cliReadFilePlaced_rocl_ok mmpl g W readStk hRead)
-    (cliGhostExterns_blackBox mmpl g W)
+    hh.blackBox
     hs1 hs2 hs3 hs4
     hjRead hjRead_unmut
 
 /-- `IdentityStoreKitPlacedOkI` for CLI `IdentityFiles` at
-`cliGhostExterns g (cliExternsPlaced mmpl W)`. -/
+`cliGhostExterns g (cliExternsPlaced mmpl W)` (via `hh.blackBox`). -/
 theorem cliIdKitOkIE_cli_placed [LibsignalPlacement] (mmpl : Obj.MultiPlacement)
     (g : CliGhostHooks) (W : CliHooks) {F0 : FsFiles}
     {peer : AddrGhost} {readStk s1 s2 s3 s4 : Nat}
@@ -110,14 +167,14 @@ theorem cliIdKitOkIE_cli_placed [LibsignalPlacement] (mmpl : Obj.MultiPlacement)
     IdentityStoreKitPlacedOkI
       (cliIdentityKitSpecPlaced E2E.HooksE.A0 cliIo.rd F0 cliWrOk peer s1 s2 s3 s4 vtSym)
       (cliGhostExterns g (cliExternsPlaced mmpl W)) :=
-  cliIdKitOkIE_placed
+  cliIdKitOkIE_placed_sat
     (readProg := readProg)
     (jRead := jRead)
     hDropNz
     (fun _ hp => hp.2)
     hh
     (RunSkeleton.cliReadFilePlaced_rocl_ok mmpl g W readStk hRead)
-    (cliGhostExterns_blackBox mmpl g W)
+    hh.blackBox
     hs1 hs2 hs3 hs4
     hjRead hjRead_unmut
 
@@ -125,7 +182,8 @@ end CryptoVerification.SignalSession.Cli.KitInst.IdKit
 
 namespace CryptoVerification.SignalSession.Cli.KitInst
 
-export IdKit (cliExternsPlaced_blackBox cliGhostExterns_blackBox cliIdentityVtablesCli_placed
+export IdKit (cliGhostExterns_blackBox_sat cliIdentityVtablesCli_placed
+  cliIdKitRoClOkIE_cli_placed_sat cliIdKitOkIE_cli_placed_sat
   cliIdKitRoClOkIE_cli_placed cliIdKitOkIE_cli_placed)
 
 end CryptoVerification.SignalSession.Cli.KitInst

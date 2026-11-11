@@ -83,7 +83,7 @@ open CryptoVerification.SignalSession.Cli.RunCompose (
   DecPkGhost RunNeeds RunSem decResAt dpSlotArgsPlaced mkSlot slotOut slotTrace
 )
 open CryptoVerification.SignalSession.Cli.RunGlue (
-  CliGhostHooks cliExternsPlaced_row cliGhostExterns cliGhostExterns_other
+  CliGhostHooks cliGhostExterns
 )
 open CryptoVerification.SignalSession.Cli.RunProofs (dpCxAt dpFutStartAt)
 open CryptoVerification.SignalSession.Cli.RunProofs.Poll (
@@ -92,7 +92,7 @@ open CryptoVerification.SignalSession.Cli.RunProofs.Poll (
 )
 open CryptoVerification.SignalSession.Cli.RunSkeleton (CalleeSlot.OkPlaced RunBudgets)
 open CryptoVerification.SignalSession.Cli.Slots (
-  FilesOkPeer blackBox_row_placed scopeIn scopeKit
+  FilesOkPeer scopeIn scopeKit
 )
 open LibsignalBinary.Heap (AllocCostModel AllocEvent BudgetLimits FitsEnv RustCliAllocBudget)
 open LibsignalBinary.Proofs.PeakBudget.CliDpPollTrustedWideBridge (not_fitsEnv_top)
@@ -132,7 +132,7 @@ open LibsignalBinary.Proofs.SignalSession.Cli.Run.Proofs.DecryptPrekey.Poll.Stag
   cliPollIdBudgetEnv cliPollSessBudgetEnv cliPollSessSeqFreeBudgetEnv
 )
 open LibsignalBinary.Proofs.SignalSession.Cli.Run.Proofs.Ratchet.DecryptLemmas.InnerInstPlacedBudgetFd (
-  cliIdKitOkIE_of_dirGet cliSessKitOkSE_of_dirGet cliSessKitOkSE_seqFree_of_dirGet
+  cliIdKitOkIE_of_dirGet_sat cliSessKitOkSE_of_dirGet cliSessKitOkSE_seqFree_of_dirGet
 )
 open LibsignalBinary.Proofs.SignalSession.Cli.Run.Proofs.Ratchet.DecryptLemmas.TopPlacedBudgetFd (
   slotFramePlaced_withFds_enforced
@@ -158,7 +158,7 @@ open LibsignalBinary.Proofs.SignalSession.Cli.Store.SerSeqFreePlacedBudget (
   serializeCanonSeqFree_placed_ok_of_serContractsX
 )
 
-/-! ## 1. `RunHooksPlaced` Bridge & `blackBox` Row Lookup -/
+/-! ## 1. `RunHooksPlaced` Bridge -/
 
 theorem toSkeletonRunHooks [LibsignalPlacement] {M : AllocCostModel}
     {A : RustCliAllocBudget M} {lim : BudgetLimits} {ext : LibsignalHooks}
@@ -167,16 +167,7 @@ theorem toSkeletonRunHooks [LibsignalPlacement] {M : AllocCostModel}
   { alloc := hh.alloc, allocFs := hh.allocFs, panics := hh.panics, memcpyRO := hh.memcpyRO,
     bcmp := hh.bcmp, fs := hh.fs, utf8 := hh.utf8, memrchr := hh.memrchr,
     codecHooks := hh.codecHooks, allocZeroed := hh.allocZeroed, stringClone := hh.stringClone,
-    formatInner := hh.formatInner }
-
-private theorem cliGhostExterns_blackBox_row (mmpl : Obj.MultiPlacement)
-    (gh : CliGhostHooks) (W : CliHooks) :
-    cliGhostExterns gh (cliExternsPlaced mmpl W) CryptoVerification.lsBlackBoxU8Sym =
-      some CryptoVerification.LibsignalSession.blackBoxHook :=
-  (cliGhostExterns_other gh (cliExternsPlaced mmpl W)
-    (by decide) (by decide) (by decide) (by decide)
-    (by decide) (by decide) (by decide) (by decide)).trans
-    (cliExternsPlaced_row mmpl W (blackBox_row_placed mmpl W))
+    formatInner := hh.formatInner, blackBox := hh.blackBox }
 
 /-- Discharges the unused `_hread` hypothesis in `StageP2MatchedFramedCliPlacedStmt` (where
 `StageP2Matched` performs zero `read_file` calls and `ReadEnv` appears nowhere else in the
@@ -243,7 +234,7 @@ theorem cliPollId_kitPlacedOkI_untrusted_of_dirGet [LibsignalPlacement]
         A.repAlloc F0 peer B ReadEnv)
       (cliGhostExterns gh (cliExternsPlaced mmpl W)) :=
   cliIdKitPlacedOkI_full
-    (cliIdKitOkIE_of_dirGet hDropNz hh hGet (cliGhostExterns_blackBox_row mmpl gh W)
+    (cliIdKitOkIE_of_dirGet_sat hDropNz hh hGet hh.blackBox
       (Nat.le_refl _) (Nat.le_refl _) (Nat.le_refl _) (Nat.le_refl _))
 
 theorem cliPollSess_kitPlacedOkSE_of_dirGet [LibsignalPlacement] {M : AllocCostModel}

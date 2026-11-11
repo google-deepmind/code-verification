@@ -50,7 +50,6 @@ open CryptoVerification (
 )
 open CryptoVerification.RustHeap (RustAlloc arrayAt arrayAt_concat arrayAt_nil vecAt vecBuf vecHeader vecOf vecU8 vecU8At)
 open CryptoVerification.LibsignalProtoCodec (encodeVarint)
-open CryptoVerification.LibsignalTripleRatchet (extHookStack)
 open CryptoVerification.LibsignalTripleRatchet.Prost (sliceCursorAfter sliceCursorAt)
 open CryptoVerification.LibsignalPublicApi.StoreKit (
   LibsignalCodeRoLoaded withLsCodeRoLoaded
@@ -63,7 +62,7 @@ open CryptoVerification.SignalSession.Cli.RunGlue (
   CliGhostHooks cliGhostExterns cliGhostExterns_shim
 )
 open CryptoVerification.SignalSession.Cli.Slots (
-  cliGhostExterns_panic_handle_error cliGhostExterns_sat_of_cliExternsPlaced
+  cliGhostExterns_panic_handle_error
 )
 open CryptoVerification.E2E.Record (pbBytes pbVarint)
 open CryptoVerification.E2E.Record.DeserializeSeed (
@@ -101,7 +100,6 @@ open LibsignalBinary.Proofs.TripleRatchet.Alloc.DefsBudget (
   finishGrowStackX framelessMemcpyBudgetSpec framelessMemcpy_hookOk
   noAllocShimBudgetSpec noAllocShim_hookOk
 )
-open LibsignalBinary.Proofs.TripleRatchet.Hooks.DefsBudget (sessionMemmoveBudgetSpec)
 open LibsignalBinary.Proofs.SessionRecordAt.Stage1X.GrowOneXBudget (
   GrowOne104Env growOne104Events growOne104SpecX growOneChainSpecX
 )
@@ -112,7 +110,7 @@ open LibsignalBinary.Proofs.SignalSession.Cli.Main.Proofs.AllocFsA1Budget (CliAl
 open LibsignalBinary.Proofs.SignalSession.Cli.Run.Slots.CliHookSatPlacedBudget (
   CliGhostAllocHooks bumpGhost
   cliExternsPlaced_alloc_budget_sat cliExternsPlaced_dealloc_budget_sat
-  cliExternsPlaced_realloc_budget_sat cliExternsPlaced_sessionMemmove_budget_sat
+  cliExternsPlaced_realloc_budget_sat
 )
 open LibsignalBinary.Proofs.SignalSession.Cli.Store.SerGlueXCliPlacedBudget (
   cliAllocHooks_to_bumpGhost
@@ -1198,11 +1196,10 @@ theorem overPrevDecode_cro_placed_of_hooks [LibsignalPlacement] {M : AllocCostMo
     (hrealloc : HookSat ext lsRustReallocSym (rustCliReallocBudgetSpec M A lim))
     (hdealloc : HookSat ext lsRustDeallocSym (rustCliDeallocBudgetSpec M A lim))
     (hmc : HookSat ext lsMemcpySym framelessMemcpyBudgetSpec)
-    (hmemmove : HookSat ext "memmove" (sessionMemmoveBudgetSpec extHookStack))
     (hpanic_raw : ext lsHandleErrorSym = some Rust.panicked) :
     OverPrevDecodeCroPlacedAt A lim ext :=
   overPrevDecode_cro_placed_of_hooks_chain5
-    hshim halloc hrealloc hdealloc hmc hmemmove hpanic_raw
+    hshim halloc hrealloc hdealloc hmc hpanic_raw
     (chainMerge5CroPlacedOkExt_of_hooks hshim halloc hrealloc hdealloc hmc hpanic_raw)
 
 theorem overPrevDecode_cro_placed_cli [LibsignalPlacement]
@@ -1218,8 +1215,6 @@ theorem overPrevDecode_cro_placed_cli [LibsignalPlacement]
     ((show lsRustDeallocSymCli = lsRustDeallocSym by decide) ▸
       cliExternsPlaced_dealloc_budget_sat mmpl gh W hA)
     (cli_framelessMemcpy_sat mmpl gh W hA)
-    (cliGhostExterns_sat_of_cliExternsPlaced mmpl gh W
-      (cliExternsPlaced_sessionMemmove_budget_sat mmpl W extHookStack))
     (cliGhostExterns_panic_handle_error mmpl gh W)
 
 theorem overPrevDecode_cro_placed_of_cliHooks [LibsignalPlacement]

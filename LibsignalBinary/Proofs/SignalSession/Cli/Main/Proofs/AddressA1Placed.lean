@@ -77,19 +77,4 @@ theorem address_placed_ok_a1_of_hooks [LibsignalPlacement] {A : RustAlloc}
     exact ls_hook_ok_ultra_of_mem hsat (by decide)
   exact subroutine_ok_rocl_of_plain hplain
 
-theorem address_placed_ok_a1 [LibsignalPlacement] {A : RustAlloc}
-    (mmpl : Obj.MultiPlacement) (W : CliHooks)
-    (hFs : AllocContractsFsPlaced A (cliExternsPlaced mmpl W)) {resStack : Nat}
-    (hres : 0xB0 + extHookStack ≤ resStack) (hres64 : resStack ≤ 2 ^ 63) :
-    subroutine_ok (lsProg_617 (cliExternsPlaced mmpl W)) (lsmpl.base 580)
-      (withLsRoCl lsmpl (addressSpec A uuidTryParse resStack)) :=
-  address_placed_ok_a1_of_hooks
-    hFs
-    (by
-      simp only [cliExternsPlaced, lsHandleErrorSym580, isCliPanicSymbolPlaced,
-        cliPanicSymbolsPlaced, List.contains_cons, beq_self_eq_true, Bool.true_or, Bool.or_true,
-        ↓reduceIte])
-    (cliExternsPlaced_memrchr mmpl W)
-    hres hres64
-
 end CryptoVerification.SignalSession.Cli.MainHops

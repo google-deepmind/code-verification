@@ -203,9 +203,6 @@ structure Stage2ContractsA0Placed [LibsignalPlacement] (H : LibsignalHooks) : Pr
   memcpyROX : ∀ {callerProg : Program} {callerBlk : Nat} [IsLsBlockProg callerProg callerBlk H],
     subroutine_ok callerProg (lsρ "memcpy")
       (withLsCl lsmpl sessionMemcpyROXSpec)
-  memmove : ∀ {callerProg : Program} {callerBlk : Nat} [IsLsBlockProg callerProg callerBlk H],
-    subroutine_ok callerProg (lsρ "memmove")
-      (withLsCl lsmpl (sessionMemmoveSpec CryptoVerification.LibsignalTripleRatchet.extHookStack))
   memset : ∀ {callerProg : Program} {callerBlk : Nat} [IsLsBlockProg callerProg callerBlk H],
     subroutine_ok callerProg (lsρ "memset")
       (withLsCl lsmpl (sessionMemsetSpec CryptoVerification.LibsignalTripleRatchet.extHookStack))
@@ -233,8 +230,6 @@ theorem Stage2ContractsA0Placed.of_block0 [LibsignalPlacement] {H : LibsignalHoo
       (withLsCodeLoaded lsmpl (sessionMemcpySpec CryptoVerification.LibsignalTripleRatchet.extHookStack)))
     (hmemcpyROX : subroutine_ok blk0Prog (lsρ "memcpy")
       (withLsCodeLoaded lsmpl sessionMemcpyROXSpec))
-    (hmemmove : subroutine_ok blk0Prog (lsρ "memmove")
-      (withLsCodeLoaded lsmpl (sessionMemmoveSpec CryptoVerification.LibsignalTripleRatchet.extHookStack)))
     (hmemset : subroutine_ok blk0Prog (lsρ "memset")
       (withLsCodeLoaded lsmpl (sessionMemsetSpec CryptoVerification.LibsignalTripleRatchet.extHookStack)))
     (hbcmp : subroutine_ok blk0Prog (lsρ "bcmp")
@@ -249,7 +244,6 @@ theorem Stage2ContractsA0Placed.of_block0 [LibsignalPlacement] {H : LibsignalHoo
   shim := ls_subroutine_ok_cl_of_callee (j := 0) hshim
   memcpy := ls_subroutine_ok_cl_of_callee (j := 0) hmemcpy
   memcpyROX := ls_subroutine_ok_cl_of_callee (j := 0) hmemcpyROX
-  memmove := ls_subroutine_ok_cl_of_callee (j := 0) hmemmove
   memset := ls_subroutine_ok_cl_of_callee (j := 0) hmemset
   bcmp := ls_subroutine_ok_cl_of_callee (j := 0) hbcmp
   panic_handle_error := hpan_err
@@ -264,8 +258,6 @@ theorem Stage2ContractsA0Placed.of_hooks [LibsignalPlacement] {H : LibsignalHook
     (hmemcpy : HookSat H "memcpy"
       (sessionMemcpySpec CryptoVerification.LibsignalTripleRatchet.extHookStack))
     (hmemcpyROX : HookSat H "memcpy" sessionMemcpyROXSpec)
-    (hmemmove : HookSat H "memmove"
-      (sessionMemmoveSpec CryptoVerification.LibsignalTripleRatchet.extHookStack))
     (hmemset : HookSat H "memset"
       (sessionMemsetSpec CryptoVerification.LibsignalTripleRatchet.extHookStack))
     (hbcmp : HookSat H "bcmp" CryptoVerification.E2E.HooksE.e2eBcmpSpec)
@@ -291,7 +283,6 @@ theorem Stage2ContractsA0Placed.of_hooks [LibsignalPlacement] {H : LibsignalHook
     exact subroutine_ok_withLsCl_withHookStack_mono (by decide) (by decide) h0
   memcpy := ls_subroutine_ok_cl_of_plain_prog (ls_hook_ok_of_caller hmemcpy)
   memcpyROX := ls_subroutine_ok_cl_of_plain_prog (ls_hook_ok_of_caller hmemcpyROX)
-  memmove := ls_subroutine_ok_cl_of_plain_prog (ls_hook_ok_of_caller hmemmove)
   memset := ls_subroutine_ok_cl_of_plain_prog (ls_hook_ok_of_caller hmemset)
   bcmp := ls_subroutine_ok_cl_of_plain_prog (ls_hook_ok_of_caller hbcmp)
   panic_handle_error := hpan_err

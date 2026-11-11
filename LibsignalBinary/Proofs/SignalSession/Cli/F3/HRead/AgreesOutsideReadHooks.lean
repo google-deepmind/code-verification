@@ -49,7 +49,7 @@ open CryptoVerification.LibsignalPublicApi.StoreKit
    subroutine_ok_withLsCodeRoLoaded_of_plain
    withLsCodeRoLoaded withLsRoCl)
 open CryptoVerification.LibsignalTripleRatchet
-  (HkdfPlacedHooks extHookStack lsMemcpySym lsMemsetSym memcpyName memmoveName memsetName)
+  (HkdfPlacedHooks extHookStack lsMemcpySym lsMemsetSym memcpyName memsetName)
 open CryptoVerification.SignalSession
   (CliHooks cliExternsPlaced cliPanicSymbolsPlaced lsBlackBoxSym lsCompress256Sym
    lsDiffieHellmanSym lsDurationSinceSym lsFormatInnerSym lsFromUtf8Sym lsMemrchrSym
@@ -58,20 +58,19 @@ open CryptoVerification.SignalSession
    lsStaticSecretDropSym lsStringCloneSym)
 open CryptoVerification.SignalSession.Cli (cliBcmpName)
 open CryptoVerification.SignalSession.Cli.MainHops
-  (cliIo cliRunBudgets cliWrOk hookMemmove_fs hookNoop_fs)
+  (cliIo cliRunBudgets cliWrOk hookNoop_fs)
 open CryptoVerification.SignalSession.Cli.Run.Placed (lsProg_579)
 open CryptoVerification.SignalSession.Cli.RunCompose (InitGhost RunNeeds RunSem)
 open CryptoVerification.SignalSession.Cli.RunGlue
-  (CliGhostHooks CliGhostHooksFs FsTHooks IsFsC cliExternsPlaced_row cliGhostExterns
+  (CliGhostHooks CliGhostHooksFs FsTHooks IsFsC cliGhostExterns cliGhostExternsWithExtra
    cliGhostExterns_alloc cliGhostExterns_dealloc cliGhostExterns_memcpy_some
-   cliGhostExterns_memset_some cliGhostExterns_other cliGhostExterns_realloc
-   cliGhostExterns_shim fsTHooks_cliExternsPlaced fsTHooks_cliGhostExterns_of_fs fsTHooks_none
-   fsT_externAt hookSat_of_eq panicked_fsT traceFsSound_of_fsTHooks)
+   cliGhostExterns_memset_some cliGhostExterns_realloc cliGhostExterns_shim
+   fsTHooks_cliExternsPlaced fsTHooks_cliGhostExterns_of_fs fsTHooks_none fsT_externAt
+   hookSat_of_eq panicked_fsT traceFsSound_of_fsTHooks)
 open CryptoVerification.SignalSession.Cli.RunProofs (InitOk₀ cliInitiateNeed initDef)
 open CryptoVerification.SignalSession.Cli.RunProofs.Initiate (lsKemEncapsSym)
 open CryptoVerification.SignalSession.Cli.RunSkeleton (CalleeSlot.OkPlaced)
-open CryptoVerification.SignalSession.Cli.Slots
-  (cliGhostExterns_sat_of_cliExternsPlaced filesOk₀ memmove_row_placed scopeIn)
+open CryptoVerification.SignalSession.Cli.Slots (filesOk₀ scopeIn)
 open LibsignalBinary.Heap (AllocCostModel AllocEvent BudgetLimits RustCliAllocBudget)
 open LibsignalBinary.Proofs.RecordCodecs.DepsBudget (CodecHooksPlaced)
 open LibsignalBinary.Proofs.SessionRecordAt.Hooks2.SerDefsXBudget (SerContractsXPlaced)
@@ -86,10 +85,9 @@ open LibsignalBinary.Proofs.SignalSession.Cli.Run.Slots.CliHookSatPlacedBudget
   (CliGhostAllocHooks allocContractsFsPlaced_of_hookSat allocContractsXCliPlaced_of_hookSat
    cliExternsPlaced_alloc_budget_sat cliExternsPlaced_dealloc_budget_sat
    cliExternsPlaced_memcpyRegionRO_budget_sat cliExternsPlaced_memcpyRegion_budget_sat
-   cliExternsPlaced_memcpy_budget_sat cliExternsPlaced_memmove_budget_sat
-   cliExternsPlaced_memsetRegion_budget_sat cliExternsPlaced_memset_budget_sat
-   cliExternsPlaced_realloc_budget_sat cliExternsPlaced_sessionMemcpyRegion_budget_sat
-   cliExternsPlaced_sessionMemcpy_budget_sat cliExternsPlaced_sessionMemmove_budget_sat
+   cliExternsPlaced_memcpy_budget_sat cliExternsPlaced_memsetRegion_budget_sat
+   cliExternsPlaced_memset_budget_sat cliExternsPlaced_realloc_budget_sat
+   cliExternsPlaced_sessionMemcpyRegion_budget_sat cliExternsPlaced_sessionMemcpy_budget_sat
    cliExternsPlaced_sessionMemsetRegion_budget_sat cliExternsPlaced_sessionMemset_budget_sat
    cliExternsPlaced_shim_budget_sat)
 open LibsignalBinary.Proofs.SignalSession.Cli.SpecsPlacedBudget
@@ -188,7 +186,7 @@ theorem agreesOutsideReadHooks_cliGhost_updateRead (mmpl : Obj.MultiPlacement)
     AgreesOutsideReadHooks mmpl gh W
       (cliGhostExterns { gh with readFile := rf, readStdin := rs } (cliExternsPlaced mmpl W)) := by
   intro s hFile hStdin
-  unfold cliGhostExterns
+  unfold cliGhostExterns cliGhostExternsWithExtra
   simp [beq_eq_false_iff_ne.mpr hFile, beq_eq_false_iff_ne.mpr hStdin]
 
 theorem AgreesOutsideReadHooks.hookSat {α : Type} {mmpl : Obj.MultiPlacement} {gh : CliGhostHooks}
@@ -384,12 +382,6 @@ theorem allocContractsXCliPlaced_of_agreesOutsideReadHooks [LibsignalPlacement]
       (cliExternsPlaced_memcpyRegion_budget_sat mmpl gh W hG))
     (hAgree.hookSat
       (cliExternsPlaced_sessionMemcpyRegion_budget_sat mmpl gh W hG))
-    (fun stk => hAgree.hookSat
-      (cliGhostExterns_sat_of_cliExternsPlaced mmpl gh W
-        (cliExternsPlaced_memmove_budget_sat mmpl W stk)))
-    (fun stk => hAgree.hookSat
-      (cliGhostExterns_sat_of_cliExternsPlaced mmpl gh W
-        (cliExternsPlaced_sessionMemmove_budget_sat mmpl W stk)))
     (fun stk hpos => hAgree.hookSat
       (cliExternsPlaced_memset_budget_sat mmpl gh W hG stk hpos))
     (fun stk hpos => hAgree.hookSat
@@ -420,12 +412,6 @@ theorem allocContractsFsPlaced_of_agreesOutsideReadHooks [LibsignalPlacement]
       (cliExternsPlaced_sessionMemcpyRegion_budget_sat mmpl gh W hG))
     (hAgree.hookSat
       (cliExternsPlaced_memcpyRegionRO_budget_sat mmpl gh W hG))
-    (fun stk => hAgree.hookSat
-      (cliGhostExterns_sat_of_cliExternsPlaced mmpl gh W
-        (cliExternsPlaced_memmove_budget_sat mmpl W stk)))
-    (fun stk => hAgree.hookSat
-      (cliGhostExterns_sat_of_cliExternsPlaced mmpl gh W
-        (cliExternsPlaced_sessionMemmove_budget_sat mmpl W stk)))
     (fun stk hpos => hAgree.hookSat
       (cliExternsPlaced_memset_budget_sat mmpl gh W hG stk hpos))
     (fun stk hpos => hAgree.hookSat
@@ -437,7 +423,7 @@ theorem allocContractsFsPlaced_of_agreesOutsideReadHooks [LibsignalPlacement]
     (by
       intro sym hmem f hf s
       simp only [List.mem_cons, List.not_mem_nil, or_false] at hmem
-      rcases hmem with rfl | rfl | rfl | rfl | rfl | rfl | rfl
+      rcases hmem with rfl | rfl | rfl | rfl | rfl | rfl
       · rw [hAgree _ (by decide) (by decide), cliGhostExterns_alloc] at hf
         cases hf; exact hG.alloc_fs s
       · rw [hAgree _ (by decide) (by decide), cliGhostExterns_dealloc] at hf
@@ -451,11 +437,6 @@ theorem allocContractsFsPlaced_of_agreesOutsideReadHooks [LibsignalPlacement]
           show memcpyName = lsMemcpySym from rfl,
           cliGhostExterns_memcpy_some gh _ hf₀] at hf
         cases hf; exact hfs₀ s
-      · rw [hAgree _ (by decide) (by decide),
-          cliGhostExterns_other gh _ (by decide) (by decide) (by decide)
-            (by decide) (by decide) (by decide),
-          cliExternsPlaced_row mmpl W (memmove_row_placed mmpl W)] at hf
-        cases hf; exact hookMemmove_fs s
       · obtain ⟨f₀, hf₀, _, _, _, _, _, hfs₀, _⟩ := hG.memset
         rw [hAgree _ (by decide) (by decide),
           show memsetName = lsMemsetSym from rfl,
@@ -487,9 +468,6 @@ theorem serContractsXPlaced_of_agreesOutsideReadHooks [LibsignalPlacement]
     (hAgree.hookSat (cliExternsPlaced_dealloc_budget_sat mmpl gh W hG))
     (hAgree.hookSat (cliExternsPlaced_realloc_budget_sat mmpl gh W hG))
     (hAgree.hookSat (cliExternsPlaced_shim_budget_sat mmpl gh W hG.shim_eq))
-    (hAgree.hookSat
-      (cliGhostExterns_sat_of_cliExternsPlaced mmpl gh W
-        (cliExternsPlaced_sessionMemmove_budget_sat mmpl W extHookStack)))
     (hAgree.hookSat
       (cliExternsPlaced_sessionMemcpy_budget_sat mmpl gh W hG extHookStack))
 
@@ -531,11 +509,12 @@ theorem skeletonRunHooksPlaced_of_agreesOutsideReadHooks [LibsignalPlacement] {M
   bcmp := hAgree.hookSat h0.bcmp
   fs prog i hprog := @traceFsSound_of_fsTHooks_lsProg _ H hFs prog i hprog
   utf8 stk := hAgree.hookSat (h0.utf8 stk)
-  memrchr stk := hAgree.hookSat (h0.memrchr stk)
+  memrchr := hAgree.hookSat h0.memrchr
   codecHooks := codecHooksPlaced_of_agreesOutsideReadHooks hAgree h0.codecHooks
   allocZeroed := hAgree.hookSat h0.allocZeroed
   stringClone := hAgree.hookSat h0.stringClone
   formatInner := hAgree.hookSat h0.formatInner
+  blackBox := hAgree.hookSat h0.blackBox
 
 theorem w3RunHooksPlaced_of_agreesOutsideReadHooks [LibsignalPlacement] {M : AllocCostModel}
     {A : RustCliAllocBudget M} {lim : BudgetLimits}
@@ -570,13 +549,13 @@ theorem w3RunHooksPlaced_of_agreesOutsideReadHooks [LibsignalPlacement] {M : All
   dh := hAgree.hookSat h0.dh
   sharedDrop := hAgree.hookSat h0.sharedDrop
   staticDrop := hAgree.hookSat h0.staticDrop
-  blackBox := (hAgree _ (by decide) (by decide)).trans h0.blackBox
+  blackBox := hAgree.hookSat h0.blackBox
   hkdf := let ⟨f, hf, hex⟩ := h0.hkdf.memcpy
     { memset := hAgree.hookSat h0.hkdf.memset
       memcpy := ⟨f, (hAgree _ (by decide) (by decide)).trans hf, hex⟩
       compress256 := (hAgree _ (by decide) (by decide)).trans h0.hkdf.compress256 }
   kemEncaps := (hAgree _ (by decide) (by decide)).trans h0.kemEncaps
-  durationSince := (hAgree _ (by decide) (by decide)).trans h0.durationSince
+  durationSince := hAgree.hookSat h0.durationSince
   panic_alloc := (hAgree _ (by decide) (by decide)).trans h0.panic_alloc
   panic_raw := (hAgree _ (by decide) (by decide)).trans h0.panic_raw
   panic_sym := panic_of_mem_cliPanicSymbolsPlaced hAgree h0.panic_sym

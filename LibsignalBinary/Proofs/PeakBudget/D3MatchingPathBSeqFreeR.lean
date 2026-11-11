@@ -109,7 +109,7 @@ open CryptoVerification.LibsignalTripleRatchetRepr
    uuidTryParse vecResultAt)
 open CryptoVerification.RustHeap (RustAlloc)
 open CryptoVerification.SignalSession
-  (CliHooks cliExternsPlaced isCliPanicSymbolPlaced lsReadFileSym)
+  (CliHooks cliExternsPlaced lsReadFileSym)
 open CryptoVerification.SignalSession.Cli
   (StoresGhost cliIdentityVtSym cliKyberPreKeyVtSym cliPreKeyVtSym cliSessionVtSym
    cliSignedPreKeyVtSym dirAt)
@@ -122,7 +122,7 @@ open CryptoVerification.SignalSession.Cli.Run.Placed (lsProg_579)
 open CryptoVerification.SignalSession.Cli.RunCompose
   (DecPkGhost RunNeeds RunSem decResAt dpPollNeed dpSlotArgsPlaced mkSlot slotOutTr)
 open CryptoVerification.SignalSession.Cli.RunGlue
-  (CliGhostHooks cliGhostExterns cliGhostExterns_other)
+  (CliGhostHooks cliGhostExterns withPanics_cliGhostExterns)
 open CryptoVerification.SignalSession.Cli.RunProofs
   (SessMatchesPm cliDecryptPrekeyNeed decPkDef dpCxAt dpFutDoneAt dpFutStartAt dpWrapFrame)
 open CryptoVerification.SignalSession.Cli.RunProofs.Poll
@@ -2069,31 +2069,13 @@ private theorem e2c_toSkeletonRunHooks [LibsignalPlacement] {M : AllocCostModel}
   { alloc := hh.alloc, allocFs := hh.allocFs, panics := hh.panics, memcpyRO := hh.memcpyRO,
     bcmp := hh.bcmp, fs := hh.fs, utf8 := hh.utf8, memrchr := hh.memrchr,
     codecHooks := hh.codecHooks, allocZeroed := hh.allocZeroed, stringClone := hh.stringClone,
-    formatInner := hh.formatInner }
+    formatInner := hh.formatInner, blackBox := hh.blackBox }
 
 private theorem e2c_withPanics_cliGhostExterns_eq (mmpl : Obj.MultiPlacement)
     (gh : CliGhostHooks) (W : CliHooks) :
     Rust.withPanics (cliGhostExterns gh (cliExternsPlaced mmpl W)) =
-      cliGhostExterns gh (cliExternsPlaced mmpl W) := by
-  funext name
-  by_cases hp : Rust.isPanicSymbol name = true
-  · have hother : cliGhostExterns gh (cliExternsPlaced mmpl W) name = cliExternsPlaced mmpl W name :=
-      cliGhostExterns_other gh (cliExternsPlaced mmpl W)
-        (fun h => by subst h; simp [Rust.isPanicSymbol, CryptoVerification.SignalSession.lsRustAllocSymCli] at hp)
-        (fun h => by subst h; simp [Rust.isPanicSymbol, CryptoVerification.SignalSession.lsRustDeallocSymCli] at hp)
-        (fun h => by subst h; simp [Rust.isPanicSymbol, CryptoVerification.SignalSession.lsRustReallocSymCli] at hp)
-        (fun h => by subst h; simp [Rust.isPanicSymbol, CryptoVerification.SignalSession.lsRustAllocZeroedSymCli] at hp)
-        (fun h => by subst h; simp [Rust.isPanicSymbol, CryptoVerification.SignalSession.lsRustNoAllocShimSymCli] at hp)
-        (fun h => by subst h; simp [Rust.isPanicSymbol, CryptoVerification.SignalSession.lsStringCloneSym] at hp)
-        (fun h => by subst h; simp [Rust.isPanicSymbol, CryptoVerification.SignalSession.lsReadFileSym] at hp)
-        (fun h => by subst h; simp [Rust.isPanicSymbol, CryptoVerification.SignalSession.lsReadStdinSym] at hp)
-        (fun h => by subst h; simp [Rust.isPanicSymbol, CryptoVerification.SignalSession.lsMemsetSym] at hp)
-        (fun h => by subst h; simp [Rust.isPanicSymbol, CryptoVerification.SignalSession.lsMemcpySym] at hp)
-    unfold Rust.withPanics
-    rw [hother]
-    unfold cliExternsPlaced isCliPanicSymbolPlaced
-    simp [hp]
-  · simp [Rust.withPanics, hp]
+      cliGhostExterns gh (cliExternsPlaced mmpl W) :=
+  withPanics_cliGhostExterns mmpl gh W
 
 /-- Parametric `SessionGhostValid`-strengthened Path-B `decrypt_prekey` slot envelope. -/
 def DecPkD3MatchingPathBGvEnv [LibsignalPlacement] (A : RustAlloc)

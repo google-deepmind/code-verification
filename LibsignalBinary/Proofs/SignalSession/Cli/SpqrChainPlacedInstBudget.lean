@@ -10,9 +10,12 @@ limitations under the License.
 module
 
 public import LibsignalBinary.Proofs.Cli.SpqrV1.Top.Send.ContractsPlacedBudget
+public import LibsignalBinary.Proofs.HookDischarge.Libc.Memmove -- proof-setup: allow-public-import
 public import LibsignalBinary.Proofs.SignalSession.Cli.Run.Slots.CliHookSatPlacedBudget
+public import LibsignalBinary.Proofs.SignalSession.Cli.Run.Slots.ExtraGhostSpecs -- proof-setup: allow-public-import
 public import LibsignalBinary.Proofs.SignalSession.Cli.SpqrChainPlacedInst
 public import LibsignalBinary.Proofs.SpqrV1.Alloc.VecDequeGrowBudget
+public import LibsignalBinary.Proofs.SpqrV1.Alloc.VecDequeGrowBudgetAux -- proof-setup: allow-public-import
 public import LibsignalBinary.Proofs.SpqrV1.Chain.FromPbClPlacedBudget
 public import LibsignalBinary.Proofs.SpqrV1.Chain.IntoPbClPlacedBudget
 public import LibsignalBinary.Proofs.SpqrV1.Chain.NewBudget
@@ -22,6 +25,7 @@ public import LibsignalBinary.Proofs.SpqrV1.Kdf.HkdfToSliceOkBudget
 public import LibsignalBinary.Proofs.SpqrV1.Top.ChainFrom.ProofPlacedBudget
 public import LibsignalBinary.Proofs.SpqrV1.Top.ChainFromVersionNegotiation.ProofPlacedBudget
 public import LibsignalBinary.Proofs.SpqrV1.Top.Recv.DefsPlacedBudget
+import LibsignalBinary.Heap.SpecBudget
 import LibsignalBinary.Proofs.Common.SharedHelpers
 meta import LibsignalBinary.Proofs.Common.SharedHelpers -- shake: keep
 import LibsignalBinary.Proofs.ConsumeMessageKey.HmacProofs.CompressAndDigest
@@ -33,6 +37,7 @@ import LibsignalBinary.Proofs.SpqrV1.Kdf.HkdfToSliceOkBudgetSat
 import LibsignalBinary.Proofs.SpqrV1.Kdf.NewFromSliceGen
 import LibsignalBinary.Proofs.SpqrV1.Poly.EncodeBytes.DefsBudget
 import LibsignalBinary.Proofs.SpqrV1.Top.Recv.ContractsPlacedBudget
+import LibsignalBinary.Proofs.TripleRatchet.Hooks.DefsBudget
 import ProofLib.OpcodeExclusion
 import VerifiedLibraries.RustStd.Proofs.ExecSegSym
 
@@ -53,7 +58,7 @@ set_option maxRecDepth 200000
 
 namespace LibsignalBinary.Proofs.SignalSession.Cli.SpqrChainPlacedInstBudget
 
-open Arm64 Arm64.Obj ProofLib
+open Arm64 Arm64.Obj ProofLib SepProp
 open CryptoGames.HKDF (hkdfExpand)
 open CryptoGames.LibsignalSession (Crypto)
 open CryptoVerification
@@ -74,7 +79,8 @@ open CryptoVerification.LibsignalTripleRatchet
   (CalleeSaved CallingConventionPreserved_of_calleeSaved Frame HkdfPlacedHooks
    RunsTo TraceEq extHookStack extract_withLsCodeRoLoaded
    hookMemcpy_eq_memcpyHook hookMemset_eq_memsetHook keys_ls_subroutine_ok_of_block_cro
-   lsCompress256Sym lsMemcpySym lsMemsetSym ro_outside_rw_shared_lb withLsCodeRoLoaded)
+   lsCompress256Sym lsMemcpySym lsMemsetSym ro_outside_rw_shared_lb sessionMemmoveSpec
+   withLsCodeRoLoaded)
 open CryptoVerification.LibsignalTripleRatchet.Expand
   (KeepsFrozenNoAnon t1_length t2_length t3_length)
 open CryptoVerification.SignalSession
@@ -87,7 +93,7 @@ open CryptoVerification.SignalSession.Cli.RunGlue
    cliGhostExterns_other cliGhostExterns_shim hookSat_of_eq withPanics_cliGhostExterns)
 open CryptoVerification.SignalSession.Cli.Slots
   (cliGhostExterns_panic_handle_error cliGhostExterns_sat_of_cliExternsPlaced
-   lsRngFillSym memmove_row_placed trTrapExternsPlaced)
+   lsRngFillSym trTrapExternsPlaced)
 open CryptoVerification.SpqrV1.Alloc (growOneStack spqr_hook_ok_of_mem)
 open CryptoVerification.SpqrV1.ChainProofs (bytesAt hkdfToSliceSpec hkdfToSliceSpqrSpec)
 open CryptoVerification.SpqrV1.ChainProofs.NextKeyInternalFacts
@@ -126,6 +132,9 @@ open LibsignalBinary.Heap
   (AllocCallPreserved AllocCostModel BudgetLimits RustCliAllocBudget VmPreserved
    rustCliAllocBudgetSpec rustCliDeallocBudgetSpec)
 open LibsignalBinary.Heap.RustStdAllocBudgetBridge (rustAllocShimVmSpec)
+open LibsignalBinary.Heap.SpecBudget (withVmPreserved)
+open LibsignalBinary.Proofs.HookDischarge.Libc.Memmove
+  (sessionMemmoveBoundedBudgetSpec sessionMemmoveBoundedSpec)
 open LibsignalBinary.Proofs.Placed.BudgetVmSteps
   (vmPreserved_refl_iff vmPreserved_setMem_writeBytes vmPreserved_setPC)
 open LibsignalBinary.Proofs.SignalSession.Cli.Main.Proofs.KeepsFsBudget
@@ -134,11 +143,13 @@ open LibsignalBinary.Proofs.SignalSession.Cli.Run.Slots.CliHookSatPlacedBudget
   (CliGhostAllocHooks cliExternsPlaced_alloc_budget_sat
    cliExternsPlaced_dealloc_budget_sat cliExternsPlaced_framelessMemcpyAcp_budget_sat
    cliExternsPlaced_realloc_budget_sat)
+open LibsignalBinary.Proofs.SignalSession.Cli.Run.Slots.ExtraGhostSpecs
+  (ExtraSpecOk hookSat_cliGhostExterns_of_extraOk)
 open LibsignalBinary.Proofs.SpqrV1.Alloc.ConcatBudgetAux
   (framelessMemcpyAcpSpec hookMemcpy_framelessMemcpyAcp_ok hookNoop_rustAllocShimVm_ok)
 open LibsignalBinary.Proofs.SpqrV1.Alloc.VecDequeGrowBudget (vec_deque_grow_spec_placed_ok)
 open LibsignalBinary.Proofs.SpqrV1.Alloc.VecDequeGrowBudgetAux
-  (hookMemmove_sessionMemmoveAcp_ok sessionMemmoveAcpSpec)
+  (sessionMemmoveAcpSpec sessionMemmoveBoundedAcpSpec)
 open LibsignalBinary.Proofs.SpqrV1.Chain.DefsBudget (chainNewSpecX vecDequeGrowSpec)
 open LibsignalBinary.Proofs.SpqrV1.Chain.FromPbClPlacedBudget (chain_from_pb_cl_placed_ok)
 open LibsignalBinary.Proofs.SpqrV1.Chain.IntoPbClPlacedBudget (chain_into_pb_cl_placed_ok_X)
@@ -160,6 +171,7 @@ open LibsignalBinary.Proofs.SpqrV1.Top.ChainFromVersionNegotiation.DefsBudget
   (chainFromVersionNegotiationSpecX)
 open LibsignalBinary.Proofs.SpqrV1.Top.ChainFromVersionNegotiation.ProofPlacedBudget
   (chainFromVersionNegotiation_placed_ok_of_contracts_x)
+open LibsignalBinary.Proofs.TripleRatchet.Hooks.DefsBudget (sessionMemmoveBudgetSpec)
 open LibsignalBinary.Proofs.TripleRatchet.Hooks2Budget
   (rustAllocSpecWithStack subroutine_ok_withStack_of_subroutine_ok withStack)
 
@@ -1348,12 +1360,27 @@ theorem cliExternsPlaced_framelessMemcpyAcp_sat [LibsignalPlacement]
     HookSat (cliGhostExterns gh (cliExternsPlaced mmpl W)) "memcpy" framelessMemcpyAcpSpec :=
   cliExternsPlaced_framelessMemcpyAcp_budget_sat mmpl gh W hA
 
-theorem cliExternsPlaced_sessionMemmoveAcp_sat
-    (mmpl : Obj.MultiPlacement) (gh : CliGhostHooks) (W : CliHooks) (stk : Nat := 4096) :
-    HookSat (cliGhostExterns gh (cliExternsPlaced mmpl W)) "memmove" (sessionMemmoveAcpSpec stk) :=
-  cliGhostExterns_sat_of_cliExternsPlaced mmpl gh W
-    ⟨hookMemmove, cliExternsPlaced_row mmpl W (memmove_row_placed mmpl W),
-      hookMemmove_sessionMemmoveAcp_ok stk⟩
+theorem cliExternsPlaced_sessionMemmoveAcp_sat [LibsignalPlacement]
+    (mmpl : Obj.MultiPlacement) (gh : CliGhostHooks) (W : CliHooks)
+    (hOk : ExtraSpecOk gh) (stk : Nat := 4096) :
+    HookSat (cliGhostExterns gh (cliExternsPlaced mmpl W)) "memmove"
+      (sessionMemmoveBoundedAcpSpec stk) :=
+  hookSat_cliGhostExterns_of_extraOk gh (cliExternsPlaced mmpl W) hOk fun _ _ hRow => by
+    have h := hRow.sessionMemmove_budget_ok stk
+    intro x R s0 hrun hpre hsp
+    have hpre' : s0.mem ⊨ (sessionMemmoveBoundedBudgetSpec stk).pre x s0 ∗ R := hpre
+    rcases h x R s0 hrun hpre' hsp with ⟨hkeep, hsym, hout⟩
+    refine ⟨hkeep, hsym, ?_⟩
+    rcases hout with ⟨hret, hcc, hpost⟩ | hrest
+    · refine Or.inl ⟨hret, hcc, ?_⟩
+      rcases x with ⟨base, buf, dst, src, len⟩
+      dsimp only [sessionMemmoveBoundedBudgetSpec, sessionMemmoveBudgetSpec, withVmPreserved,
+        sessionMemmoveSpec, sessionMemmoveBoundedAcpSpec, sessionMemmoveAcpSpec] at hpost ⊢
+      rw [sepConj_assoc, satisfies_pure_sepConj, sepConj_assoc, sepConj_assoc,
+        satisfies_pure_sepConj] at hpost
+      rw [sepConj_assoc, sepConj_assoc, satisfies_pure_sepConj]
+      exact ⟨⟨hpost.2.1.1, hRow.memmove_allocCallPreserved s0, hpost.1⟩, hpost.2.2⟩
+    · exact Or.inr hrest
 
 theorem cliExternsPlaced_alloc_budget_withStack_sat [LibsignalPlacement]
     (mmpl : Obj.MultiPlacement) (gh : CliGhostHooks) (W : CliHooks) {M : AllocCostModel}
@@ -1526,7 +1553,7 @@ theorem cliVecDequeGrow_placed_ok [LibsignalPlacement]
     (hookSat_of_eq (hExt "memcpy" (by decide))
       (cliExternsPlaced_framelessMemcpyAcp_sat mmpl gh W hA))
     (hookSat_of_eq (hExt "memmove" (by decide))
-      (cliExternsPlaced_sessionMemmoveAcp_sat mmpl gh W growOneStack))
+      (cliExternsPlaced_sessionMemmoveAcp_sat mmpl gh W hA.extraOk growOneStack))
 
 private theorem cliExternsPlaced_sessionMemsetRegion_allocVm_sat [LibsignalPlacement]
     {M : AllocCostModel} {A : RustCliAllocBudget M} {lim : BudgetLimits}

@@ -53,6 +53,9 @@ theorem decStk_le_saveSubMax (getStk putStk : Nat) : 0x60 ≤ saveSubMax getStk 
 theorem eqStk_le_saveSubMax (getStk putStk : Nat) : 64 ≤ saveSubMax getStk putStk := by
   unfold saveSubMax; omega
 
+theorem eqStk16_le_saveSubMax (getStk putStk : Nat) : 80 ≤ saveSubMax getStk putStk := by
+  unfold saveSubMax; omega
+
 theorem serStk_le_saveSubMax (getStk putStk : Nat) :
     publicKeySerializeStackX ≤ saveSubMax getStk putStk := by
   unfold saveSubMax; omega

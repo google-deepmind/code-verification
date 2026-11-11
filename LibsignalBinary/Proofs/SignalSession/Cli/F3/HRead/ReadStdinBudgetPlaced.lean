@@ -45,7 +45,9 @@ open CryptoVerification.LibsignalPublicApi.StoreKit
 open CryptoVerification.LibsignalTripleRatchet (extHookStack memcpyName memmoveName memsetName)
 open CryptoVerification.SignalSession
   (CliHooks cliExternsPlaced cliHookTablePlaced cliPanicSymbolsPlaced isCliPanicSymbolPlaced
-   lsFromUtf8Sym lsMemrchrSym lsReadFileSym lsReadStdinSym lsWriteFileSym lsWriteStdoutSym
+   lsFromUtf8Sym lsMemcpySym lsMemrchrSym lsMemsetSym lsReadFileSym lsReadStdinSym
+   lsRustAllocSymCli lsRustAllocZeroedSymCli lsRustDeallocSymCli lsRustNoAllocShimSymCli
+   lsRustReallocSymCli lsStringCloneSym lsWriteFileSym lsWriteStdoutSym
    readStdinResult writeFileHook writeStdoutHook)
 open CryptoVerification.SignalSession.Cli (ReadFileGhost ioVecAt)
 open CryptoVerification.SignalSession.Cli.Main.Placed (lsProg_617)
@@ -53,7 +55,8 @@ open CryptoVerification.SignalSession.Cli.MainHops
   (IoModel ReadFileLitGhost ReadStdinGhost cliExternsPlaced_writeFile cliExternsPlaced_writeStdout
    cliIo cliWrOk)
 open CryptoVerification.SignalSession.Cli.RunGlue
-  (CliGhostHooks FsTHooks IsFsC cliGhostExterns cliGhostExterns_other)
+  (CliGhostHooks FsTHooks IsFsC cliExtraGhostSyms cliGhostExterns cliGhostExternsWithExtra
+   cliGhostExterns_other)
 open CryptoVerification.SignalSession.CliExt (ReadFileCall bytesAt)
 open LibsignalBinary.Heap
   (AllocCostModel AllocEvent BudgetLimits FitsEnv FitsEvents RustCliAllocBudget
@@ -697,7 +700,7 @@ theorem no_new_hooks_ghost_to_real (mmpl : Obj.MultiPlacement) (W : CliHooks)
       withReadHooks rfh rsh (cliGhostExterns g (cliExternsPlaced mmpl W)) sym = none →
       cliExternsPlaced mmpl W sym = none := by
   refine no_new_hooks_withReadHooks fun sym hnone => ?_
-  unfold cliGhostExterns at hnone
+  unfold cliGhostExterns cliGhostExternsWithExtra at hnone
   split at hnone
   · cases hnone
   · split at hnone
@@ -728,7 +731,11 @@ theorem no_new_hooks_ghost_to_real (mmpl : Obj.MultiPlacement) (W : CliHooks)
                     · cases hmc : g.memcpy with
                       | some _ => rw [hmc] at hnone; cases hnone
                       | none => rw [hmc] at hnone; exact hnone
-                    · exact hnone
+                    · split at hnone
+                      · cases hex : g.extra.lookup sym with
+                        | some _ => rw [hex] at hnone; cases hnone
+                        | none => rw [hex] at hnone; exact hnone
+                      · exact hnone
 
 theorem baseHelperRows_withReadHooks {mmpl : Obj.MultiPlacement} {W : CliHooks}
     {baseExt : LibsignalHooks} (rfh rsh : State → State)
@@ -761,35 +768,37 @@ theorem withReadHooks_cliGhostExterns_comm_strip (rfh rsh : State → State) (g 
         cliGhostExterns_readFile_of_none { g with readFile := none, readStdin := none } _ rfl,
         withReadHooks_readFile]
     · rw [withReadHooks_other rfh rsh _ h1 h2]
-      unfold cliGhostExterns
+      unfold cliGhostExterns cliGhostExternsWithExtra
       dsimp only
-      split
-      · rfl
-      · split
-        · rfl
-        · split
-          · rfl
-          · split
-            · rfl
-            · split
-              · rfl
-              · split
-                · cases g.stringClone with
-                  | some _ => rfl
-                  | none => exact (withReadHooks_other rfh rsh baseExt h1 h2).symm
-                · split
-                  · exfalso; simp_all
-                  · split
-                    · exfalso; simp_all
-                    · split
-                      · cases g.memset with
-                        | some _ => rfl
-                        | none => exact (withReadHooks_other rfh rsh baseExt h1 h2).symm
-                      · split
+      cases sym == lsRustAllocSymCli <;> simp only [Bool.false_eq_true, ↓reduceIte]
+      · cases sym == lsRustDeallocSymCli <;> simp only [Bool.false_eq_true, ↓reduceIte]
+        · cases sym == lsRustReallocSymCli <;> simp only [Bool.false_eq_true, ↓reduceIte]
+          · cases sym == lsRustAllocZeroedSymCli <;> simp only [Bool.false_eq_true, ↓reduceIte]
+            · cases sym == lsRustNoAllocShimSymCli <;> simp only [Bool.false_eq_true, ↓reduceIte]
+              · cases sym == lsStringCloneSym <;> simp only [Bool.false_eq_true, ↓reduceIte]
+                · cases hrf_eq : (sym == lsReadFileSym) <;>
+                    simp only [Bool.false_eq_true, ↓reduceIte]
+                  · cases hrs_eq : (sym == lsReadStdinSym) <;>
+                      simp only [Bool.false_eq_true, ↓reduceIte]
+                    · cases sym == lsMemsetSym <;> simp only [Bool.false_eq_true, ↓reduceIte]
+                      · cases sym == lsMemcpySym <;> simp only [Bool.false_eq_true, ↓reduceIte]
+                        · cases cliExtraGhostSyms.contains sym <;>
+                            simp only [Bool.false_eq_true, ↓reduceIte]
+                          · exact (withReadHooks_other rfh rsh baseExt h1 h2).symm
+                          · cases g.extra.lookup sym with
+                            | none => exact (withReadHooks_other rfh rsh baseExt h1 h2).symm
+                            | some _ => rfl
                         · cases g.memcpy with
-                          | some _ => rfl
                           | none => exact (withReadHooks_other rfh rsh baseExt h1 h2).symm
-                        · exact (withReadHooks_other rfh rsh baseExt h1 h2).symm
+                          | some _ => rfl
+                      · cases g.memset with
+                        | none => exact (withReadHooks_other rfh rsh baseExt h1 h2).symm
+                        | some _ => rfl
+                    · exact absurd (beq_iff_eq.mp hrs_eq) h1
+                  · exact absurd (beq_iff_eq.mp hrf_eq) h2
+                · cases g.stringClone with
+                  | none => exact (withReadHooks_other rfh rsh baseExt h1 h2).symm
+                  | some _ => rfl
 
 theorem withReadHooks_cliGhostExterns_comm (rfh rsh : State → State) (g : CliGhostHooks)
     (baseExt : LibsignalHooks)
@@ -814,7 +823,7 @@ theorem allocContractsFsPlaced_withReadHooks_ghost [LibsignalPlacement]
     (baseHelperRows_withReadHooks rfh rsh (cliExternsPlaced_baseHelperRows mmpl W))
     ⟨hG.alloc, hG.dealloc, hG.realloc, hG.alloc_fs, hG.dealloc_fs, hG.realloc_fs,
       hG.alloc_fsT, hG.dealloc_fsT, hG.realloc_fsT, hG.shim_eq, hG.memset, hG.memcpy,
-      hG.memcpy_exact, hG.memset_acp⟩
+      hG.memcpy_exact, hG.memset_acp, hG.extraOk⟩
 
 theorem allocContractsXCliPlaced_withReadHooks_ghost [LibsignalPlacement]
     (mmpl : Obj.MultiPlacement) (W : CliHooks)
@@ -830,7 +839,7 @@ theorem allocContractsXCliPlaced_withReadHooks_ghost [LibsignalPlacement]
     (baseHelperRows_withReadHooks rfh rsh (cliExternsPlaced_baseHelperRows mmpl W))
     ⟨hG.alloc, hG.dealloc, hG.realloc, hG.alloc_fs, hG.dealloc_fs, hG.realloc_fs,
       hG.alloc_fsT, hG.dealloc_fsT, hG.realloc_fsT, hG.shim_eq, hG.memset, hG.memcpy,
-      hG.memcpy_exact, hG.memset_acp⟩
+      hG.memcpy_exact, hG.memset_acp, hG.extraOk⟩
 
 theorem fsTHooks_withReadHooks {rfh rsh : State → State} {ext : LibsignalHooks}
     (hRfh : HookFsTraced IsFsC rfh)

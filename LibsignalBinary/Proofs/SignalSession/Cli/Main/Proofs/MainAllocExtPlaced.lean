@@ -104,21 +104,6 @@ private theorem hookOk_sessionMemcpyRegionRO_of_cliExt {f : State → State}
       dsimp only [withStack, CryptoVerification.SpqrV1.Alloc.sessionMemcpyRegionROSpec, CliExt.memcpyROSpec, CliExt.withStack] at hpost ⊢
       rw [hsp]; simp only [sepConj_assoc, satisfies_pure_sepConj] at hpost ⊢
       exact ⟨hpost.1, by have h2 := hpost.2; ac_nf at h2 ⊢⟩⟩
-private theorem hookOk_sessionMemmove_of_cliExt {f : State → State}
-    (hh : HookOk f CliExt.memmoveSpec) (stk : Nat) (hle : extHookStack ≤ stk) (hmax : stk ≤ 2 ^ 64) :
-    HookOk f (sessionMemmoveSpec stk) := by
-  refine hookOk_conseq hh fun ⟨base, buf, dst, src, len⟩ R s0 hpre => ?_
-  have hsp := stackAt_split_ge (sp := s0.sp) (memHookStack_le_of_ext hle) hmax
-  refine ⟨(base, buf, dst, src, len), memRegion (s0.sp - BitVec.ofNat 64 stk) (stk - CliExt.memHookStack),
-    by dsimp only [sessionMemmoveSpec, CliExt.memmoveSpec, libcMemmoveSpec] at hpre ⊢; rw [hsp] at hpre; ac_nf at hpre ⊢,
-    fun sf hpost => by dsimp only [sessionMemmoveSpec, CliExt.memmoveSpec] at hpost ⊢; rw [hsp]; ac_nf at hpost ⊢⟩
-private theorem hookOk_libcMemmove_of_cliExt {f : State → State}
-    (hh : HookOk f CliExt.memmoveSpec) (stk : Nat) (hle : extHookStack ≤ stk) (hmax : stk ≤ 2 ^ 64) :
-    HookOk f (libcMemmoveSpec stk) :=
-  hookOk_conseq (hookOk_sessionMemmove_of_cliExt hh stk hle hmax) fun x R s0 hpre => ⟨x, emp,
-    by simpa [sessionMemmoveSpec, libcMemmoveSpec, emp_sepConj] using hpre, fun sf hpost => by
-      dsimp only [sessionMemmoveSpec, libcMemmoveSpec] at hpost ⊢
-      simp only [emp_sepConj, sepConj_assoc, satisfies_pure_sepConj] at hpost ⊢; exact ⟨hpost.1.1, hpost.2⟩⟩
 private theorem hookOk_sessionMemset_of_cliExt {f : State → State}
     (hh : HookOk f CliExt.memsetSpec) (stk : Nat) (hle : extHookStack ≤ stk) (hmax : stk ≤ 2 ^ 64) :
     HookOk f (sessionMemsetSpec stk) := by
@@ -193,8 +178,6 @@ theorem allocContractsFsPlaced_of_lookup [LibsignalPlacement]
   session_memcpy stk hle hmax := ext_stub_fs_placed_ok hOk hL.memcpy hOk.memcpy notIo_of_ne fun h => hookOk_sessionMemcpy_of_cliExt h stk hle hmax
   memcpy_region stk hle hmax := ext_stub_fs_placed_ok hOk hL.memcpy hOk.memcpy notIo_of_ne fun h => hookOk_memcpyRegion_of_cliExt h stk hle hmax
   session_memcpy_region stk hle hmax := ext_stub_fs_placed_ok hOk hL.memcpy hOk.memcpy notIo_of_ne fun h => hookOk_sessionMemcpyRegion_of_cliExt h stk hle hmax
-  memmove stk hle hmax := ext_stub_fs_placed_ok hOk hL.memmove hOk.memmove notIo_of_ne fun h => hookOk_libcMemmove_of_cliExt h stk hle hmax
-  session_memmove stk hle hmax := ext_stub_fs_placed_ok hOk hL.memmove hOk.memmove notIo_of_ne fun h => hookOk_sessionMemmove_of_cliExt h stk hle hmax
   memset stk hle hmax := ext_stub_fs_placed_ok hOk hL.memset hOk.memset notIo_of_ne fun h => hookOk_libcMemset_of_cliExt h stk hle hmax
   session_memset stk hle hmax := ext_stub_fs_placed_ok hOk hL.memset hOk.memset notIo_of_ne fun h => hookOk_sessionMemset_of_cliExt h stk hle hmax
   memset_region stk hle hmax := ext_stub_fs_placed_ok hOk hL.memset hOk.memset notIo_of_ne fun h => hookOk_memsetRegion_of_cliExt h stk hle hmax

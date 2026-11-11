@@ -41,6 +41,9 @@ public import LibsignalBinary.Proofs.TripleRatchet.Mac.Verify
 import all Arm64.Trusted.Spec.Hoare
 import Arm64.Trusted.Spec.SepLogic
 import LibsignalBinary.Proofs.ConsumeMessageKey.AssemblySat
+import LibsignalBinary.Proofs.ConsumeMessageKey.FindIndexSat
+import LibsignalBinary.Proofs.E2E.Pqxdh.ResponderCore.CryptoBridgePlacedSat
+import LibsignalBinary.Proofs.E2E.Pqxdh.WireEntries.RecvWireSameAccountPlacedSat
 import LibsignalBinary.Proofs.TripleRatchet.ConsumeMessageKeyTransfer.NewFromSliceSat
 import LibsignalBinary.Proofs.TripleRatchet.ConsumeMessageKeyTransfer.Transfer
 import LibsignalBinary.Proofs.TripleRatchet.Decrypt.DhStepBlocks
@@ -51,6 +54,7 @@ import LibsignalBinary.Proofs.TripleRatchet.Getters.Drops.SignalProtocolError.Ex
 import LibsignalBinary.Proofs.TripleRatchet.Hkdf.CommonSat
 import LibsignalBinary.Proofs.TripleRatchet.Hkdf.ExpandSat
 import LibsignalBinary.Proofs.TripleRatchet.Hkdf.ExtractSat
+import LibsignalBinary.Proofs.TripleRatchet.Mac.VerifySat
 
 /-!
 # Relocatable Segment 3 (`DhStep`) and Block `433` Callee Seams
@@ -97,10 +101,43 @@ private theorem cliGhostExterns_row_placed (mmpl : Obj.MultiPlacement)
     (h7 : sym ≠ CryptoVerification.SignalSession.lsReadFileSym := by decide)
     (h8 : sym ≠ CryptoVerification.SignalSession.lsReadStdinSym := by decide)
     (h9 : sym ≠ CryptoVerification.SignalSession.lsMemsetSym := by decide)
-    (h10 : sym ≠ CryptoVerification.SignalSession.lsMemcpySym := by decide) :
+    (h10 : sym ≠ CryptoVerification.SignalSession.lsMemcpySym := by decide)
+    (hExtra : RunGlue.cliExtraGhostSyms.contains sym = false := by decide) :
     RunGlue.cliGhostExterns gh (cliExternsPlaced mmpl W) sym = some f :=
-  (RunGlue.cliGhostExterns_other gh _ h1 h2 h3 h4 h5 h6 h7 h8 h9 h10).trans
+  (RunGlue.cliGhostExterns_other gh _ h1 h2 h3 h4 h5 h6 h7 h8 h9 h10 (Or.inl hExtra)).trans
     (RunGlue.cliExternsPlaced_row mmpl W hrow)
+
+private theorem cliGhostExterns_blackBoxSat_a0_sat [LibsignalPlacement]
+    (mmpl : Obj.MultiPlacement) (gh : RunGlue.CliGhostHooks) (W : CliHooks)
+    (hOk : LibsignalBinary.Proofs.SignalSession.Cli.Run.Slots.ExtraGhostSpecs.ExtraSpecOk gh) :
+    HookSat (RunGlue.cliGhostExterns gh (cliExternsPlaced mmpl W))
+      CryptoVerification.lsBlackBoxU8Sym
+      LibsignalBinary.Proofs.ConsumeMessageKey.FindIndexProofs.CtEqSat.blackBoxSpecSat :=
+  LibsignalBinary.Proofs.SignalSession.Cli.Run.Slots.ExtraGhostSpecs.hookSat_cliGhostExterns_of_extraOk
+    gh (cliExternsPlaced mmpl W) hOk
+    (fun _ _ hr => hr.blackBox_budget_ok (by decide) (by decide))
+
+private theorem find_receiver_chain_index_placed_ok_at_cmk_sat [LibsignalPlacement]
+    {H : String → Option (State → State)} (A : RustAlloc)
+    (h_bb : HookSat H lsBlackBoxU8Sym
+      LibsignalBinary.Proofs.ConsumeMessageKey.FindIndexProofs.CtEqSat.blackBoxSpecSat) :
+    CryptoVerification.LibsignalSession.FindIndexPlacedOk H A := by
+  refine subroutine_ok_outcome_intro fun ⟨p, cs, theirA, their⟩ R s0 hpc hrun hpre hsp => ?_
+  have h1 : subroutine_ok ((blkPC_24).rebase (blkPl_24).base H) (lsmpl.base 26)
+      (withLsCodeLoaded lsmpl
+        (CryptoVerification.LibsignalSession.FindReceiverChainIndex.findPlacedSpec A)) :=
+    ls_subroutine_ok_of_block (i := 24) (j := 26)
+      (LibsignalBinary.Proofs.ConsumeMessageKey.FindIndexSat.find_receiver_chain_index_placed_ok_sat
+        A h_bb)
+  refine h1.mono_outcome (p, cs, theirA, their) R s0 hpc hrun ?_ hsp fun _ hout => hout
+  have ⟨hcl, hp⟩ := extract_withLsCodeLoaded hpre
+  dsimp only [withLsCodeLoaded]
+  rw [sepConj_assoc, sepConj_left_comm, satisfies_pure_sepConj]
+  refine ⟨hcl, ?_⟩
+  dsimp only [CryptoVerification.LibsignalSession.FindReceiverChainIndex.findPlacedSpec,
+    CryptoVerification.LibsignalSession.findIndexPlacedSpec] at hp ⊢
+  rw [sepConj_assoc, satisfies_pure_sepConj] at hp ⊢
+  exact ⟨⟨hp.1.1, hp.1.2.1, hp.1.2.2.1, hp.1.2.2.2, hsp⟩, hp.2⟩
 
 /-- `ErrTailTightSeamPlaced` on Block `433` at
 `RunGlue.cliGhostExterns gh (cliExternsPlaced mmpl W)`. -/
@@ -155,6 +192,7 @@ theorem aesDecrypt_433_cli [LibsignalPlacement]
 /-- `S0PSeamPlaced` on Block `433` at `RunGlue.cliGhostExterns gh (cliExternsPlaced mmpl W)`. -/
 theorem s0_433_cli [LibsignalPlacement]
     (mmpl : Obj.MultiPlacement) (gh : RunGlue.CliGhostHooks) (W : CliHooks)
+    (hOk : LibsignalBinary.Proofs.SignalSession.Cli.Run.Slots.ExtraGhostSpecs.ExtraSpecOk gh)
     (ctl : BitVec 64) (S : SpqrModel) :
     S0PSeamPlaced
       ((blkPC_434).rebase (blkPl_434).base (RunGlue.cliGhostExterns gh (cliExternsPlaced mmpl W)))
@@ -174,11 +212,11 @@ theorem s0_433_cli [LibsignalPlacement]
     rw [sepConj_assoc, satisfies_pure_sepConj] at hq
     exact hq.2
   exact CryptoVerification.Cli.LibsignalTripleRatchet.Decrypt.ChainLookup.s0_433_placed_ok_P
-    (CryptoVerification.E2E.Pqxdh.WireEntries.isSameAccountEqDistinct_placed_ok_at
+    (LibsignalBinary.Proofs.E2E.Pqxdh.WireEntries.RecvWireSameAccountPlacedSat.isSameAccountEqDistinct_placed_ok_at_sat
       E2E.HooksE.A0
       (callerProg := (blkPC_434).rebase (blkPl_434).base
         (RunGlue.cliGhostExterns gh (cliExternsPlaced mmpl W)))
-      (cliGhostExterns_row_placed mmpl gh W (Slots.blackBox_row_placed mmpl W))
+      (cliGhostExterns_blackBoxSat_a0_sat mmpl gh W hOk)
       huuid (by decide))
 
 private theorem sub_ok_same_blk [LibsignalPlacement] {α : Type}
@@ -210,13 +248,16 @@ theorem s1_433_cli [LibsignalPlacement]
 /-- `S2SeamPlaced` on Block `433` at `RunGlue.cliGhostExterns gh (cliExternsPlaced mmpl W)`. -/
 theorem s2_433_cli [LibsignalPlacement]
     (mmpl : Obj.MultiPlacement) (gh : RunGlue.CliGhostHooks) (W : CliHooks)
+    (hOk : LibsignalBinary.Proofs.SignalSession.Cli.Run.Slots.ExtraGhostSpecs.ExtraSpecOk gh)
     (ctl : BitVec 64) :
     S2SeamPlaced
       ((blkPC_434).rebase (blkPl_434).base (RunGlue.cliGhostExterns gh (cliExternsPlaced mmpl W)))
       (blkPl_434).base E2E.HooksE.A0 ctl :=
   CryptoVerification.Cli.LibsignalTripleRatchet.Decrypt.ChainLookup.findChain_433_placed_ok
-    (find_receiver_chain_key_placed_ok
-      (cliGhostExterns_row_placed mmpl gh W (Slots.blackBox_row_placed mmpl W)))
+    (find_receiver_chain_key_placed_ok_of_find_index
+      (ls_subroutine_ok_of_block
+        (LibsignalBinary.Proofs.ConsumeMessageKey.FindIndexSat.find_receiver_chain_index_placed_ok_sat
+          E2E.HooksE.A0 (cliGhostExterns_blackBoxSat_a0_sat mmpl gh W hOk))))
 
 private theorem new_from_slice_cro_of_cl_ro [LibsignalPlacement] {prog : Program}
     {F : ShaState → List (BitVec 8) → ShaState}
@@ -358,24 +399,17 @@ private theorem createChain_433_cro_ok [LibsignalPlacement]
   have _ : LibsignalBinary.Proofs.TripleRatchet.Hkdf.CommonSat.HkdfPlacedHooksExactSat
       W.C.F (RunGlue.cliGhostExterns gh (cliExternsPlaced mmpl W)) :=
     LibsignalBinary.Proofs.TripleRatchet.Hkdf.CommonSat.HkdfPlacedHooksExactSat.of_a0Hooks hG
-  have hct207 := ls_subroutine_ok_of_block
-    (callerProg := (blkPC_207).rebase (blkPl_207).base
-      (RunGlue.cliGhostExterns gh (cliExternsPlaced mmpl W)))
-    (ConsumeMessageKeyTransfer.ct_eq_ro_mem_placed_ok_withLsCodeLoaded
-      (cliGhostExterns_row_placed mmpl gh W (Slots.blackBox_row_placed mmpl W)))
   have hag40 := keys_ls_subroutine_ok_of_block_cro
     (callerProg := (blkPC_40).rebase (blkPl_40).base
       (RunGlue.cliGhostExterns gh (cliExternsPlaced mmpl W)))
-    (CryptoVerification.LibsignalTripleRatchet.Keys.calculateAgreement_placed_ok'
+    (LibsignalBinary.Proofs.E2E.Pqxdh.ResponderCore.CryptoBridgePlacedSat.calculateAgreement_placed_ok_unconditional_sat
       (Slots.cliGhostExterns_sat_of_cliExternsPlaced mmpl gh W
         (Slots.cliExternsPlaced_diffieHellman_sat mmpl W))
-      (Slots.cliGhostExterns_sat_of_cliExternsPlaced mmpl gh W
-        (Slots.cliExternsPlaced_sharedSecretDrop_sat mmpl W))
-      hct207
+      (Slots.cliGhostExterns_sharedSecretDrop_sat gh (cliExternsPlaced mmpl W) hG.extraOk)
+      (cliGhostExterns_blackBoxSat_a0_sat mmpl gh W hG.extraOk)
       (Slots.cliExternsPlaced_noAllocShim_sat mmpl gh W hG.shim_eq)
       (Slots.cliExternsPlaced_alloc_sat mmpl gh W hG)
-      (Slots.cliGhostExterns_sat_of_cliExternsPlaced mmpl gh W
-        (Slots.cliExternsPlaced_staticSecretDrop_sat mmpl W))
+      (Slots.cliGhostExterns_staticSecretDrop_sat gh (cliExternsPlaced mmpl W) hG.extraOk)
       (Slots.cliGhostExterns_panic_handle_alloc_error mmpl gh W))
   have hext40 := keys_ls_subroutine_ok_of_block_cro
     (callerProg := (blkPC_40).rebase (blkPl_40).base
@@ -1160,7 +1194,9 @@ private theorem growOne_433_cl_ok [LibsignalPlacement]
 /-- `S3TightSeamPlaced` on Block `433` at `RunGlue.cliGhostExterns gh (cliExternsPlaced mmpl W)`. -/
 theorem dhStep_433_cli [LibsignalPlacement]
     (mmpl : Obj.MultiPlacement) (gh : RunGlue.CliGhostHooks) (W : CliHooks)
-    (hG : Slots.CliGhostA0Hooks E2E.HooksE.A0 gh) (ctl : BitVec 64) (S : SpqrModel) :
+    (hG : Slots.CliGhostA0Hooks E2E.HooksE.A0 gh)
+    (hMv : gh.extra.lookup "memmove" = some hookMemmove)
+    (ctl : BitVec 64) (S : SpqrModel) :
     S3TightSeamPlaced
       ((blkPC_434).rebase (blkPl_434).base (RunGlue.cliGhostExterns gh (cliExternsPlaced mmpl W)))
       (lsmpl.base 434) W.C E2E.HooksE.A0 ctl uuidTryParse S := by
@@ -1177,8 +1213,7 @@ theorem dhStep_433_cli [LibsignalPlacement]
         (Slots.cliCoinsFillAtPlaced_ok_cl mmpl gh W hG cur rest tryDecryptSubStack
           (by decide) (by decide)))
     (keys_ls_hook_ok_of_mem
-      (Slots.cliGhostExterns_sat_of_cliExternsPlaced mmpl gh W
-        (Slots.cliExternsPlaced_staticSecretDrop_sat mmpl W)))
+      (Slots.cliGhostExterns_staticSecretDrop_sat gh (cliExternsPlaced mmpl W) hG.extraOk))
     (s3_commit_433_placed_ok (RunGlue.cliGhostExterns gh (cliExternsPlaced mmpl W))
       W.C E2E.HooksE.A0 ctl P3kR1bd.spqrNoPanic
       (ConsumeMessageKeyTransfer.ls_subroutine_ok_transfer_of_plain
@@ -1193,8 +1228,8 @@ theorem dhStep_433_cli [LibsignalPlacement]
       (keys_ls_hook_ok_of_mem (Slots.cliExternsPlaced_dealloc_sat mmpl gh W hG))
       (keys_ls_hook_ok_of_mem (Slots.cliExternsPlaced_framelessMemcpy_sat mmpl gh W hG))
       (keys_ls_hook_ok_of_mem
-        (Slots.cliGhostExterns_sat_of_cliExternsPlaced mmpl gh W
-          (Slots.cliExternsPlaced_sessionMemmove_sat mmpl W dropChainStack)))
+        ⟨hookMemmove, RunGlue.cliGhostExterns_extra_some gh (cliExternsPlaced mmpl W) hMv,
+          CryptoVerification.LibsignalTripleRatchet.hookMemmove_trace_ok dropChainStack⟩)
       ((cmk_externAt?_of_mem
         (prog := (blkPC_434).rebase (blkPl_434).base
           (RunGlue.cliGhostExterns gh (cliExternsPlaced mmpl W)))
@@ -1204,7 +1239,9 @@ theorem dhStep_433_cli [LibsignalPlacement]
 /-- `S4SeamPlaced` on Block `433` at `RunGlue.cliGhostExterns gh (cliExternsPlaced mmpl W)`. -/
 theorem s4_433_cli [LibsignalPlacement]
     (mmpl : Obj.MultiPlacement) (gh : RunGlue.CliGhostHooks) (W : CliHooks)
-    (hG : Slots.CliGhostA0Hooks E2E.HooksE.A0 gh) (ctl : BitVec 64) (S : SpqrModel) :
+    (hG : Slots.CliGhostA0Hooks E2E.HooksE.A0 gh)
+    (hMv : gh.extra.lookup "memmove" = some hookMemmove)
+    (ctl : BitVec 64) (S : SpqrModel) :
     S4SeamPlaced
       ((blkPC_434).rebase (blkPl_434).base (RunGlue.cliGhostExterns gh (cliExternsPlaced mmpl W)))
       (blkPl_434).base W.C E2E.HooksE.A0 ctl uuidTryParse S := by
@@ -1225,16 +1262,22 @@ theorem s4_433_cli [LibsignalPlacement]
      Slots.cliGhostExterns_panic_handle_error mmpl gh W,
      Slots.cliGhostExterns_panic_option_expect_failed mmpl gh W,
      RunGlue.cliGhostExterns_panic_of_mem mmpl gh W (by decide)⟩
-  have hcmk24 := LibsignalBinary.Proofs.ConsumeMessageKey.AssemblySat.consume_message_key_placed_ro_run_sat
+  have hcmk24 := CryptoVerification.LibsignalSession.consume_message_key_placed_ro_run_of
     W.C.F E2E.HooksE.A0 (RunGlue.cliGhostExterns gh (cliExternsPlaced mmpl W))
-    (cliGhostExterns_row_placed mmpl gh W (Slots.blackBox_row_placed mmpl W))
-    ((RunGlue.cliGhostExterns_shim gh _).trans (congrArg some hG.shim_eq))
-    (Slots.cliExternsPlaced_realloc_sat mmpl gh W hG)
-    hEx.memcpy
-    (Slots.cliExternsPlaced_sessionMemsetRegion_sat mmpl gh W hG)
-    hEx.compress256
+    (find_receiver_chain_index_placed_ok_at_cmk_sat
+      E2E.HooksE.A0 (cliGhostExterns_blackBoxSat_a0_sat mmpl gh W hG.extraOk))
+    (LibsignalBinary.Proofs.ConsumeMessageKey.AssemblySat.hmac_sha256_placed_ro_ok_at_cmk_sat
+      W.C.F
+      hEx.memcpy
+      (Slots.cliExternsPlaced_sessionMemsetRegion_sat mmpl gh W hG)
+      hEx.compress256)
+    (CryptoVerification.LibsignalSession.grow_one_placed_ok_at_cmk
+      E2E.HooksE.A0
+      ((RunGlue.cliGhostExterns_shim gh _).trans (congrArg some hG.shim_eq))
+      (Slots.cliExternsPlaced_realloc_sat mmpl gh W hG)
+      hA_cmk)
     hA_cmk
-    (cliGhostExterns_row_placed mmpl gh W (Slots.memmove_row_placed mmpl W))
+    (RunGlue.cliGhostExterns_extra_some gh (cliExternsPlaced mmpl W) hMv)
   have hcmk24_cro : subroutine_ok
       ((blkPC_24).rebase (blkPl_24).base (RunGlue.cliGhostExterns gh (cliExternsPlaced mmpl W)))
       (blkPl_24).base
@@ -1295,12 +1338,10 @@ theorem s7_433_cli [LibsignalPlacement]
       (callerProg := (blkPC_60).rebase (blkPl_60).base
         (RunGlue.cliGhostExterns gh (cliExternsPlaced mmpl W)))
       (subroutine_ok_withLsCodeLoaded_of_plain (pl := lsmpl) (pkSer_205_ok mmpl gh W hG)))
-  have hvmac62 := verifyMacWithAddresses_placed_cro_ok W.C E2E.HooksE.A0 uuidTryParse
+  have hvmac62 := LibsignalBinary.Proofs.TripleRatchet.Mac.VerifySat.verifyMacWithAddresses_placed_cro_ok_sat W.C E2E.HooksE.A0 uuidTryParse
     (RunGlue.cliGhostExterns gh (cliExternsPlaced mmpl W))
     (parseSid_61_ok mmpl gh W) (new_from_slice_60_cro_ok mmpl gh W hG) hpk60
-    (keys_ls_hook_ok_of_mem
-      (Slots.cliGhostExterns_sat_of_cliExternsPlaced mmpl gh W
-        (Slots.cliExternsPlaced_blackBox_sat mmpl W)))
+    (cliGhostExterns_blackBoxSat_a0_sat mmpl gh W hG.extraOk)
     (Slots.cliExternsPlaced_noAllocShim_sat mmpl gh W hG.shim_eq)
     (Slots.cliExternsPlaced_alloc_sat mmpl gh W hG)
     (Slots.cliExternsPlaced_dealloc_sat mmpl gh W hG)

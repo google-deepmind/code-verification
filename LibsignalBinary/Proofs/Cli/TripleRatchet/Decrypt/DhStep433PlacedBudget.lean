@@ -92,6 +92,7 @@ open LibsignalBinary.Heap (
   rustCliAllocBudgetSpec rustCliAllocNoOomSpec rustCliDeallocBudgetSpec
   subroutine_ok_allocNoOom_of_budget
 )
+open LibsignalBinary.Proofs.HookDischarge.Libc.Memmove (sessionMemmoveBoundedBudgetSpec)
 open LibsignalBinary.Proofs.SessionRecordAt.Stage1X.GrowOneXBudget (growOneChainSpecX)
 open LibsignalBinary.Proofs.TripleRatchet.Alloc.DefsBudget (
   chainKeyToPbSpec chainKeyToPbSpecX derivePublicKeyBytesBudgetSpec framelessMemcpyBudgetSpec
@@ -119,7 +120,6 @@ open LibsignalBinary.Proofs.TripleRatchet.Decrypt.OnPanicTightBudget (
 )
 open LibsignalBinary.Proofs.TripleRatchet.Decrypt.RootBudgetAux (s3AfterCaps trGhostCaps)
 open LibsignalBinary.Proofs.TripleRatchet.Getters.DefsBudget (dropChainSpec dropChainSpecX)
-open LibsignalBinary.Proofs.TripleRatchet.Hooks.DefsBudget (sessionMemmoveBudgetSpec)
 open LibsignalBinary.Proofs.TripleRatchet.Keys.DefsBudget (
   createChainSpec createChainSpecWithStack createChainSpecX
 )
@@ -998,7 +998,7 @@ theorem dhStep_433_pinned_cro_placed_okT [LibsignalPlacement] {M : AllocCostMode
     (hAlloc : subroutine_ok ((blkPC_434).rebase (blkPl_434).base H) (lsmpl.ρ lsRustAllocSym) (rustCliAllocNoOomSpec M A lim false))
     (hDealloc : subroutine_ok ((blkPC_434).rebase (blkPl_434).base H) (lsmpl.ρ lsRustDeallocSym) (rustCliDeallocBudgetSpec M A lim))
     (hMemcpy : subroutine_ok ((blkPC_434).rebase (blkPl_434).base H) (lsmpl.ρ "memcpy") framelessMemcpyBudgetSpec)
-    (hMemmove : subroutine_ok ((blkPC_434).rebase (blkPl_434).base H) (lsmpl.ρ "memmove") (sessionMemmoveBudgetSpec dropChainStack)) :
+    (hMemmove : subroutine_ok ((blkPC_434).rebase (blkPl_434).base H) (lsmpl.ρ "memmove") (sessionMemmoveBoundedBudgetSpec dropChainStack)) :
     S3TightSeamPinnedPlaced ((blkPC_434).rebase (blkPl_434).base H) (lsmpl.base 434) C A lim ctl uuidTryParse S (s3DefaultEnv C) :=
   s3_pinned_cro_placed_okT_cli (dhStepBlockVmWp_549 H) C A lim ctl S hcc hdpk hrng hsd
     (s3_commit_433_pinned_placed_ok H C A lim ctl spqrNoPanic hPkSer hToPb hGrowOne hDropChain hShim hAlloc hDealloc hMemcpy hMemmove)
@@ -1018,7 +1018,7 @@ theorem dhStep_433_pinned_cro_budget_placed_okT [LibsignalPlacement] {M : AllocC
     (hAlloc : subroutine_ok ((blkPC_434).rebase (blkPl_434).base H) (lsmpl.ρ lsRustAllocSym) (rustCliAllocBudgetSpec M A lim false))
     (hDealloc : subroutine_ok ((blkPC_434).rebase (blkPl_434).base H) (lsmpl.ρ lsRustDeallocSym) (rustCliDeallocBudgetSpec M A lim))
     (hMemcpy : subroutine_ok ((blkPC_434).rebase (blkPl_434).base H) (lsmpl.ρ "memcpy") framelessMemcpyBudgetSpec)
-    (hMemmove : subroutine_ok ((blkPC_434).rebase (blkPl_434).base H) (lsmpl.ρ "memmove") (sessionMemmoveBudgetSpec dropChainStack)) :
+    (hMemmove : subroutine_ok ((blkPC_434).rebase (blkPl_434).base H) (lsmpl.ρ "memmove") (sessionMemmoveBoundedBudgetSpec dropChainStack)) :
     S3TightSeamPinnedPlaced ((blkPC_434).rebase (blkPl_434).base H) (lsmpl.base 434) C A lim ctl uuidTryParse S (s3DefaultEnv C) :=
   dhStep_433_pinned_cro_placed_okT H C A lim ctl S hcc hdpk hrng hsd
     hPkSer hToPb hGrowOne hDropChain hShim (subroutine_ok_allocNoOom_of_budget hAlloc) hDealloc hMemcpy hMemmove
@@ -1038,7 +1038,7 @@ theorem dhStep_433_cro_placed_okT [LibsignalPlacement] {M : AllocCostModel}
     (hAlloc : subroutine_ok ((blkPC_434).rebase (blkPl_434).base H) (lsmpl.ρ lsRustAllocSym) (rustCliAllocNoOomSpec M A lim false))
     (hDealloc : subroutine_ok ((blkPC_434).rebase (blkPl_434).base H) (lsmpl.ρ lsRustDeallocSym) (rustCliDeallocBudgetSpec M A lim))
     (hMemcpy : subroutine_ok ((blkPC_434).rebase (blkPl_434).base H) (lsmpl.ρ "memcpy") framelessMemcpyBudgetSpec)
-    (hMemmove : subroutine_ok ((blkPC_434).rebase (blkPl_434).base H) (lsmpl.ρ "memmove") (sessionMemmoveBudgetSpec dropChainStack)) :
+    (hMemmove : subroutine_ok ((blkPC_434).rebase (blkPl_434).base H) (lsmpl.ρ "memmove") (sessionMemmoveBoundedBudgetSpec dropChainStack)) :
     S3TightSeamPlaced ((blkPC_434).rebase (blkPl_434).base H) (lsmpl.base 434) C A lim ctl uuidTryParse S (s3DefaultEnv C) :=
   (dhStep_433_pinned_cro_placed_okT H C A lim ctl S hcc hdpk hrng hsd hPkSer hToPb hGrowOne hDropChain hShim hAlloc hDealloc hMemcpy hMemmove).toUnpinned
 
@@ -1057,7 +1057,7 @@ theorem dhStep_433_cro_budget_placed_okT [LibsignalPlacement] {M : AllocCostMode
     (hAlloc : subroutine_ok ((blkPC_434).rebase (blkPl_434).base H) (lsmpl.ρ lsRustAllocSym) (rustCliAllocBudgetSpec M A lim false))
     (hDealloc : subroutine_ok ((blkPC_434).rebase (blkPl_434).base H) (lsmpl.ρ lsRustDeallocSym) (rustCliDeallocBudgetSpec M A lim))
     (hMemcpy : subroutine_ok ((blkPC_434).rebase (blkPl_434).base H) (lsmpl.ρ "memcpy") framelessMemcpyBudgetSpec)
-    (hMemmove : subroutine_ok ((blkPC_434).rebase (blkPl_434).base H) (lsmpl.ρ "memmove") (sessionMemmoveBudgetSpec dropChainStack)) :
+    (hMemmove : subroutine_ok ((blkPC_434).rebase (blkPl_434).base H) (lsmpl.ρ "memmove") (sessionMemmoveBoundedBudgetSpec dropChainStack)) :
     S3TightSeamPlaced ((blkPC_434).rebase (blkPl_434).base H) (lsmpl.base 434) C A lim ctl uuidTryParse S (s3DefaultEnv C) :=
   (dhStep_433_pinned_cro_budget_placed_okT H C A lim ctl S hcc hdpk hrng hsd hPkSer hToPb hGrowOne hDropChain hShim hAlloc hDealloc hMemcpy hMemmove).toUnpinned
 
@@ -1076,7 +1076,7 @@ theorem dhStep_433_pinned_placed_okT [LibsignalPlacement] {M : AllocCostModel}
     (hAlloc : subroutine_ok ((blkPC_434).rebase (blkPl_434).base H) (lsmpl.ρ lsRustAllocSym) (rustCliAllocNoOomSpec M A lim false))
     (hDealloc : subroutine_ok ((blkPC_434).rebase (blkPl_434).base H) (lsmpl.ρ lsRustDeallocSym) (rustCliDeallocBudgetSpec M A lim))
     (hMemcpy : subroutine_ok ((blkPC_434).rebase (blkPl_434).base H) (lsmpl.ρ "memcpy") framelessMemcpyBudgetSpec)
-    (hMemmove : subroutine_ok ((blkPC_434).rebase (blkPl_434).base H) (lsmpl.ρ "memmove") (sessionMemmoveBudgetSpec dropChainStack)) :
+    (hMemmove : subroutine_ok ((blkPC_434).rebase (blkPl_434).base H) (lsmpl.ρ "memmove") (sessionMemmoveBoundedBudgetSpec dropChainStack)) :
     S3TightSeamPinnedPlaced ((blkPC_434).rebase (blkPl_434).base H) (lsmpl.base 434) C A lim ctl uuidTryParse S (s3DefaultEnv C) :=
   dhStep_433_pinned_cro_placed_okT H C A lim ctl S
     (subroutine_ok_withLsCodeRoLoaded_of_plain hcc)
@@ -1099,7 +1099,7 @@ theorem dhStep_433_pinned_budget_placed_okT [LibsignalPlacement] {M : AllocCostM
     (hAlloc : subroutine_ok ((blkPC_434).rebase (blkPl_434).base H) (lsmpl.ρ lsRustAllocSym) (rustCliAllocBudgetSpec M A lim false))
     (hDealloc : subroutine_ok ((blkPC_434).rebase (blkPl_434).base H) (lsmpl.ρ lsRustDeallocSym) (rustCliDeallocBudgetSpec M A lim))
     (hMemcpy : subroutine_ok ((blkPC_434).rebase (blkPl_434).base H) (lsmpl.ρ "memcpy") framelessMemcpyBudgetSpec)
-    (hMemmove : subroutine_ok ((blkPC_434).rebase (blkPl_434).base H) (lsmpl.ρ "memmove") (sessionMemmoveBudgetSpec dropChainStack)) :
+    (hMemmove : subroutine_ok ((blkPC_434).rebase (blkPl_434).base H) (lsmpl.ρ "memmove") (sessionMemmoveBoundedBudgetSpec dropChainStack)) :
     S3TightSeamPinnedPlaced ((blkPC_434).rebase (blkPl_434).base H) (lsmpl.base 434) C A lim ctl uuidTryParse S (s3DefaultEnv C) :=
   dhStep_433_pinned_placed_okT H C A lim ctl S hcc hdpk hrng hsd
     hPkSer hToPb hGrowOne hDropChain hShim (subroutine_ok_allocNoOom_of_budget hAlloc) hDealloc hMemcpy hMemmove
@@ -1119,7 +1119,7 @@ theorem dhStep_433_placed_okT [LibsignalPlacement] {M : AllocCostModel}
     (hAlloc : subroutine_ok ((blkPC_434).rebase (blkPl_434).base H) (lsmpl.ρ lsRustAllocSym) (rustCliAllocNoOomSpec M A lim false))
     (hDealloc : subroutine_ok ((blkPC_434).rebase (blkPl_434).base H) (lsmpl.ρ lsRustDeallocSym) (rustCliDeallocBudgetSpec M A lim))
     (hMemcpy : subroutine_ok ((blkPC_434).rebase (blkPl_434).base H) (lsmpl.ρ "memcpy") framelessMemcpyBudgetSpec)
-    (hMemmove : subroutine_ok ((blkPC_434).rebase (blkPl_434).base H) (lsmpl.ρ "memmove") (sessionMemmoveBudgetSpec dropChainStack)) :
+    (hMemmove : subroutine_ok ((blkPC_434).rebase (blkPl_434).base H) (lsmpl.ρ "memmove") (sessionMemmoveBoundedBudgetSpec dropChainStack)) :
     S3TightSeamPlaced ((blkPC_434).rebase (blkPl_434).base H) (lsmpl.base 434) C A lim ctl uuidTryParse S (s3DefaultEnv C) :=
   (dhStep_433_pinned_placed_okT H C A lim ctl S hcc hdpk hrng hsd hPkSer hToPb hGrowOne hDropChain hShim hAlloc hDealloc hMemcpy hMemmove).toUnpinned
 
@@ -1138,7 +1138,7 @@ theorem dhStep_433_budget_placed_okT [LibsignalPlacement] {M : AllocCostModel}
     (hAlloc : subroutine_ok ((blkPC_434).rebase (blkPl_434).base H) (lsmpl.ρ lsRustAllocSym) (rustCliAllocBudgetSpec M A lim false))
     (hDealloc : subroutine_ok ((blkPC_434).rebase (blkPl_434).base H) (lsmpl.ρ lsRustDeallocSym) (rustCliDeallocBudgetSpec M A lim))
     (hMemcpy : subroutine_ok ((blkPC_434).rebase (blkPl_434).base H) (lsmpl.ρ "memcpy") framelessMemcpyBudgetSpec)
-    (hMemmove : subroutine_ok ((blkPC_434).rebase (blkPl_434).base H) (lsmpl.ρ "memmove") (sessionMemmoveBudgetSpec dropChainStack)) :
+    (hMemmove : subroutine_ok ((blkPC_434).rebase (blkPl_434).base H) (lsmpl.ρ "memmove") (sessionMemmoveBoundedBudgetSpec dropChainStack)) :
     S3TightSeamPlaced ((blkPC_434).rebase (blkPl_434).base H) (lsmpl.base 434) C A lim ctl uuidTryParse S (s3DefaultEnv C) :=
   (dhStep_433_pinned_budget_placed_okT H C A lim ctl S hcc hdpk hrng hsd hPkSer hToPb hGrowOne hDropChain hShim hAlloc hDealloc hMemcpy hMemmove).toUnpinned
 
@@ -1159,7 +1159,7 @@ theorem dhStep_433_pinned_x_cro_budget_placed_ok [LibsignalPlacement] {M : Alloc
     (hAlloc : subroutine_ok ((blkPC_434).rebase (blkPl_434).base H) (lsmpl.ρ lsRustAllocSym) (rustCliAllocBudgetSpec M A lim false))
     (hDealloc : subroutine_ok ((blkPC_434).rebase (blkPl_434).base H) (lsmpl.ρ lsRustDeallocSym) (rustCliDeallocBudgetSpec M A lim))
     (hMemcpy : subroutine_ok ((blkPC_434).rebase (blkPl_434).base H) (lsmpl.ρ "memcpy") framelessMemcpyBudgetSpec)
-    (hMemmove : subroutine_ok ((blkPC_434).rebase (blkPl_434).base H) (lsmpl.ρ "memmove") (sessionMemmoveBudgetSpec dropChainStackX)) :
+    (hMemmove : subroutine_ok ((blkPC_434).rebase (blkPl_434).base H) (lsmpl.ρ "memmove") (sessionMemmoveBoundedBudgetSpec dropChainStackX)) :
     CliS3SeamPinnedXPlaced ((blkPC_434).rebase (blkPl_434).base H) (lsmpl.base 434) C decFn A lim ctl uuidTryParse S (s3DefaultEnv C) :=
   s3_pinned_x_cro_placed_ok_cli (dhStepBlockVmWp_549 H) C decFn A lim ctl uuidTryParse S hcc hdpk hrng hsd
     (s3_commit_433_pinned_x_budget_placed_ok H C decFn A lim ctl S hPkSer hToPb hGrowOne hDropChain hShim hAlloc hDealloc hMemcpy hMemmove)

@@ -20,9 +20,9 @@ public import VerifiedLibraries.Mallocng.Proofs.BridgeHelpers
 by default `lake build`) pinning:
 * K2 `svc` / `overrides` agreement on `Placed.cliProgPlacedSig mpl mmpl W` (`Syscall.standard`,
   `overrides = fun _ => none`), ensuring `MallocngSvcValid (Placed.cliProgPlacedSig mpl mmpl W).svc`.
-* K5 `cliHookTablePlaced` row count (`37`, whose exact `37`-key list in
-  `cliHookTablePlaced_keys_guard` also fails closed if a `<String as Clone>::clone`, `memset` or
-  `memcpy` row is re-added) and absence of all `9` `cliDehookedSymsPlaced` names from both
+* K5 `cliHookTablePlaced` row count (`27`, whose exact `27`-key list in
+  `cliHookTablePlaced_keys_guard` also fails closed if a `<String as Clone>::clone`, `memset`,
+  `memcpy` or C2 row is re-added) and absence of all `19` `cliDehookedSymsPlaced` names from both
   `isCliPanicSymbolPlaced` and `cliHookTablePlaced` (`cliExternsPlacedSig mmpl W sym = none`).
 * `cliRunPlacedSig_eq_none_of_reachesOOM_guard`: reaching `.OutOfMemory` (`CliReachesOOMPlaced`)
   forces `Placed.cliRunPlacedSig mpl mmpl elf W i = none`.
@@ -68,7 +68,7 @@ theorem cliProgPlacedSig_mallocngSvcValid_guard
     VerifiedLibraries.Mallocng.MallocngSvcValid (Placed.cliProgPlacedSig mpl mmpl W).svc :=
   VerifiedLibraries.Mallocng.Proofs.mallocngSvcValid_standard
 
-/-- Expected ordered `37`-symbol key list of `cliHookTablePlaced`. -/
+/-- Expected ordered `27`-symbol key list of `cliHookTablePlaced`. -/
 def cliHookTableKeysExpected : List String :=
   ["_RNvNtCsbvWyylYiyxg_4sha26sha51211compress512",
    "_RNvMs5_NtCs2wR8L9wiBdT_16curve25519_dalek10montgomeryNtB5_15MontgomeryPoint10to_edwards",
@@ -88,44 +88,36 @@ def cliHookTableKeysExpected : List String :=
    "_RNvNtNtCs1mK0QScfTrZ_14libcrux_ml_kem8mlkem76811incremental26decapsulate_compressed_key",
    "_RNvNtNtCs1mK0QScfTrZ_14libcrux_ml_kem8mlkem76811incremental17validate_pk_bytes",
    "_RNvCs65XVORQObL2_12libcrux_hmac4hmac",
-   "memmove",
-   "bcmp",
-   "strlen",
    lsWriteFileSym,
    lsWriteStdoutSym,
-   lsMemrchrSym,
-   lsFromUtf8Sym,
    lsFmtWriteSym,
    lsFormatInnerSym,
-   lsDurationSinceSym,
-   lsTimeAddSym,
-   lsBlackBoxSym,
    lsCompress256Sym,
    lsAesEncSym,
    lsAesDecSym,
    lsPubFromSecretSym,
-   lsDiffieHellmanSym,
-   lsStaticSecretDropSym,
-   lsSharedSecretDropSym]
+   lsDiffieHellmanSym]
 
-/-- Guard (GK2 K5): `cliHookTablePlaced` has the exact `37` expected symbol keys in order. -/
+/-- Guard (GK2 K5): `cliHookTablePlaced` has the exact `27` expected symbol keys in order. -/
 theorem cliHookTablePlaced_keys_guard
     (mmpl : Obj.MultiPlacement) (W : CliHooks) :
     (cliHookTablePlaced mmpl W).map Prod.fst = cliHookTableKeysExpected :=
   rfl
 
-/-- Guard (GK2 K5): `cliHookTablePlaced` has `37` rows (`18` PQXDH/SPQR + `19` base/IO/crypto). -/
+/-- Guard (GK2 K5): `cliHookTablePlaced` has `27` rows (`18` PQXDH/SPQR + `9` base/IO/crypto). -/
 theorem cliHookTablePlaced_length_guard
     (mmpl : Obj.MultiPlacement) (W : CliHooks) :
-    (cliHookTablePlaced mmpl W).length = 37 :=
+    (cliHookTablePlaced mmpl W).length = 27 :=
   rfl
 
-/-- Guard (GK2 K2): none of the `9` de-hooked symbol names in `cliDehookedSymsPlaced` is a panic symbol (`isCliPanicSymbolPlaced`). -/
+/-- Guard (GK2 K2): none of the `19` de-hooked symbol names in `cliDehookedSymsPlaced` is a panic symbol (`isCliPanicSymbolPlaced`). -/
 theorem cliDehookedSymsPlaced_not_panic_guard :
     (cliDehookedSymsPlaced.all fun s => !isCliPanicSymbolPlaced s) = true := by
   simp [cliDehookedSymsPlaced, isCliPanicSymbolPlaced, cliPanicSymbolsPlaced, Rust.isPanicSymbol,
     lsRustNoAllocShimSymCli, lsRustAllocSymCli, lsRustDeallocSymCli, lsRustReallocSymCli,
-    lsRustAllocZeroedSymCli, lsReadFileSym, lsReadStdinSym]
+    lsRustAllocZeroedSymCli, lsReadFileSym, lsReadStdinSym,
+    lsMemrchrSym, lsFromUtf8Sym, lsDurationSinceSym, lsTimeAddSym,
+    lsBlackBoxSym, lsStaticSecretDropSym, lsSharedSecretDropSym]
 
 private theorem not_panic_of_all {s : String} {l : List String}
     (hall : (l.all fun x => !isCliPanicSymbolPlaced x) = true) (hmem : s ∈ l) :
@@ -153,7 +145,10 @@ theorem cliExternsPlacedSig_dehooked_eq_none_guard
   · rfl
   · rw [cliHookTablePlaced_keys_guard]
     simp only [cliDehookedSymsPlaced, List.mem_cons, List.not_mem_nil, or_false] at hsym
-    rcases hsym with rfl | rfl | rfl | rfl | rfl | rfl | rfl | rfl | rfl <;> decide +kernel
+    rcases hsym with
+      rfl | rfl | rfl | rfl | rfl | rfl | rfl | rfl | rfl | rfl |
+      rfl | rfl | rfl | rfl | rfl | rfl | rfl | rfl | rfl <;>
+      decide +kernel
 
 theorem cliRunPlacedSig_eq_none_of_reachesOOM_guard
     {mpl mmpl : Obj.MultiPlacement} {elf : ElfImage} {W : CliHooks} {i : Inputs}

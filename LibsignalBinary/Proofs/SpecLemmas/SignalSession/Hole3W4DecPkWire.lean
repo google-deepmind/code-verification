@@ -18,6 +18,7 @@ public import LibsignalBinary.Proofs.SpecLemmas.SignalSession.Hole3W4DecPkFresh
 import Arm64.Trusted.Spec.SepLogic
 import LibsignalBinary.Proofs.Common.SharedHelpers
 meta import LibsignalBinary.Proofs.Common.SharedHelpers -- shake: keep
+import LibsignalBinary.Proofs.Cli.E2E.Pqxdh.ResponderClosure.Kits.StageP2PurePlacedBudgetSat
 import LibsignalBinary.Proofs.SignalSession.Cli.Run.Proofs.DecryptPrekey.Poll.StagesInst.ResponderCanonicalPlacedBudget
 import ProofLib
 import ProofLib.SepLogic.WPp
@@ -126,7 +127,7 @@ open CryptoVerification.SignalSession.Cli.RunProofs.Poll (
 )
 open CryptoVerification.SignalSession.Cli.RunSkeleton (RunBudgets)
 open CryptoVerification.SignalSession.Cli.Slots (
-  FilesOkPeer blackBox_row_placed scopeIn scopeKit
+  FilesOkPeer scopeIn scopeKit
 )
 open CryptoVerification.SpqrV1.Top.InitialState (InitialStateGhost)
 open LibsignalBinary.Heap (
@@ -143,8 +144,11 @@ open LibsignalBinary.Proofs.Cli.E2E.Pqxdh.ResponderClosure.Kits.StageP2Mid3Place
 )
 open LibsignalBinary.Proofs.Cli.E2E.Pqxdh.ResponderClosure.Kits.StageP2PurePlacedBudget (
   InitializeBobV1OptFieldsEnv initializeBobSession_ok_v1_of_env_4k_frozen_placed_on_stageP1
-  isSameAccount_4k_placed_ok_on_stageP1 p2_errOwned_frozen_to_defs4K_placed
+  p2_errOwned_frozen_to_defs4K_placed
   stageP2BaseCalleesPlaced4K_of_hooks
+)
+open LibsignalBinary.Proofs.Cli.E2E.Pqxdh.ResponderClosure.Kits.StageP2PurePlacedBudgetSat (
+  isSameAccount_4k_placed_ok_on_stageP1_sat
 )
 open LibsignalBinary.Proofs.Cli.E2E.Pqxdh.ResponderClosure.Kits.StageP2V1PlacedBudget (
   P2Sub6Env P2V1Arm4Env P2V1Arm5EnvOfAcceptErr P2V1Arm6EnvOfBob P2V1OkEnvOfBob
@@ -397,18 +401,17 @@ private theorem hookSat_sessionMemcpyBudget_of_vm_w4wire
 private theorem cliStageP2BaseCalleesPlaced4K_w4wire [LibsignalPlacement] {M : AllocCostModel}
     {A : RustCliAllocBudget M} {lim : BudgetLimits}
     (mmpl : MultiPlacement) (gh : CliGhostHooks) (W : CliHooks)
-    (hh : RunHooksPlaced A lim (cliGhostExterns gh (cliExternsPlaced mmpl W))) :
+    (hh : RunHooksPlaced A lim (cliGhostExterns gh (cliExternsPlaced mmpl W)))
+    (hOk : LibsignalBinary.Proofs.SignalSession.Cli.Run.Slots.ExtraGhostSpecs.ExtraSpecOk gh) :
     StageP2BaseCalleesPlaced4K A lim (cliGhostExterns gh (cliExternsPlaced mmpl W)) :=
   stageP2BaseCalleesPlaced4K_of_hooks
     (hookSat_noAllocShimBudget_of_withVmPreserved_w4wire hh.codecHooks.shim)
     hh.codecHooks.alloc
     hh.codecHooks.dealloc
     (hookSat_sessionMemcpyBudget_of_vm_w4wire allocHookStack hh.codecHooks.memcpy)
-    (isSameAccount_4k_placed_ok_on_stageP1
-      ((cliGhostExterns_other gh _ (sym := CryptoVerification.lsBlackBoxU8Sym)
-        (by decide) (by decide) (by decide) (by decide) (by decide)
-        (by decide) (by decide) (by decide) (by decide) (by decide)).trans
-        (cliExternsPlaced_row mmpl W (blackBox_row_placed mmpl W)))
+    (isSameAccount_4k_placed_ok_on_stageP1_sat
+      (LibsignalBinary.Proofs.SignalSession.Cli.Run.Slots.CliHookSatPlacedBudget.cliGhostExterns_blackBoxSat_budget_sat
+        gh (cliExternsPlaced mmpl W) hOk)
       (uuidTryParse_placed_vm_code_ok (cliGhostExterns gh (cliExternsPlaced mmpl W))))
 
 private theorem cliInitBobV1FrozenOkPlaced4K_of_init75_w4wire [LibsignalFullPlacement]
@@ -707,7 +710,7 @@ private theorem stageP2PathA_qpan_cli_full_placed_at_of_init75_w4wire [Libsignal
     (Qp := fun sf Pf => Steps (dpPollProgPlaced (cliGhostExterns gh (cliExternsPlaced mmpl W))) s1 sf → Qpan sf Pf)
     (cliGhostExterns gh (cliExternsPlaced mmpl W)) (cliModelPrims_structural X W)
     (cliStageP2ClosureHooksPlaced mmpl gh W hh)
-    (cliStageP2BaseCalleesPlaced4K_w4wire mmpl gh W hh)
+    (cliStageP2BaseCalleesPlaced4K_w4wire mmpl gh W hh hG.extraOk)
     (cliInitBobErrOwnedFrozen4K_ok_w4wire X mmpl gh W hh hG)
     (cliInitBobV1FrozenOkPlaced4K_of_init75_w4wire X mmpl gh W hh hG hInit75)
     (cliPollIdKitPlaced A.repAlloc y.g.F y.g.peer (cliKitStk B))
@@ -1194,7 +1197,7 @@ private theorem stageP2PathCOver_qpan_cli_full_placed_at_of_init75_aux_w4wire [L
   let err0 : ApiError AddrVal Unit := .protocol .invalidKeyAgreement
   have herr0_p : err0 ≠ .panic := by nofun
   have herr0_s : err0 ≠ .store () := by nofun
-  have hPure4K := cliStageP2BaseCalleesPlaced4K_w4wire mmpl gh W hh
+  have hPure4K := cliStageP2BaseCalleesPlaced4K_w4wire mmpl gh W hh hG.extraOk
   have hInitBobErrOwned := cliInitBobErrOwnedFrozen4K_ok_w4wire X mmpl gh W hh hG
   exact stageP2_over_v1_kits_frozen_ext_defs_placed_ofEnv
     (M := M)

@@ -1,0 +1,131 @@
+# Translation configuration for `third_party/libsignal/libsignal-session/cli/rt` (C2 `lib2` sibling).
+#
+# Consumed only by the stock builder (`scripts/cli-elf-stock` -> `work/lib2_*.o`), never registered
+# in `lakefile.lean` so `libsignalSessionObj` / `libsignalSessionExterns` remain byte-identical.
+# Trims the 7 C2 Rust/crate runtime hook bodies (`memrchr`, `from_utf8`, `SystemTime::duration_since`,
+# `SystemTime::add`, `subtle::black_box::<u8>`, `StaticSecret::drop`, `SharedSecret::drop`) plus the
+# `MontgomeryPoint::zeroize` callee of `SharedSecret::drop` from the `aarch64-unknown-linux-gnu`
+# sysroot rlibs (`core`, `std`) and the `deps/` rlibs (`curve25519_dalek`, `x25519_dalek`) of the
+# same cargo build that produced `lib0_*.o`.
+#
+# Note: `core_memrchr` and `core_from_utf8` are two separate `[[sysroot_objects]]` entries (as in
+# `STOCK-PLAN` `part1_roots.md` §1 and `RENAME`'s `a819d0d7` trial) because in `core` `cgu.0`
+# `from_utf8` sits at an earlier ELF section index than `memrchr`, and separate `.o` trims allow
+# independent per-row inclusion while keeping `memrchr` (`0x46e5bc`) before `from_utf8` (`0x46e6e4`).
+
+crate_dir = "../.."
+crates = []
+obj_name = "libsignalCliRt"
+obj_file = "GeneratedLean/LibsignalCliRtObj.lean"
+namespace_prefix = "CryptoVerification"
+page_separate_data = true
+legacy_linked_image = false
+hashed_inputs = [
+    "cli/rt/translation.toml",
+    "Cargo.toml",
+    "Cargo.lock",
+]
+rustflags = ["--cfg", 'aes_backend="soft"', "--cfg", 'sha2_backend="soft"']
+license_header = [
+    "Machine code trimmed from Rust `core`/`std` sysroot and `curve25519-dalek` / `x25519-dalek`",
+    "crate dependencies compiled with `third_party/libsignal/libsignal-session/Cargo.lock`.",
+    "",
+    "See `third_party/libsignal/README.md`.",
+]
+
+[upstream]
+name = "libsignal"
+repo_url = "https://github.com/signalapp/libsignal"
+tag = "v0.105.4"
+vendor_symlink = "vendor/libsignal"
+probe_path = "rust/protocol/Cargo.toml"
+env_var = "LIBSIGNAL_SRC"
+no_clone_env_var = "LIBSIGNAL_NO_CLONE"
+home_subdir = "sw/libsignal"
+
+[placed]
+multi = true
+# Ordered with `SystemTime::add` LAST so its retired stub (`__retired_6`) and `lib2_5.o` sections
+# sit strictly at the tail of `.text.lib2` and `.rodata.lib2`: holding `time_add` back truncates
+# only the two tails without shifting any other `lib2` code/RO address or renumbering `__retired_0..5`.
+exports = [
+    "_RNvNtNtCskxtBwYRO61I_4core5slice6memchr7memrchr",
+    "_RNvNtNtCskxtBwYRO61I_4core3str8converts9from_utf8",
+    "_RNvMs5_NtCsfr5T3GFabw_3std4timeNtB5_10SystemTime14duration_since",
+    "_RINvCsdqpLrhraQXi_6subtle9black_boxhECs2wR8L9wiBdT_16curve25519_dalek",
+    "_RNvXsa_NtCscSWoUTnaXmu_12x25519_dalek6x25519NtB5_12StaticSecretNtNtNtCskxtBwYRO61I_4core3ops4drop4Drop4drop",
+    "_RNvXse_NtCscSWoUTnaXmu_12x25519_dalek6x25519NtB5_12SharedSecretNtNtNtCskxtBwYRO61I_4core3ops4drop4Drop4drop",
+    "_RNvXs6_NtCsfr5T3GFabw_3std4timeNtB5_10SystemTimeINtNtNtCskxtBwYRO61I_4core3ops5arith3AddNtNtBR_4time8DurationE3add",
+]
+
+# Per-row configurability map: each C2 row can be enabled or held back independently; a held-back
+# row stays out of `lib2_*.o` and keeps its global 4-byte `udf #0` stub in `extern_stubs_clean.o`.
+[lib2_rows.memrchr]
+root = "_RNvNtNtCskxtBwYRO61I_4core5slice6memchr7memrchr"
+
+[lib2_rows.from_utf8]
+root = "_RNvNtNtCskxtBwYRO61I_4core3str8converts9from_utf8"
+
+[lib2_rows.duration_since]
+root = "_RNvMs5_NtCsfr5T3GFabw_3std4timeNtB5_10SystemTime14duration_since"
+
+[lib2_rows.black_box]
+root = "_RINvCsdqpLrhraQXi_6subtle9black_boxhECs2wR8L9wiBdT_16curve25519_dalek"
+
+[lib2_rows.static_secret_drop]
+root = "_RNvXsa_NtCscSWoUTnaXmu_12x25519_dalek6x25519NtB5_12StaticSecretNtNtNtCskxtBwYRO61I_4core3ops4drop4Drop4drop"
+
+[lib2_rows.shared_secret_drop]
+root = "_RNvXse_NtCscSWoUTnaXmu_12x25519_dalek6x25519NtB5_12SharedSecretNtNtNtCskxtBwYRO61I_4core3ops4drop4Drop4drop"
+helper_roots = [
+    "_RNvXs4_NtCs2wR8L9wiBdT_16curve25519_dalek10montgomeryNtB5_15MontgomeryPointNtCsjhEzohgaBbG_7zeroize7Zeroize7zeroize",
+]
+
+[lib2_rows.time_add]
+root = "_RNvXs6_NtCsfr5T3GFabw_3std4timeNtB5_10SystemTimeINtNtNtCskxtBwYRO61I_4core3ops5arith3AddNtNtBR_4time8DurationE3add"
+
+[[sysroot_objects]]
+order = 0
+crate = "core"
+name = "core_memrchr"
+roots = ["_RNvNtNtCskxtBwYRO61I_4core5slice6memchr7memrchr"]
+
+[[sysroot_objects]]
+order = 1
+crate = "core"
+name = "core_from_utf8"
+roots = ["_RNvNtNtCskxtBwYRO61I_4core3str8converts9from_utf8"]
+
+[[sysroot_objects]]
+order = 2
+crate = "std"
+name = "std_duration_since"
+roots = [
+    "_RNvMs5_NtCsfr5T3GFabw_3std4timeNtB5_10SystemTime14duration_since",
+]
+
+[[dep_objects]]
+order = 3
+crate = "curve25519_dalek"
+name = "dalek_rt"
+roots = [
+    "_RINvCsdqpLrhraQXi_6subtle9black_boxhECs2wR8L9wiBdT_16curve25519_dalek",
+    "_RNvXs4_NtCs2wR8L9wiBdT_16curve25519_dalek10montgomeryNtB5_15MontgomeryPointNtCsjhEzohgaBbG_7zeroize7Zeroize7zeroize",
+]
+
+[[dep_objects]]
+order = 4
+crate = "x25519_dalek"
+name = "x25519_rt"
+roots = [
+    "_RNvXsa_NtCscSWoUTnaXmu_12x25519_dalek6x25519NtB5_12StaticSecretNtNtNtCskxtBwYRO61I_4core3ops4drop4Drop4drop",
+    "_RNvXse_NtCscSWoUTnaXmu_12x25519_dalek6x25519NtB5_12SharedSecretNtNtNtCskxtBwYRO61I_4core3ops4drop4Drop4drop",
+]
+
+[[sysroot_objects]]
+order = 5
+crate = "std"
+name = "std_time_add"
+roots = [
+    "_RNvXs6_NtCsfr5T3GFabw_3std4timeNtB5_10SystemTimeINtNtNtCskxtBwYRO61I_4core3ops5arith3AddNtNtBR_4time8DurationE3add",
+]

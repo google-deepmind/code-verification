@@ -10,6 +10,7 @@ limitations under the License.
 module
 
 public import LibsignalBinary.Heap.SpecBudget
+public import LibsignalBinary.Proofs.HookDischarge.Libc.Memmove -- proof-setup: allow-public-import
 public import LibsignalBinary.Proofs.Placed.SubsetA4c
 public import LibsignalBinary.Proofs.SpqrV1.Chain.NextKeyInternalBudget
 public import LibsignalBinary.Proofs.SpqrV1.States.FromPb.DefsBudget
@@ -40,6 +41,7 @@ open CryptoVerification.SpqrV1.States.RecvCt2Chunk (spqrMlkemDecapsSym)
 open CryptoVerification.SpqrV1.Unchunked
 open LibsignalBinary.Heap
 open LibsignalBinary.Heap.SpecBudget (libcruxHmacBudgetSpec withVmPreserved)
+open LibsignalBinary.Proofs.HookDischarge.Libc.Memmove (sessionMemmoveBoundedSpec)
 open LibsignalBinary.Proofs.SpqrV1.Chain.NextKeyInternalBudget (withAllocVmPreserved)
 open LibsignalBinary.Proofs.TripleRatchet.Hooks.DefsBudget
 open LibsignalBinary.Proofs.SpqrV1.States.FromPb.DefsBudget (StatesFromPbEnv)
@@ -91,14 +93,16 @@ private theorem hookSat_sessionMemcpyBudget_of_region_any {H : String → Option
 
 private theorem hookSat_withAllocVmPreserved_memmove_of_zero {H : String → Option (State → State)}
     {sym : String} (hookStack : Nat)
-    (h : HookSat H sym (withAllocVmPreserved (sessionMemmoveSpec 0))) :
-    HookSat H sym (withAllocVmPreserved (sessionMemmoveSpec hookStack)) := by
+    (h : HookSat H sym (withAllocVmPreserved (sessionMemmoveBoundedSpec 0))) :
+    HookSat H sym (withAllocVmPreserved (sessionMemmoveBoundedSpec hookStack)) := by
   refine ProofLib.HookSat.mono h fun ⟨base, buf, dst, src, len⟩ R s0 hpre =>
     ⟨(base, buf, dst, src, len), stackAt s0.sp hookStack ∗ R, ?_, fun sf hpost => ?_⟩
-  · dsimp only [withAllocVmPreserved, sessionMemmoveSpec, libcMemmoveSpec, stackAt] at hpre ⊢
+  · dsimp only [withAllocVmPreserved, sessionMemmoveBoundedSpec,
+      sessionMemmoveSpec, libcMemmoveSpec, stackAt] at hpre ⊢
     simp only [ProofLib.memRegion_zero, sepConj_emp]
     ac_nf at hpre ⊢
-  · dsimp only [withAllocVmPreserved, sessionMemmoveSpec, stackAt] at hpost ⊢
+  · dsimp only [withAllocVmPreserved, sessionMemmoveBoundedSpec,
+      sessionMemmoveSpec, stackAt] at hpost ⊢
     simp only [ProofLib.memRegion_zero, sepConj_emp] at hpost
     ac_nf at hpost ⊢
 
@@ -109,7 +113,7 @@ theorem statesPlacedSeams_of_hooks [LibsignalPlacement]
     [HkdfPlacedHooks F (Rust.withPanics ext)]
     (hA : RecvCt2PlacedAlloc M A lim ext)
     (hmemmove0 : HookSat (Rust.withPanics ext) spqrMemmoveSym
-      (withAllocVmPreserved (sessionMemmoveSpec 0)))
+      (withAllocVmPreserved (sessionMemmoveBoundedSpec 0)))
     (hmemset : HookSat (Rust.withPanics ext) memsetName sessionMemsetRegionBudgetSpec)
     (hval_pk : HookSat (Rust.withPanics ext)
       "_RNvNtNtCs1mK0QScfTrZ_14libcrux_ml_kem8mlkem76811incremental17validate_pk_bytes"

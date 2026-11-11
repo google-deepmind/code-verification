@@ -288,6 +288,7 @@ theorem cliSpqrDecodeState_sendCoins_ok [LibsignalPlacement]
     (hG : Slots.CliGhostA0Hooks E2E.HooksE.A0 gh)
     (hMs : gh.memset = some memsetHook)
     (hMc : gh.memcpy = some memcpyHook)
+    (hMv : gh.extra.lookup "memmove" = some hookMemmove)
     (hHmac : HookSat (RunGlue.cliGhostExterns gh (cliExternsPlaced mmpl W))
       Slots.lsLibcruxHmacSymCli (libcruxHmacSpec W.C.F E2E.HooksE.A0))
     (hDrop267 : subroutine_ok (libsignalSessionLib.blockProgram lsmpl 267 (Rust.withPanics (RunGlue.cliGhostExterns gh (cliExternsPlaced mmpl W))))
@@ -341,7 +342,7 @@ theorem cliSpqrDecodeState_sendCoins_ok [LibsignalPlacement]
         (CryptoVerification.SpqrV1.Top.DecodeState.decodeStatePlacedSpecX
           canonicalV1InnerHeap E2E.HooksE.A0)) := by
   have : CliSpqrExt W (RunGlue.cliGhostExterns gh (cliExternsPlaced mmpl W)) :=
-    cliSpqrExt_self mmpl gh W hG hMs hMc hHmac
+    cliSpqrExt_self mmpl gh W hG hMs hMc hMv hHmac
   exact cliSpqrDecodeState_cl W
     hDrop267 hDrop270 hDrop281 hDrop282
     hPush257 hFrom261 hSkip263 hBytes290 hVarint291 hChainParams294 hEpochDir299
@@ -419,6 +420,7 @@ theorem cliSpqrDecodeState_recv_trTrap_ok [LibsignalPlacement]
     (hG : Slots.CliGhostA0Hooks E2E.HooksE.A0 gh)
     (hMs : gh.memset = some memsetHook)
     (hMc : gh.memcpy = some memcpyHook)
+    (hMv : gh.extra.lookup "memmove" = some hookMemmove)
     (hHmac : HookSat (RunGlue.cliGhostExterns gh (cliExternsPlaced mmpl W))
       Slots.lsLibcruxHmacSymCli (libcruxHmacSpec W.C.F E2E.HooksE.A0))
     (hDrop267 : subroutine_ok (libsignalSessionLib.blockProgram lsmpl 267 (Rust.withPanics (Slots.trTrapExternsPlaced (RunGlue.cliGhostExterns gh (cliExternsPlaced mmpl W)))))
@@ -470,7 +472,7 @@ theorem cliSpqrDecodeState_recv_trTrap_ok [LibsignalPlacement]
       (LibsignalTripleRatchet.withLsCodeRoLoaded lsmpl
         (decodeStatePlacedSpecX canonicalV1InnerHeap E2E.HooksE.A0)) := by
   have : CliSpqrExt W (Slots.trTrapExternsPlaced (RunGlue.cliGhostExterns gh (cliExternsPlaced mmpl W))) :=
-    cliSpqrExt_trTrap mmpl gh W hG hMs hMc hHmac
+    cliSpqrExt_trTrap mmpl gh W hG hMs hMc hMv hHmac
   exact cliSpqrDecodeState_recv_ok W
     hDrop267 hDrop270 hDrop281 hDrop282
     hPush257 hFrom261 hSkip263 hBytes290 hVarint291 hChainParams294 hEpochDir299

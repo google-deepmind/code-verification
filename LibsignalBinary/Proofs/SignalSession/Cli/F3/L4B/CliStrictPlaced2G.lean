@@ -15,6 +15,7 @@ public import LibsignalBinary.Proofs.SignalSession.Cli.F3.L4B.F3ExternNoAllocFai
 public import LibsignalBinary.Proofs.SignalSession.Cli.F3.L4B.F3HarnessPlaced -- proof-setup: allow-public-import
 public import LibsignalBinary.Proofs.SignalSession.Cli.F3.L4B.PlacedOomRecovery2 -- proof-setup: allow-public-import
 public import LibsignalBinary.Proofs.SignalSession.Cli.HooksDehook.Block617TransferG -- proof-setup: allow-public-import
+public import LibsignalBinary.Proofs.SignalSession.Cli.HooksDehook.C2EntryGuard -- proof-setup: allow-public-import
 public import LibsignalBinary.Proofs.SignalSession.Cli.HooksDehook.MemcpyGhost -- proof-setup: allow-public-import
 public import LibsignalBinary.Proofs.SignalSession.Cli.HooksDehook.MemsetGhost -- proof-setup: allow-public-import
 import Arm64.Trusted.Spec.Hoare
@@ -31,9 +32,9 @@ import ProofLib.ProgramReflection
 
 - **Role**: `Role::Proof` (outside the TCB).
 - **Overview**:
-  Route-2 (`w2_c12_route2_stmts.md` §3.2 `R2-G1..G8`) entry-guarded siblings of
-  `F3.L4B.CliStrictPlaced2` threading `F3MemsetMemcpyEntryLrFalse mmpl` from
-  `ElfMemsetEntryGuard.cliElf_f3MuslHarness_memsetMemcpyLrFalse_of_linkedAt` (`R2-G7`)
+  Route-2 (`w2_c12_route2_stmts.md` §3.2 `R2-G1..G8`, extended to Cutover 2B) entry-guarded
+  siblings of `F3.L4B.CliStrictPlaced2` threading `F3C2EntryGuard mpl mmpl` from
+  `ElfSlicesPqOomC2EntryGuardLr.cliElf_f3MuslHarness_c2EntryGuard_of_linkedAt` (`R2-G7`)
   and `Block617TransferFixedHypG` (`R2-G3`) into
   `CliStrictPlaced2.outcome_of_main_strict_b2_needLocks_guarded_perInput_at` (`R2-G4`),
   eliminating the entry guard internally at the process harness boundary so all whole-process
@@ -90,6 +91,7 @@ open LibsignalBinary.Proofs.SignalSession.Cli.F3.L4B.PlacedOomRecovery2
   (CliPqxdhElfCorrectStrictPlaced2 cliPqxdhElfCorrectPlaced_of_strict2)
 open LibsignalBinary.Proofs.SignalSession.Cli.HooksDehook.Block617TransferG
   (Block617TransferFixedHypG withEntryGuard)
+open LibsignalBinary.Proofs.SignalSession.Cli.HooksDehook.C2EntryGuard (F3C2EntryGuard)
 open LibsignalBinary.Proofs.SignalSession.Cli.HooksDehook.MemcpyGhost (keepMemcpyBlk20)
 open LibsignalBinary.Proofs.SignalSession.Cli.HooksDehook.MemsetGhost (keepMemsetBlk21)
 
@@ -554,32 +556,32 @@ theorem cliRunExtOnInputsSigAt_of_strict_b2_needLocks_guarded_call_pred
             CommitOk (pqRecvInputs WP st (wirePrekey :: m.bytes) rc) (MainResult.ofAnswer a)
 
 /-- F3 specialization of `MainOkCliExtPqB2NeedLocksPlacedAtG` at `ext := cliExternsPlaced mmpl`,
-`mainIdx := 617`, `inputsOf := cliProcessInputs`, `EntryGuard := F3MemsetMemcpyEntryLrFalse mmpl`,
+`mainIdx := 617`, `inputsOf := cliProcessInputs`, `EntryGuard := F3C2EntryGuard mpl mmpl`,
 and `lim := cliBudgetLimits` (`R2-G2`). -/
 abbrev MainOkCliF3PqB2NeedLocksPlacedAtG
     (mpl mmpl : Obj.MultiPlacement) (CodeOk : Memory → Prop)
     (libcAddr brkStart : BitVec 64) (stk : Nat) : Prop :=
   MainOkCliExtPqB2NeedLocksPlacedAtG mpl mmpl (cliExternsPlaced mmpl) 617 cliProcessInputs
-    (F3MemsetMemcpyEntryLrFalse mmpl) CodeOk libcAddr brkStart stk cliBudgetLimits
+    (F3C2EntryGuard mpl mmpl) CodeOk libcAddr brkStart stk cliBudgetLimits
 
 /-- F3 specialization of `MainOkCliExtOverB2NeedLocksPlacedAtG` at `ext := cliExternsPlaced mmpl`,
-`mainIdx := 617`, `inputsOf := cliProcessInputs`, `EntryGuard := F3MemsetMemcpyEntryLrFalse mmpl`,
+`mainIdx := 617`, `inputsOf := cliProcessInputs`, `EntryGuard := F3C2EntryGuard mpl mmpl`,
 and `lim := cliBudgetLimits` (`R2-G2`). -/
 abbrev MainOkCliF3OverB2NeedLocksPlacedAtG
     (mpl mmpl : Obj.MultiPlacement) (CodeOk : Memory → Prop)
     (libcAddr brkStart : BitVec 64) (stk : Nat) : Prop :=
   MainOkCliExtOverB2NeedLocksPlacedAtG mpl mmpl (cliExternsPlaced mmpl) 617 cliProcessInputs
-    (F3MemsetMemcpyEntryLrFalse mmpl) CodeOk libcAddr brkStart stk cliBudgetLimits
+    (F3C2EntryGuard mpl mmpl) CodeOk libcAddr brkStart stk cliBudgetLimits
 
 /-- Lift an unguarded ghost `MainOkCliExtPqB2NeedLocksPlacedAt` witness across
-`Block617TransferFixedHypG` at `F3MemsetMemcpyEntryLrFalse mmpl` (`R2-G3`). -/
+`Block617TransferFixedHypG` at `F3C2EntryGuard mpl mmpl` (`R2-G3`). -/
 theorem mainOkCliF3PqG_of_block617TransferFixedG
     {mpl mmpl : Obj.MultiPlacement}
     {EG : CliHooks → String → Option (State → State)}
     {CodeOk_ghost CodeOk_real : Memory → Prop}
     {libcAddr brkStart : BitVec 64} {stk : Nat}
     (hTr : Block617TransferFixedHypG mpl mmpl EG (cliExternsPlaced mmpl)
-      (F3MemsetMemcpyEntryLrFalse mmpl) CodeOk_ghost CodeOk_real libcAddr brkStart stk)
+      (F3C2EntryGuard mpl mmpl) CodeOk_ghost CodeOk_real libcAddr brkStart stk)
     (hGhost : MainOkCliExtPqB2NeedLocksPlacedAt mpl mmpl EG 617 cliProcessInputs
       CodeOk_ghost libcAddr brkStart stk cliBudgetLimits) :
     MainOkCliF3PqB2NeedLocksPlacedAtG mpl mmpl CodeOk_real libcAddr brkStart stk := by
@@ -588,14 +590,14 @@ theorem mainOkCliF3PqG_of_block617TransferFixedG
   exact ⟨Run, hTr W Run hmainW, hclauses⟩
 
 /-- Lift an unguarded ghost `MainOkCliExtOverB2NeedLocksPlacedAt` witness across
-`Block617TransferFixedHypG` at `F3MemsetMemcpyEntryLrFalse mmpl` (`R2-G3`). -/
+`Block617TransferFixedHypG` at `F3C2EntryGuard mpl mmpl` (`R2-G3`). -/
 theorem mainOkCliF3OverG_of_block617TransferFixedG
     {mpl mmpl : Obj.MultiPlacement}
     {EG : CliHooks → String → Option (State → State)}
     {CodeOk_ghost CodeOk_real : Memory → Prop}
     {libcAddr brkStart : BitVec 64} {stk : Nat}
     (hTr : Block617TransferFixedHypG mpl mmpl EG (cliExternsPlaced mmpl)
-      (F3MemsetMemcpyEntryLrFalse mmpl) CodeOk_ghost CodeOk_real libcAddr brkStart stk)
+      (F3C2EntryGuard mpl mmpl) CodeOk_ghost CodeOk_real libcAddr brkStart stk)
     (hGhost : MainOkCliExtOverB2NeedLocksPlacedAt mpl mmpl EG 617 cliProcessInputs
       CodeOk_ghost libcAddr brkStart stk cliBudgetLimits) :
     MainOkCliF3OverB2NeedLocksPlacedAtG mpl mmpl CodeOk_real libcAddr brkStart stk := by
@@ -794,14 +796,14 @@ theorem CliElfExtB2NeedLocksAssumptions2G.toUnguarded
       exitStk libcAddr stk CodeOk lim elf :=
   H.toCliElfExtB2NeedLocksAssumptions2
 
-/-- Concrete F3 `cliBudgetLimits` + `F3MemsetMemcpyEntryLrFalse mmpl` specialization of
+/-- Concrete F3 `cliBudgetLimits` + `F3C2EntryGuard mpl mmpl` specialization of
 `CliElfExtB2NeedLocksAssumptions2G` (`R2-G6`). -/
 abbrev CliElfF3B2NeedLocksAssumptionsG
     (mpl mmpl : Obj.MultiPlacement)
     (exitStk : Nat) (libcAddr : BitVec 64) (stk : Nat) (CodeOk : Memory → Prop)
     (elf : ElfImage) : Prop :=
   CliElfExtB2NeedLocksAssumptions2G mpl mmpl (cliExternsPlaced mmpl) 617 cliProcessInputs
-    (F3MemsetMemcpyEntryLrFalse mmpl) exitStk libcAddr stk CodeOk cliBudgetLimits elf
+    (F3C2EntryGuard mpl mmpl) exitStk libcAddr stk CodeOk cliBudgetLimits elf
 
 /-- Guarded top strict 2-placement ELF theorem eliminating `EntryGuard` via `H.harnessG`
 (`R2-G8`). -/

@@ -105,13 +105,16 @@ open LibsignalBinary.Proofs.SignalSession.Cli.Store.IdTrustShimPlacedBudget
   (idTrustShim_placed_ok_of_deps)
 open LibsignalBinary.Proofs.SignalSession.Cli.Store.IdSaveShimPlacedBudget
   (idSaveShim_placed_ok_of_deps)
+open LibsignalBinary.Proofs.ConsumeMessageKey.FindIndexProofs.CtEqSat
+  (blackBoxSpecSat publicKeyEqMemSpec16)
 open LibsignalBinary.Proofs.SignalSession.Cli.Store.IdTrustPollPlacedBudget
-  (CliIdTrustPollEnv idTrustPoll_placed_ok_of_deps identityKey_decode_placed_ok
+  (CliIdTrustPollEnv idTrustPoll_placed_ok_of_deps idTrustPoll_placed_ok_of_deps_16
+   identityKey_decode_placed_ok publicKeyEq_mem_placed_ok_of_bb_16_sat
    publicKeyEq_placed_ok_of_bb)
 open LibsignalBinary.Proofs.SignalSession.Cli.Store.IdSavePoll.BranchesPlacedBudget
   (CliIdSavePollEnv CliIdSaveTailEnv publicKeySerialize_lscro_of_cli)
 open LibsignalBinary.Proofs.SignalSession.Cli.Store.IdSavePoll.SymPlacedBudget
-  (idSavePoll_placed_ok_of_deps_core)
+  (idSavePoll_placed_ok_of_deps_core idSavePoll_placed_ok_of_deps_core_16)
 
 /-! ## Poll allocation envelopes -/
 
@@ -283,7 +286,7 @@ theorem cliDirGet_placed_ok [LibsignalPlacement] {M : AllocCostModel}
     subroutine_ok (lsProg_589 H) (lsmpl.base 589)
       (dirGetSpecPlaced rd pathOk A lim (DirGetEnv PathEnv ReadEnv rd)
         (RunBudgets.dirGetNeed ⟨readStk⟩)) :=
-  dirGet_placed_ok_of_deps hpathLen hh.alloc hh.memcpyRO hh.bcmp
+  dirGet_placed_ok_of_deps hpathLen hh.alloc hh.memcpyRO hh.bcmp.of_keepsFs
     (jPath := 589) (by decide) (by decide)
     (path_placed_ok (callerProg := lsProg_589 H) (i := 589) hh
       (Nat.le_refl pathNeed) (by decide))
@@ -308,7 +311,7 @@ theorem cliDirPutStr_placed_ok [LibsignalPlacement] {M : AllocCostModel}
     (hh : RunHooksPlaced A lim H) :
     subroutine_ok (lsProg_543 H) (lsmpl.base 543)
       (dirPutStrSpecPlaced A lim DirPutStrEnv dirPutStrNeedPlaced) :=
-  dirPutStr_placed_ok_of_deps hh.alloc hh.panics hh.memcpyRO hh.bcmp
+  dirPutStr_placed_ok_of_deps hh.alloc hh.panics hh.memcpyRO hh.bcmp.of_keepsFs
     (jGrow := 586) (by decide) (by decide)
     (cliGrowOneDir_placed_ok hh.alloc hh.panics)
     (Nat.le_refl dirPutStrNeedPlaced)
@@ -795,5 +798,149 @@ theorem cliIdKitRoClOkIE_placed [LibsignalPlacement] {M : AllocCostModel}
       (cliIdentityKitDefaultBudgetEnv A.repAlloc rd F0 pathOk peer s1 s2 s3 s4 vtSym ReadEnv)
       H :=
   cliIdKitOkIE_placed hDropNz hpathLen hh hRead h_bb hs1 hs2 hs3 hs4 hjRead hjRead_unmut
+
+theorem cliIdTrustPoll_rocl_placed_ok_16 [LibsignalPlacement] {M : AllocCostModel}
+    {A : RustCliAllocBudget M} {lim : BudgetLimits} {H : LibsignalHooks}
+    {rd : ReadRule} {F0 : FsFiles} {pathOk : List (BitVec 8) → Prop} {peer : AddrGhost}
+    {readStk s1 s2 s3 s4 : Nat} {vtSym : String}
+    {GetEnv : FsFiles → DirGhost → List (BitVec 8) → List AllocEvent → Prop}
+    {PutStrEnv : DirGhost → List (BitVec 8) → List (BitVec 8) → List AllocEvent → Prop}
+    {callerProg getProg eqProg : Program} {callerBlk getBlk eqBlk : Nat}
+    [IsLsBlockProg callerProg callerBlk H]
+    [IsLsBlockProg getProg getBlk H]
+    [IsLsBlockProg eqProg eqBlk H]
+    (hC : AllocContractsXCliPlaced A lim H)
+    (hGet : subroutine_ok getProg (lsmpl.base 589)
+      (dirGetSpecPlaced rd pathOk A lim GetEnv (RunBudgets.dirGetNeed ⟨readStk⟩)))
+    (hEq : subroutine_ok eqProg (lsmpl.base 212)
+      (withLsCodeLoaded lsmpl (withVmPreserved publicKeyEqMemSpec16)))
+    (hs2 : trustPollNeedPlaced readStk ≤ s2)
+    (hCallerBlk : callerBlk < 619 := by decide)
+    (hGetBlk : getBlk < 619 := by decide)
+    (hGetUnmut : (getBlk ∈ libsignalMutatedBlocks) = false := by decide)
+    (hEqBlk : eqBlk < 619 := by decide)
+    (hEqUnmut : (eqBlk ∈ libsignalMutatedBlocks) = false := by decide) :
+    subroutine_ok callerProg
+      (0#64 + (cliIdentityKitSpecPlaced A.repAlloc rd F0 pathOk peer s1 s2 s3 s4 vtSym).trustPollOff)
+      (withLsRoCl lsmpl
+        (kitTrustPollPlacedSpecI M A lim
+          (cliIdentityKitSpecPlaced A.repAlloc rd F0 pathOk peer s1 s2 s3 s4 vtSym)
+          (cliIdentityKitBudgetEnv A.repAlloc rd F0 pathOk peer s1 s2 s3 s4 GetEnv PutStrEnv vtSym))) := by
+  have h566 := idTrustPoll_placed_ok_of_deps_16 hC hGet
+    (identityKey_decode_placed_ok (A := A) H) hEq hs2
+    hGetBlk hGetUnmut (by decide) (by decide) hEqBlk hEqUnmut
+  exact cliIdTrustPoll_rocl_placed_ok_of_poll h566 hCallerBlk
+
+theorem cliIdSavePoll_rocl_placed_ok_16 [LibsignalPlacement] {M : AllocCostModel}
+    {A : RustCliAllocBudget M} {lim : BudgetLimits} {H : LibsignalHooks}
+    {rd : ReadRule} {F0 : FsFiles} {pathOk : List (BitVec 8) → Prop} {peer : AddrGhost}
+    {readStk s1 s2 s3 s4 : Nat} {vtSym : String}
+    {GetEnv : FsFiles → DirGhost → List (BitVec 8) → List AllocEvent → Prop}
+    {PutStrEnv : DirGhost → List (BitVec 8) → List (BitVec 8) → List AllocEvent → Prop}
+    {callerProg getProg putProg eqProg : Program} {callerBlk getBlk putBlk eqBlk : Nat}
+    [IsLsBlockProg callerProg callerBlk H]
+    [IsLsBlockProg getProg getBlk H]
+    [IsLsBlockProg putProg putBlk H]
+    [IsLsBlockProg eqProg eqBlk H]
+    (hC : AllocContractsXCliPlaced A lim H)
+    (_hpan : CliPanicHooksPlaced H)
+    (hGet : subroutine_ok getProg (lsmpl.base 589)
+      (dirGetSpecPlaced rd pathOk A lim GetEnv (RunBudgets.dirGetNeed ⟨readStk⟩)))
+    (hPut : subroutine_ok putProg (lsmpl.base 543)
+      (dirPutStrSpecPlaced A lim PutStrEnv dirPutStrNeedPlaced))
+    (hEq : subroutine_ok eqProg (lsmpl.base 212)
+      (withLsCodeLoaded lsmpl (withVmPreserved publicKeyEqMemSpec16)))
+    (hs4 : savePollNeedPlaced readStk ≤ s4)
+    (hCallerBlk : callerBlk < 619 := by decide)
+    (hGetBlk : getBlk < 619 := by decide)
+    (hGetUnmut : (getBlk ∈ libsignalMutatedBlocks) = false := by decide)
+    (hPutBlk : putBlk < 619 := by decide)
+    (hPutUnmut : (putBlk ∈ libsignalMutatedBlocks) = false := by decide)
+    (hEqBlk : eqBlk < 619 := by decide)
+    (hEqUnmut : (eqBlk ∈ libsignalMutatedBlocks) = false := by decide) :
+    subroutine_ok callerProg
+      (0#64 + (cliIdentityKitSpecPlaced A.repAlloc rd F0 pathOk peer s1 s2 s3 s4 vtSym).savePollOff)
+      (withLsRoCl lsmpl
+        (kitSavePollPlacedSpecI M A lim
+          (cliIdentityKitSpecPlaced A.repAlloc rd F0 pathOk peer s1 s2 s3 s4 vtSym)
+          (cliIdentityKitBudgetEnv A.repAlloc rd F0 pathOk peer s1 s2 s3 s4 GetEnv PutStrEnv vtSym))) := by
+  have hSer := publicKeySerialize_lscro_of_cli
+    (callerProg := (blkPC_565).rebase (blkPl_565).base H) hC (by decide)
+  have hGet' := ls_transfer_lscro (callerProg := (blkPC_565).rebase (blkPl_565).base H)
+    hGet (by decide) hGetBlk hGetUnmut
+  have hPut' := ls_transfer_lscro (callerProg := (blkPC_565).rebase (blkPl_565).base H)
+    hPut (by decide) hPutBlk hPutUnmut
+  have hDec' := ls_transfer_cl_to_lscro (callerProg := (blkPC_565).rebase (blkPl_565).base H)
+    (identityKey_decode_placed_ok (A := A) H) (by decide) (by decide) (by decide)
+  have hEq' := ls_transfer_cl_to_lscro (callerProg := (blkPC_565).rebase (blkPl_565).base H)
+    hEq (by decide) hEqBlk hEqUnmut
+  have h565 : subroutine_ok (lsProg_565 H) (lsmpl.base 565)
+      (idSavePollSpecPlaced rd pathOk A lim (CliIdSavePollEnv rd GetEnv PutStrEnv) s4) :=
+    idSavePoll_placed_ok_of_deps_core_16 hC hSer hGet' hPut' hDec' hEq' hs4
+  exact cliIdSavePoll_rocl_placed_ok_of_poll h565 hCallerBlk
+
+theorem cliIdKitOkIE_placed_sat [LibsignalPlacement] {M : AllocCostModel}
+    {A : RustCliAllocBudget M} {lim : BudgetLimits} {H : LibsignalHooks}
+    {rd : ReadRule} {F0 : FsFiles} {pathOk : List (BitVec 8) → Prop} {peer : AddrGhost}
+    {readStk s1 s2 s3 s4 : Nat} {vtSym : String}
+    {ReadEnv : FsFiles → List (BitVec 8) → List AllocEvent → Prop}
+    {readProg : Program} {jRead : Nat} [IsLsBlockProg readProg jRead H]
+    (hDropNz : lsmpl.base 547 ≠ 0#64)
+    (hpathLen : ∀ p, pathOk p → p.length < 2 ^ 32)
+    (hh : RunHooksPlaced A lim H)
+    (hRead : subroutine_ok readProg (lsρ lsReadFileSym)
+      (withLsCodeRoLoaded lsmpl (readFileSpecPlaced rd pathOk A lim readStk ReadEnv)))
+    (h_bb : HookSat H lsBlackBoxU8Sym blackBoxSpecSat)
+    (hs1 : trustShimNeedPlaced ≤ s1) (hs2 : trustPollNeedPlaced readStk ≤ s2)
+    (hs3 : saveShimNeedPlaced ≤ s3) (hs4 : savePollNeedPlaced readStk ≤ s4)
+    (hjRead : jRead < 619 := by decide)
+    (hjRead_unmut : (jRead ∈ libsignalMutatedBlocks) = false := by decide) :
+    IdentityStoreKitPlacedOkI A lim
+      (cliIdentityKitSpecPlaced A.repAlloc rd F0 pathOk peer s1 s2 s3 s4 vtSym)
+      (cliIdentityKitDefaultBudgetEnv A.repAlloc rd F0 pathOk peer s1 s2 s3 s4 vtSym ReadEnv)
+      H := by
+  have hGet := cliDirGet_placed_ok hpathLen hh hRead hjRead hjRead_unmut
+  have hPut := cliDirPutStr_placed_ok hh
+  have hEq := publicKeyEq_mem_placed_ok_of_bb_16_sat h_bb
+  have h566 := idTrustPoll_placed_ok_of_deps_16 hh.alloc hGet
+    (identityKey_decode_placed_ok (A := A) H) hEq hs2
+    (by decide) (by decide) (by decide) (by decide) (by decide) (by decide)
+  have hSer := publicKeySerialize_lscro_of_cli
+    (callerProg := (blkPC_565).rebase (blkPl_565).base H) hh.alloc (by decide)
+  have hGet' := ls_transfer_lscro (callerProg := (blkPC_565).rebase (blkPl_565).base H)
+    hGet (by decide) (by decide) (by decide)
+  have hPut' := ls_transfer_lscro (callerProg := (blkPC_565).rebase (blkPl_565).base H)
+    hPut (by decide) (by decide) (by decide)
+  have hDec' := ls_transfer_cl_to_lscro (callerProg := (blkPC_565).rebase (blkPl_565).base H)
+    (identityKey_decode_placed_ok (A := A) H) (by decide) (by decide) (by decide)
+  have hEq' := ls_transfer_cl_to_lscro (callerProg := (blkPC_565).rebase (blkPl_565).base H)
+    hEq (by decide) (by decide) (by decide)
+  have h565 : subroutine_ok (lsProg_565 H) (lsmpl.base 565)
+      (idSavePollSpecPlaced rd pathOk A lim
+        (CliIdSavePollEnv rd (DirGetEnv PathEnv ReadEnv rd) DirPutStrEnv) s4) :=
+    idSavePoll_placed_ok_of_deps_core_16 hh.alloc hSer hGet' hPut' hDec' hEq' hs4
+  exact cliIdKitOkIE_placed_of_polls hDropNz hh.alloc h566 h565 hs1 hs3
+
+theorem cliIdKitRoClOkIE_placed_sat [LibsignalPlacement] {M : AllocCostModel}
+    {A : RustCliAllocBudget M} {lim : BudgetLimits} {H : LibsignalHooks}
+    {rd : ReadRule} {F0 : FsFiles} {pathOk : List (BitVec 8) → Prop} {peer : AddrGhost}
+    {readStk s1 s2 s3 s4 : Nat} {vtSym : String}
+    {ReadEnv : FsFiles → List (BitVec 8) → List AllocEvent → Prop}
+    {readProg : Program} {jRead : Nat} [IsLsBlockProg readProg jRead H]
+    (hDropNz : lsmpl.base 547 ≠ 0#64)
+    (hpathLen : ∀ p, pathOk p → p.length < 2 ^ 32)
+    (hh : RunHooksPlaced A lim H)
+    (hRead : subroutine_ok readProg (lsρ lsReadFileSym)
+      (withLsCodeRoLoaded lsmpl (readFileSpecPlaced rd pathOk A lim readStk ReadEnv)))
+    (h_bb : HookSat H lsBlackBoxU8Sym blackBoxSpecSat)
+    (hs1 : trustShimNeedPlaced ≤ s1) (hs2 : trustPollNeedPlaced readStk ≤ s2)
+    (hs3 : saveShimNeedPlaced ≤ s3) (hs4 : savePollNeedPlaced readStk ≤ s4)
+    (hjRead : jRead < 619 := by decide)
+    (hjRead_unmut : (jRead ∈ libsignalMutatedBlocks) = false := by decide) :
+    IdentityStoreKitPlacedRoClOkI A lim
+      (cliIdentityKitSpecPlaced A.repAlloc rd F0 pathOk peer s1 s2 s3 s4 vtSym)
+      (cliIdentityKitDefaultBudgetEnv A.repAlloc rd F0 pathOk peer s1 s2 s3 s4 vtSym ReadEnv)
+      H :=
+  cliIdKitOkIE_placed_sat hDropNz hpathLen hh hRead h_bb hs1 hs2 hs3 hs4 hjRead hjRead_unmut
 
 end LibsignalBinary.Proofs.SignalSession.Cli.KitInst.IdentityKitOkPlacedBudget

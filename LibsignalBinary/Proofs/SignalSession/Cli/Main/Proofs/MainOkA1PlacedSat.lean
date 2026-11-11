@@ -12,6 +12,7 @@ module
 public import LibsignalBinary.Proofs.SignalSession.Cli.AllocGhostLinkTransfer -- proof-setup: allow-public-import
 public import LibsignalBinary.Proofs.SignalSession.Cli.Main.IoHooksPlacedSat -- proof-setup: allow-public-import
 import LibsignalBinary.Proofs.SignalSession.Cli.Main.IoHonestSpecsHook
+import LibsignalBinary.Proofs.SignalSession.Cli.Run.Slots.ExtraGhostSpecs
 
 /-!
 # `HookSat`-Backed `MainIoPlacedSat` on `cliGhostExterns` (`MainOkA1PlacedSat`)
@@ -53,6 +54,7 @@ open LibsignalBinary.Proofs.SignalSession.Cli.Main.IoHooksPlacedSat
   (mainIo_of_lookup_placed_sat writeFile_rocl_ok_of_hookSat writeStdout_rocl_ok_of_hookSat)
 open LibsignalBinary.Proofs.SignalSession.Cli.SpecsPlacedBudget
   (readFileLitSpecPlaced readStdinSpecPlaced)
+open LibsignalBinary.Proofs.SignalSession.Cli.Run.Slots.ExtraGhostSpecs (cliExtraGhostSyms)
 open LibsignalBinary.Proofs.SignalSession.Cli.SpecsPlacedBudgetSat (MainIoPlacedSat)
 
 private theorem hookSat_cliGhostExterns_other {α : Type} (g : CliGhostHooks)
@@ -67,10 +69,11 @@ private theorem hookSat_cliGhostExterns_other {α : Type} (g : CliGhostHooks)
     (h7 : sym ≠ lsReadFileSym := by decide)
     (h8 : sym ≠ lsReadStdinSym := by decide)
     (h9 : sym ≠ lsMemsetSym := by decide)
-    (h10 : sym ≠ lsMemcpySym := by decide) :
+    (h10 : sym ≠ lsMemcpySym := by decide)
+    (h11 : cliExtraGhostSyms.contains sym = false ∨ g.extra.lookup sym = none := by left; decide) :
     HookSat (cliGhostExterns g H0) sym spec := by
   rcases hsat with ⟨f, hf, hok⟩
-  exact ⟨f, (cliGhostExterns_other g H0 h1 h2 h3 h4 h5 h6 h7 h8 h9 h10).trans hf, hok⟩
+  exact ⟨f, (cliGhostExterns_other g H0 h1 h2 h3 h4 h5 h6 h7 h8 h9 h10 h11).trans hf, hok⟩
 
 /-- `MainIoPlacedSat` on `cliGhostExterns g H0` from `readStdin`/`readFile` `subroutine_ok`
     hypotheses and `HookSat H0 lsWrite*Sym (write*SpecPlacedSat …)` write hypotheses. -/

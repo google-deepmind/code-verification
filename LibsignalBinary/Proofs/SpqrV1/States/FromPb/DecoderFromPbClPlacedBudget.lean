@@ -98,7 +98,9 @@ open LibsignalBinary.Proofs.SpqrV1.Poly.DecoderPb.FromPbExitPlacedBudget (
   fromPb_drop_vec_u8_776_placed_sepWP fromPb_error_exit_712_placed_sepWP
   fromPb_outer_loop_placed_wpp fromPb_tail_820_placed_sepWP
 )
-open LibsignalBinary.Proofs.SpqrV1.Poly.DecoderPb.FromPbInnerPlacedBudget (sessionMemmoveVmAcpSpec)
+open LibsignalBinary.Proofs.SpqrV1.Poly.DecoderPb.FromPbInnerPlacedBudget (
+  sessionMemmoveBoundedVmAcpSpec
+)
 open LibsignalBinary.Proofs.SpqrV1.Poly.DecoderPb.FromPbProofBudget (
   fromPbDecSpecWithStack fromPb_header_err_placed_vm_sepWP fromPb_header_ok_placed_vm_sepWP
   fromPb_init_empty_headers_placed_vm_sepWP fromPb_save_regs_placed_vm_sepWP
@@ -413,7 +415,7 @@ theorem fromPbDec_cl_placed_ok_core [LibsignalPlacement]
     (hshim_sat : HookSat (Rust.withPanics ext) spqrRustNoAllocShimSym rustAllocShimVmSpec)
     (hdealloc_sat : HookSat (Rust.withPanics ext) spqrRustDeallocSym (rustCliDeallocBudgetSpec M A lim))
     (hmemcpy_sat : HookSat (Rust.withPanics ext) spqrMemcpySym sessionMemcpyVmAcpSpec)
-    (hmemmove_sat : HookSat (Rust.withPanics ext) spqrMemmoveSym (sessionMemmoveVmAcpSpec 0)) :
+    (hmemmove_sat : HookSat (Rust.withPanics ext) spqrMemmoveSym (sessionMemmoveBoundedVmAcpSpec 0)) :
     subroutine_ok ((blkPC_376).rebase (blkPl_376).base (Rust.withPanics ext))
       (blkPl_376).base
       (withLsCodeLoaded lsmpl (fromPbDecSpecWithStack M A lim fromPbCoreStack)) := by
@@ -715,7 +717,7 @@ theorem decoder_from_pb_cl_placed_ok_ext [LibsignalPlacement]
     (hshim_sat : HookSat (Rust.withPanics ext) spqrRustNoAllocShimSym rustAllocShimVmSpec)
     (hdealloc_sat : HookSat (Rust.withPanics ext) spqrRustDeallocSym (rustCliDeallocBudgetSpec M A lim))
     (hmemcpy_sat : HookSat (Rust.withPanics ext) spqrMemcpySym sessionMemcpyVmAcpSpec)
-    (hmemmove_sat : HookSat (Rust.withPanics ext) spqrMemmoveSym (sessionMemmoveVmAcpSpec 0)) :
+    (hmemmove_sat : HookSat (Rust.withPanics ext) spqrMemmoveSym (sessionMemmoveBoundedVmAcpSpec 0)) :
     subroutine_ok (lsProg_376 (Rust.withPanics ext))
       (lsmpl.base 376)
       (withLsCodeLoaded lsmpl (DefsBudget.decoderFromPbSpec M A lim)) := by
@@ -731,7 +733,7 @@ theorem decoder_from_pb_cl_blockProgram [LibsignalPlacement]
     (hshim_sat : HookSat (Rust.withPanics ext) spqrRustNoAllocShimSym rustAllocShimVmSpec)
     (hdealloc_sat : HookSat (Rust.withPanics ext) spqrRustDeallocSym (rustCliDeallocBudgetSpec M A lim))
     (hmemcpy_sat : HookSat (Rust.withPanics ext) spqrMemcpySym sessionMemcpyVmAcpSpec)
-    (hmemmove_sat : HookSat (Rust.withPanics ext) spqrMemmoveSym (sessionMemmoveVmAcpSpec 0)) :
+    (hmemmove_sat : HookSat (Rust.withPanics ext) spqrMemmoveSym (sessionMemmoveBoundedVmAcpSpec 0)) :
     subroutine_ok (libsignalSessionLib.blockProgram lsmpl 376 (Rust.withPanics ext))
       (lsmpl.base 376)
       (withLsCodeLoaded lsmpl (DefsBudget.decoderFromPbSpec M A lim)) :=
@@ -745,7 +747,7 @@ theorem decoder_from_pb_cl_on [LibsignalPlacement]
     (hshim_sat : HookSat (Rust.withPanics ext) spqrRustNoAllocShimSym rustAllocShimVmSpec)
     (hdealloc_sat : HookSat (Rust.withPanics ext) spqrRustDeallocSym (rustCliDeallocBudgetSpec M A lim))
     (hmemcpy_sat : HookSat (Rust.withPanics ext) spqrMemcpySym sessionMemcpyVmAcpSpec)
-    (hmemmove_sat : HookSat (Rust.withPanics ext) spqrMemmoveSym (sessionMemmoveVmAcpSpec 0))
+    (hmemmove_sat : HookSat (Rust.withPanics ext) spqrMemmoveSym (sessionMemmoveBoundedVmAcpSpec 0))
     (hidx : idx < 619 := by decide) :
     subroutine_ok callerProg (lsmpl.base 376)
       (withLsCodeLoaded lsmpl (DefsBudget.decoderFromPbSpec M A lim)) :=
@@ -760,7 +762,7 @@ theorem decoder_from_pb_mem_on [LibsignalPlacement]
     (hshim_sat : HookSat (Rust.withPanics ext) spqrRustNoAllocShimSym rustAllocShimVmSpec)
     (hdealloc_sat : HookSat (Rust.withPanics ext) spqrRustDeallocSym (rustCliDeallocBudgetSpec M A lim))
     (hmemcpy_sat : HookSat (Rust.withPanics ext) spqrMemcpySym sessionMemcpyVmAcpSpec)
-    (hmemmove_sat : HookSat (Rust.withPanics ext) spqrMemmoveSym (sessionMemmoveVmAcpSpec 0))
+    (hmemmove_sat : HookSat (Rust.withPanics ext) spqrMemmoveSym (sessionMemmoveBoundedVmAcpSpec 0))
     (hcl : LibsignalCodeLoaded lsmpl m) (hidx : idx < 619 := by decide) :
     subroutine_ok callerProg (lsmpl.base 376)
       (withMemEq m (DefsBudget.decoderFromPbSpec M A lim)) :=
@@ -776,7 +778,7 @@ theorem decoder_from_pb_on_333_placed_ok_ext [LibsignalPlacement]
     (hshim_sat : HookSat (Rust.withPanics ext) spqrRustNoAllocShimSym rustAllocShimVmSpec)
     (hdealloc_sat : HookSat (Rust.withPanics ext) spqrRustDeallocSym (rustCliDeallocBudgetSpec M A lim))
     (hmemcpy_sat : HookSat (Rust.withPanics ext) spqrMemcpySym sessionMemcpyVmAcpSpec)
-    (hmemmove_sat : HookSat (Rust.withPanics ext) spqrMemmoveSym (sessionMemmoveVmAcpSpec 0)) :
+    (hmemmove_sat : HookSat (Rust.withPanics ext) spqrMemmoveSym (sessionMemmoveBoundedVmAcpSpec 0)) :
     DefsBudget.DecoderFromPbPlacedOkExt M A lim ext :=
   decoder_from_pb_cl_on (callerProg := lsProg_333 (Rust.withPanics ext))
     halloc_sat hshim_sat hdealloc_sat hmemcpy_sat hmemmove_sat

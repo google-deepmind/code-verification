@@ -10,6 +10,7 @@ limitations under the License.
 module
 
 public import LibsignalBinary.Heap.SpecBudget
+public import LibsignalBinary.Proofs.HookDischarge.Libc.Memmove
 public import LibsignalBinary.Proofs.PeakBudget.SpqrCodecPeakSpec
 public import LibsignalBinary.Proofs.PeakBudget.SpqrTrialDomainLiftAux
 public import LibsignalBinary.Proofs.SpqrV1.Chain.NextKeyInternalBudget
@@ -66,7 +67,7 @@ open CryptoVerification.LibsignalSpqrV1
   (Bytes MlKem PolynomialDecoder PolynomialEncoder PqRatchetState ProtoAuthenticator States V1State
    spqrAuthApi spqrDecodeState spqrPolyApi)
 open CryptoVerification.LibsignalTripleRatchet
-  (extract_withLsCodeRoLoaded sessionMemmoveSpec withLsCodeRoLoaded)
+  (extract_withLsCodeRoLoaded withLsCodeRoLoaded)
 open CryptoVerification.SpqrV1.Alloc (spqrMemmoveSym)
 open CryptoVerification.SpqrV1Sync.InSync (St)
 open CryptoVerification.SpqrV1Sync.SendTotal (BOkTight)
@@ -78,6 +79,7 @@ open LibsignalBinary.Proofs.PeakBudget.SpqrCodecPeakSpec
    ekSentCt1ReceivedFromPbPostEnv_tight encoderFromPbEnv_tight)
 open LibsignalBinary.Proofs.PeakBudget.SpqrTightCapsAux (ValidOptEncPbPtsAt ValidV1PtsAt)
 open LibsignalBinary.Proofs.SpqrV1.Auth.FromPbBudget (authFromPbEvents authKeyCloneEvents)
+open LibsignalBinary.Proofs.HookDischarge.Libc.Memmove (sessionMemmoveBoundedSpec)
 open LibsignalBinary.Proofs.SpqrV1.Chain.NextKeyInternalBudget (withAllocVmPreserved)
 open LibsignalBinary.Proofs.SpqrV1.States.FromPb.DefsBudget
   (StatesFromPbEnv statesFromPbPlacedRoFreeSpecXOfEnv statesFromPbPlacedSpecXOfEnv
@@ -1044,7 +1046,7 @@ theorem e2b_states_from_pb_branch_proof_placed_exact [LibsignalPlacement]
     {F : ShaCompress} {ext : String → Option (State → State)}
     (hA : FromPbAllocHooksBudget M A lim ext)
     (hmemmove : HookSat (Rust.withPanics ext) spqrMemmoveSym
-      (withAllocVmPreserved (sessionMemmoveSpec 0)))
+      (withAllocVmPreserved (sessionMemmoveBoundedSpec 0)))
     (pb : V1State) :
     subroutine_ok (lsProg_333 (Rust.withPanics ext))
       (lsmpl.base 333)
@@ -1092,7 +1094,7 @@ theorem e2b_states_from_pb_branch_proof_placed_tight [LibsignalPlacement]
     {F : ShaCompress} {ext : String → Option (State → State)}
     (hA : FromPbAllocHooksBudget M A lim ext)
     (hmemmove : HookSat (Rust.withPanics ext) spqrMemmoveSym
-      (withAllocVmPreserved (sessionMemmoveSpec 0)))
+      (withAllocVmPreserved (sessionMemmoveBoundedSpec 0)))
     {pb : V1State} (hDom : e2b_StatesFromPbTightDom pb) :
     subroutine_ok (lsProg_333 (Rust.withPanics ext))
       (lsmpl.base 333)
@@ -1108,7 +1110,7 @@ theorem e2b_states_from_pb_ok_x_placed_exact [LibsignalPlacement]
     {F : ShaCompress} {ext : String → Option (State → State)}
     (hA : FromPbAllocHooksBudget M A lim ext)
     (hmemmove : HookSat (Rust.withPanics ext) spqrMemmoveSym
-      (withAllocVmPreserved (sessionMemmoveSpec 0))) :
+      (withAllocVmPreserved (sessionMemmoveBoundedSpec 0))) :
     StatesFromPbPlacedOkXOfEnv M A lim F ext (e2b_StatesFromPbExactEnv F) :=
   ProofPlacedBudget.states_from_pb_okX_of_ok_ext_placed_of_env
     (ProofPlacedBudget.states_from_pb_ok_of_forall_pb_placed_of_env
@@ -1122,7 +1124,7 @@ theorem e2b_states_from_pb_branch_proof_placed_guardedTight [LibsignalPlacement]
     {F : ShaCompress} {ext : String → Option (State → State)}
     (hA : FromPbAllocHooksBudget M A lim ext)
     (hmemmove : HookSat (Rust.withPanics ext) spqrMemmoveSym
-      (withAllocVmPreserved (sessionMemmoveSpec 0)))
+      (withAllocVmPreserved (sessionMemmoveBoundedSpec 0)))
     (pb : V1State) :
     subroutine_ok (lsProg_333 (Rust.withPanics ext))
       (lsmpl.base 333)
@@ -1143,7 +1145,7 @@ theorem e2b_states_from_pb_ok_x_placed_guardedTight [LibsignalPlacement]
     {F : ShaCompress} {ext : String → Option (State → State)}
     (hA : FromPbAllocHooksBudget M A lim ext)
     (hmemmove : HookSat (Rust.withPanics ext) spqrMemmoveSym
-      (withAllocVmPreserved (sessionMemmoveSpec 0))) :
+      (withAllocVmPreserved (sessionMemmoveBoundedSpec 0))) :
     StatesFromPbPlacedOkXOfEnv M A lim F ext e2b_StatesFromPbGuardedTightEnv :=
   ProofPlacedBudget.states_from_pb_okX_of_ok_ext_placed_of_env
     (ProofPlacedBudget.states_from_pb_ok_of_forall_pb_placed_of_env
@@ -1156,7 +1158,7 @@ theorem e2b_states_from_pb_ok_x_placed_impTight [LibsignalPlacement]
     {F : ShaCompress} {ext : String → Option (State → State)}
     (hA : FromPbAllocHooksBudget M A lim ext)
     (hmemmove : HookSat (Rust.withPanics ext) spqrMemmoveSym
-      (withAllocVmPreserved (sessionMemmoveSpec 0))) :
+      (withAllocVmPreserved (sessionMemmoveBoundedSpec 0))) :
     StatesFromPbPlacedOkXOfEnv M A lim F ext e2b_StatesFromPbImpTightEnv :=
   ProofPlacedBudget.states_from_pb_okX_of_ok_ext_placed_of_env
     (ProofPlacedBudget.states_from_pb_ok_of_forall_pb_placed_of_env fun pb =>
@@ -1171,7 +1173,7 @@ theorem e2b_states_from_pb_roFree_ok_x_placed_guardedTight [LibsignalPlacement]
     {F : ShaCompress} {ext : String → Option (State → State)}
     (hA : FromPbAllocHooksBudget M A lim ext)
     (hmemmove : HookSat (Rust.withPanics ext) spqrMemmoveSym
-      (withAllocVmPreserved (sessionMemmoveSpec 0))) :
+      (withAllocVmPreserved (sessionMemmoveBoundedSpec 0))) :
     subroutine_ok (libsignalSessionLib.blockProgram lsmpl 333 (Rust.withPanics ext))
       (lsmpl.base 333)
       (withLsCodeRoLoaded lsmpl

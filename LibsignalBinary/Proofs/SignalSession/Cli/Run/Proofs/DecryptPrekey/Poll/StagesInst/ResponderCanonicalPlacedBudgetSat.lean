@@ -10,6 +10,7 @@ limitations under the License.
 module
 
 public import LibsignalBinary.Proofs.SignalSession.Cli.Run.Proofs.DecryptPrekey.Poll.StagesInst.ResponderCanonicalPlacedBudget -- proof-setup: allow-public-import
+public import LibsignalBinary.Proofs.SignalSession.Cli.Run.Proofs.DecryptPrekey.Poll.StagesInst.Stage2V1BasePlacedBudgetBbSat -- proof-setup: allow-public-import
 public import LibsignalBinary.Proofs.SignalSession.Cli.Run.Proofs.DecryptPrekey.Poll.StagesInst.Stage2V1BasePlacedBudgetSat -- proof-setup: allow-public-import
 public import LibsignalBinary.Proofs.TripleRatchet.Hooks.DefsBudget -- proof-setup: allow-public-import
 import LibsignalBinary.Proofs.E2E.Pqxdh.ResponderCore.AcceptErrOwnedPlacedBudget
@@ -161,6 +162,101 @@ public theorem cliPqxdhAccept_err_owned_full_placed_ok_sat [LibsignalFullPlaceme
     (cliModelPrims_structural X W)
     (cliModelPrims_matchCrypto X W)
     (cliResponderPqxdhHookContractsPlaced_sat X mmpl gh W hG hMs)
+    (hookSat_framelessMemcpy_of_vm_local
+      (cliExternsPlaced_framelessMemcpy_budget_sat mmpl gh W hG))
+
+/-- Closed `[LibsignalFullPlacement]` budget-threaded contract for `Pqxdh::accept` (Block `79`)
+from `ResponderPqxdhPlacedHookContractsBbSat` and `HookSat H lsMemcpySym framelessMemcpySpec`. -/
+public theorem pqxdhAccept_opt_fields_responder_full_placed_ok_of_block_bb_sat
+    [LibsignalFullPlacement]
+    {callerProg : Program} {i : Nat} {M : AllocCostModel}
+    {P : Primitives} {C : Crypto} {A : RustCliAllocBudget M} {lim : BudgetLimits}
+    {H : LibsignalHooks} [IsLsBlockProg callerProg i H]
+    (hWF : StructuralPrims P)
+    (hP : PrimitivesMatchCrypto P C)
+    (hH :
+      LibsignalBinary.Proofs.SignalSession.Cli.Run.Proofs.DecryptPrekey.Poll.StagesInst.Stage2V1BasePlacedBudgetBbSat.ResponderPqxdhPlacedHookContractsBbSat
+        M P C A lim H)
+    (h_memcpy : HookSat H lsMemcpySym framelessMemcpySpec) :
+    subroutine_ok callerProg (lsmpl.base 79)
+      (pqxdhAcceptOptFieldsFrozenPlacedSpec P A lim (AcceptOptFieldsEnv P)) :=
+  pqxdhAccept_opt_fields_placed_ok_of_block hWF
+    (ecPubKeyIsCanonical_responder_placed_ok_cl hWF hH.dalekMontToEd hH.dalekTorsionFree)
+    (hH.calculateAgreement_ok hP)
+    (vecAppendElements_fast_placed_ok_cl h_memcpy)
+    (hH.hkdfExtract_ok hP)
+    (hH.hkdfExpandMultiInfo_ok hP)
+    hH.noAllocShim hH.alloc hH.dealloc h_memcpy hH.kyberDecaps
+
+/-- Closed `[LibsignalFullPlacement]` budget-threaded owned-error rejecting contract for
+`Pqxdh::accept` (Block `79`) from `ResponderPqxdhPlacedHookContractsBbSat`. -/
+public theorem pqxdhAccept_err_owned_responder_full_placed_ok_of_block_bb_sat
+    [LibsignalFullPlacement]
+    {callerProg : Program} {i : Nat} {M : AllocCostModel}
+    {P : Primitives} {C : Crypto} {A : RustCliAllocBudget M} {lim : BudgetLimits}
+    {H : LibsignalHooks} [IsLsBlockProg callerProg i H]
+    (hWF : StructuralPrims P)
+    (hP : PrimitivesMatchCrypto P C)
+    (hH :
+      LibsignalBinary.Proofs.SignalSession.Cli.Run.Proofs.DecryptPrekey.Poll.StagesInst.Stage2V1BasePlacedBudgetBbSat.ResponderPqxdhPlacedHookContractsBbSat
+        M P C A lim H)
+    (h_memcpy : HookSat H lsMemcpySym framelessMemcpySpec) :
+    subroutine_ok callerProg (lsmpl.base 79)
+      (pqxdhAcceptErrOwnedFrozenPlacedSpec P A lim (AcceptOptFieldsEnv P)) :=
+  pqxdhAccept_err_owned_placed_ok_of_block hWF
+    (ecPubKeyIsCanonical_responder_placed_ok_cl hWF hH.dalekMontToEd hH.dalekTorsionFree)
+    (hH.calculateAgreement_ok hP)
+    hH.noAllocShim hH.alloc hH.dealloc h_memcpy
+
+/-- Closed `[LibsignalFullPlacement]` `pqxdhAcceptOptFieldsFrozenPlacedSpec` at
+`cliGhostExterns gh (cliExternsPlaced mmpl W)` from `CliGhostAllocHooks M A lim gh`, `hMs`, and `hBb`. -/
+public theorem cliPqxdhAccept_opt_fields_full_placed_ok_bb_sat [LibsignalFullPlacement]
+    {callerProg : Program} {i : Nat} {M : AllocCostModel}
+    {A : RustCliAllocBudget M} {lim : BudgetLimits}
+    (X : UnreachedPqxdhPrimitives) (mmpl : Obj.MultiPlacement) (gh : CliGhostHooks) (W : CliHooks)
+    [IsLsBlockProg callerProg i (cliGhostExterns gh (cliExternsPlaced mmpl W))]
+    (hG : CliGhostAllocHooks M A lim gh)
+    (hMs : HookSat (cliGhostExterns gh (cliExternsPlaced mmpl W)) lsMemsetSym
+      sessionMemsetRegionBudgetSpec)
+    (hBb : HookSat (cliGhostExterns gh (cliExternsPlaced mmpl W))
+      CryptoVerification.lsBlackBoxU8Sym
+      LibsignalBinary.Proofs.ConsumeMessageKey.FindIndexProofs.CtEqSat.blackBoxSpecSat) :
+    subroutine_ok callerProg (lsmpl.base 79)
+      (pqxdhAcceptOptFieldsFrozenPlacedSpec
+        (ofSignalPqxdhPrimitives (modelPrims X ⟨W.C, W.Q⟩))
+        A lim
+        (AcceptOptFieldsEnv (ofSignalPqxdhPrimitives (modelPrims X ⟨W.C, W.Q⟩)))) :=
+  pqxdhAccept_opt_fields_responder_full_placed_ok_of_block_bb_sat
+    (cliModelPrims_structural X W)
+    (cliModelPrims_matchCrypto X W)
+    (LibsignalBinary.Proofs.SignalSession.Cli.Run.Proofs.DecryptPrekey.Poll.StagesInst.Stage2V1BasePlacedBudgetBbSat.cliResponderPqxdhHookContractsPlaced_bb_sat
+      X mmpl gh W hG hMs hBb)
+    (hookSat_framelessMemcpy_of_vm_local
+      (cliExternsPlaced_framelessMemcpy_budget_sat mmpl gh W hG))
+
+/-- Closed `[LibsignalFullPlacement]` `pqxdhAcceptErrOwnedFrozenPlacedSpec` at
+`cliGhostExterns gh (cliExternsPlaced mmpl W)` from `CliGhostAllocHooks M A lim gh`, `hMs`, and `hBb`. -/
+public theorem cliPqxdhAccept_err_owned_full_placed_ok_bb_sat [LibsignalFullPlacement]
+    {callerProg : Program} {i : Nat} {M : AllocCostModel}
+    {A : RustCliAllocBudget M} {lim : BudgetLimits}
+    (X : UnreachedPqxdhPrimitives) (mmpl : Obj.MultiPlacement) (gh : CliGhostHooks) (W : CliHooks)
+    [IsLsBlockProg callerProg i (cliGhostExterns gh (cliExternsPlaced mmpl W))]
+    (hG : CliGhostAllocHooks M A lim gh)
+    (hMs : HookSat (cliGhostExterns gh (cliExternsPlaced mmpl W)) lsMemsetSym
+      sessionMemsetRegionBudgetSpec)
+    (hBb : HookSat (cliGhostExterns gh (cliExternsPlaced mmpl W))
+      CryptoVerification.lsBlackBoxU8Sym
+      LibsignalBinary.Proofs.ConsumeMessageKey.FindIndexProofs.CtEqSat.blackBoxSpecSat) :
+    subroutine_ok callerProg (lsmpl.base 79)
+      (pqxdhAcceptErrOwnedFrozenPlacedSpec
+        (ofSignalPqxdhPrimitives (modelPrims X ⟨W.C, W.Q⟩))
+        A lim
+        (AcceptOptFieldsEnv (ofSignalPqxdhPrimitives (modelPrims X ⟨W.C, W.Q⟩)))) :=
+  pqxdhAccept_err_owned_responder_full_placed_ok_of_block_bb_sat
+    (cliModelPrims_structural X W)
+    (cliModelPrims_matchCrypto X W)
+    (LibsignalBinary.Proofs.SignalSession.Cli.Run.Proofs.DecryptPrekey.Poll.StagesInst.Stage2V1BasePlacedBudgetBbSat.cliResponderPqxdhHookContractsPlaced_bb_sat
+      X mmpl gh W hG hMs hBb)
     (hookSat_framelessMemcpy_of_vm_local
       (cliExternsPlaced_framelessMemcpy_budget_sat mmpl gh W hG))
 

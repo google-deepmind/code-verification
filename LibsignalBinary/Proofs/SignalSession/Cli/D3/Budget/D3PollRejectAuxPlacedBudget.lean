@@ -13,6 +13,7 @@ public import LibsignalBinary.Heap.IfaceBudget
 public import LibsignalBinary.Heap.IfaceBudgetLemmas
 public import LibsignalBinary.Proofs.Common.SharedHelpers
 public meta import LibsignalBinary.Proofs.Common.SharedHelpers -- shake: keep
+public import LibsignalBinary.Proofs.ConsumeMessageKey.FindIndexProofs.CtEqSat -- proof-setup: allow-public-import
 public import LibsignalBinary.Proofs.SignalSession.Cli.D3.PreKeyGeneralAux
 public import LibsignalBinary.Proofs.SignalSession.Cli.KitInst.IdentityKitOkCliPlaced
 public import LibsignalBinary.Proofs.SignalSession.Cli.KitInst.IdentityKitOkPlacedBudget
@@ -63,7 +64,7 @@ open CryptoVerification.LibsignalTripleRatchet (extHookStack noAllocShimSpec)
 open CryptoVerification.LibsignalTripleRatchet.FromRecordCallees (lsLogOff)
 open CryptoVerification.LibsignalTripleRatchetRepr (AddrGhost protocolAddressAt)
 open CryptoVerification.RustHeap (RustAlloc allocHookStack)
-open CryptoVerification.SignalSession (CliHooks cliExternsPlaced lsReadFileSym)
+open CryptoVerification.SignalSession (CliHooks cliExternsPlaced lsBlackBoxSym lsReadFileSym)
 open CryptoVerification.SignalSession.Cli (baseKeysName cliIdentityVtSym cliKyberPreKeyVtSym cliPreKeyVtSym cliSessionVtSym cliSignedPreKeyVtSym dirAt utf8)
 open CryptoVerification.SignalSession.Cli.RunGlue (CliGhostHooks cliGhostExterns)
 open CryptoVerification.SignalSession.Cli.KitInst (CliPkInv CliSpkInv cliIdentityStoreSpec cliKyberPreKeyStoreSpecPlaced cliPreKeyStoreSpecPlaced cliSessionStoreSpec cliSignedPreKeyStoreSpecPlaced)
@@ -299,9 +300,11 @@ theorem stageP1ProgPlaced_eq_dpPollProgPlaced [LibsignalPlacement]
       dpPollProgPlaced (cliGhostExterns gh (cliExternsPlaced mmpl W)) := rfl
 
 theorem cliPromoteMatchingMissGen_placed_d3 [LibsignalPlacement] (A : RustAlloc)
-    (mmpl : Obj.MultiPlacement) (gh : CliGhostHooks) (W : CliHooks) :
+    (mmpl : Obj.MultiPlacement) (gh : CliGhostHooks) (W : CliHooks)
+    (hBb : HookSat (cliGhostExterns gh (cliExternsPlaced mmpl W)) lsBlackBoxSym
+      LibsignalBinary.Proofs.ConsumeMessageKey.FindIndexProofs.CtEqSat.blackBoxSpecSat) :
     PromoteMatchingMissGenPlacedProp A (cliGhostExterns gh (cliExternsPlaced mmpl W)) :=
-  cliPromoteMatchingMissGen_placed_ok A mmpl gh W
+  cliPromoteMatchingMissGen_placed_ok A mmpl gh W hBb
 
 theorem cliStageP2ClosureHooksPlaced_d3 [LibsignalPlacement] {M : AllocCostModel}
     (A : RustCliAllocBudget M) (lim : BudgetLimits)

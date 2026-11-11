@@ -299,6 +299,7 @@ theorem cliStatesIntoPb_sendCoins_ok [LibsignalPlacement]
     (hG : CliGhostA0Hooks A0 gh)
     (hMs : gh.memset = some memsetHook)
     (hMc : gh.memcpy = some memcpyHook)
+    (hMv : gh.extra.lookup "memmove" = some hookMemmove)
     (hHmac : HookSat (cliGhostExterns gh (cliExternsPlaced mmpl W))
       lsLibcruxHmacSymCli (libcruxHmacSpec W.C.F A0)) :
     subroutine_ok
@@ -308,7 +309,7 @@ theorem cliStatesIntoPb_sendCoins_ok [LibsignalPlacement]
       (withLsCodeRoLoaded lsmpl
         (CryptoVerification.Cli.SpqrV1.Top.Send.statesIntoPbPlacedSpecX A0 W.C.F)) := by
   have : CliSpqrExt W (cliGhostExterns gh (cliExternsPlaced mmpl W)) :=
-    cliSpqrExt_self mmpl gh W hG hMs hMc hHmac
+    cliSpqrExt_self mmpl gh W hG hMs hMc hMv hHmac
   exact cliStatesIntoPb_334_cro_ok_x W (ext := cliGhostExterns gh (cliExternsPlaced mmpl W))
 
 /-- Block `427` (`cliSpqrSendCoins_placed_ok`) with `hStatesIntoPb` discharged directly by
@@ -318,6 +319,7 @@ theorem cliSpqrSendCoins_with_statesIntoPb [LibsignalPlacement]
     (hG : CliGhostA0Hooks A0 gh)
     (hMs : gh.memset = some memsetHook)
     (hMc : gh.memcpy = some memcpyHook)
+    (hMv : gh.extra.lookup "memmove" = some hookMemmove)
     (hHmac : HookSat (cliGhostExterns gh (cliExternsPlaced mmpl W))
       lsLibcruxHmacSymCli (libcruxHmacSpec W.C.F A0))
     (hChainFromPb : subroutine_ok
@@ -345,8 +347,8 @@ theorem cliSpqrSendCoins_with_statesIntoPb [LibsignalPlacement]
       (CryptoVerification.LibsignalPublicApi.StoreKit.withLsCodeRoLoaded lsmpl
         (spqrSendCoinsPlacedSpecT A0 0#64
           (CryptoVerification.E2E.pqxdhSpqrModel ⟨W.C, W.Q⟩))) :=
-  cliSpqrSendCoins_placed_ok mmpl gh W hG hMs hMc hHmac hChainFromPb hChainIntoPb hDecodeState
-    (cliStatesIntoPb_sendCoins_ok mmpl gh W hG hMs hMc hHmac)
+  cliSpqrSendCoins_placed_ok mmpl gh W hG hMs hMc hMv hHmac hChainFromPb hChainIntoPb hDecodeState
+    (cliStatesIntoPb_sendCoins_ok mmpl gh W hG hMs hMc hMv hHmac)
 
 /-- `spqr: :recv` (`Block 329`) caller form: exact `statesIntoPb_ok` field type of
     `SpqrRecvPlacedContracts`, generic in `[CliSpqrExt W ext]`. -/
@@ -367,6 +369,7 @@ theorem cliStatesIntoPb_recv_trTrap_ok [LibsignalPlacement]
     (hG : CliGhostA0Hooks A0 gh)
     (hMs : gh.memset = some memsetHook)
     (hMc : gh.memcpy = some memcpyHook)
+    (hMv : gh.extra.lookup "memmove" = some hookMemmove)
     (hHmac : HookSat (cliGhostExterns gh (cliExternsPlaced mmpl W))
       lsLibcruxHmacSymCli (libcruxHmacSpec W.C.F A0)) :
     subroutine_ok
@@ -375,7 +378,7 @@ theorem cliStatesIntoPb_recv_trTrap_ok [LibsignalPlacement]
       (withLsCodeRoLoaded lsmpl
         (CryptoVerification.SpqrV1.Top.Recv.statesIntoPbPlacedSpecX A0 W.C.F)) := by
   have : CliSpqrExt W (trTrapExternsPlaced (cliGhostExterns gh (cliExternsPlaced mmpl W))) :=
-    cliSpqrExt_trTrap mmpl gh W hG hMs hMc hHmac
+    cliSpqrExt_trTrap mmpl gh W hG hMs hMc hMv hHmac
   exact cliStatesIntoPb_recv_ok W
     (ext := trTrapExternsPlaced (cliGhostExterns gh (cliExternsPlaced mmpl W)))
 

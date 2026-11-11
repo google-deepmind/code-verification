@@ -80,7 +80,7 @@ open LibsignalBinary.Heap (
 open LibsignalBinary.Heap.RustStdAllocBudgetBridge (rustAllocShimVmSpec)
 open LibsignalBinary.Proofs.SpqrV1.Poly.DecoderPb.FromPbDefsBudget (fromPbDecSlotEvents)
 open LibsignalBinary.Proofs.SpqrV1.Poly.DecoderPb.FromPbInnerPlacedBudget (
-  fromPb_bsearchPush_at_320_placed_sepWP sessionMemmoveVmAcpSpec
+  fromPb_bsearchPush_at_320_placed_sepWP sessionMemmoveBoundedVmAcpSpec
 )
 open scoped CryptoVerification.SpqrV1.Poly.AddChunk CryptoVerification.SpqrV1.Poly.AddChunk.AddChunkNorm
 
@@ -106,15 +106,31 @@ private theorem sepWP_swap_vm {prog : Program} {tgt : BitVec 64} {s : State}
     SepWP prog tgt s Pre (fun sm Pm => Ent Pm ∧ VmPreserved s sm ∧ Rest sm) :=
   SepWP.mono h fun _ _ _ _ ⟨hvm, hent, hr⟩ => ⟨hent, hvm, hr⟩
 
+private theorem tempVecPtAt_noWrap {M : AllocCostModel} (A : RustCliAllocBudget M)
+    (fsp cap ptr : BitVec 64) (s : SortedSetPt) :
+    tempVecPtAt A.repAlloc fsp cap ptr s ⊢
+      ⌜ptr.toNat + cap.toNat * 4 < 2 ^ 64⌝ ∗ tempVecPtAt A.repAlloc fsp cap ptr s := by
+  have hbv : A.repAlloc.live ptr (cap.toNat * 4) 2 ⊢
+      ⌜ptr.toNat + cap.toNat * 4 < 2 ^ 64⌝ ∗ A.repAlloc.live ptr (cap.toNat * 4) 2 := by
+    refine Entails.trans (A.block_valid ptr (cap.toNat * 4) 2) ?_
+    apply Entails.pure_left
+    rintro ⟨_, _, hnw, _⟩
+    exact Entails.pure_right hnw (Entails.refl _)
+  unfold tempVecPtAt
+  exact Entails.trans
+    (sepConj_mono_right (sepConj_mono_right (sepConj_mono_right (sepConj_mono_left hbv))))
+    (Entails.of_eq (by sep_ac_rfl))
+
 /-! ## Placed 4-Byte Big-Endian Point Decoding and Inner Loop (`+304 -> +672`) -/
 
 theorem fromPb_inner_step_placed_sepWP [LibsignalPlacement] {A : RustAlloc}
     {ext : String → Option (State → State)} {target_pc : BitVec 64}
     (hmemmove : subroutine_ok ((blkPC_376).rebase (blkPl_376).base (Rust.withPanics ext))
-      (lsρ spqrMemmoveSym) (sessionMemmoveVmAcpSpec 0))
+      (lsρ spqrMemmoveSym) (sessionMemmoveBoundedVmAcpSpec 0))
     (fsp cap ptr chunkPtr : BitVec 64)
     (b0 b1 b2 b3 : BitVec 8) (rest : List (BitVec 8)) (s : SortedSetPt)
     (hlt_cap : s.vec.length < cap.toNat) (hcap : cap.toNat * 4 < 2 ^ 63)
+    (hptr_nw : ptr.toNat + cap.toNat * 4 < 2 ^ 64)
     (hlen : s.vec.length ≤ 65536)
     (st : State) (P : SepProp) (post : State → SepProp → Prop)
     (hpc : st.pc = (blkPl_376).base + 304#64)
@@ -155,7 +171,7 @@ theorem fromPb_inner_step_placed_sepWP [LibsignalPlacement] {A : RustAlloc}
       post := by
   let pt : Pt := { x := GF16.new (u16FromBeBytes b0 b1), y := GF16.new (u16FromBeBytes b2 b3) }
   have hpush := @fromPb_bsearchPush_at_320_placed_sepWP _ A ext target_pc hmemmove fsp cap ptr s pt
-    hlt_cap hcap hlen
+    hlt_cap hcap hptr_nw hlen
   rw [pointsToBytes_four_cons chunkPtr b0 b1 b2 b3 rest]
   wp_steps 4
   refine SepWP.weaken_pre (Entails.of_eq (by sep_ac_rfl))
@@ -192,9 +208,10 @@ theorem fromPb_inner_step_placed_sepWP [LibsignalPlacement] {A : RustAlloc}
 theorem fromPb_inner_loop_placed_sepWP [LibsignalPlacement] {A : RustAlloc}
     {ext : String → Option (State → State)} {target_pc : BitVec 64}
     (hmemmove : subroutine_ok ((blkPC_376).rebase (blkPl_376).base (Rust.withPanics ext))
-      (lsρ spqrMemmoveSym) (sessionMemmoveVmAcpSpec 0))
+      (lsρ spqrMemmoveSym) (sessionMemmoveBoundedVmAcpSpec 0))
     (fsp cap ptr : BitVec 64)
-    (hcap : cap.toNat * 4 < 2 ^ 63) :
+    (hcap : cap.toNat * 4 < 2 ^ 63)
+    (hptr_nw : ptr.toNat + cap.toNat * 4 < 2 ^ 64) :
     ∀ (n : Nat) (rem : List (BitVec 8)) (chunkPtr : BitVec 64) (s : SortedSetPt)
       (st : State) (P : SepProp) (post : State → SepProp → Prop),
       rem.length = 4 * (n + 1) →
@@ -251,7 +268,7 @@ theorem fromPb_inner_loop_placed_sepWP [LibsignalPlacement] {A : RustAlloc}
       have hlen : s.vec.length ≤ 65536 := ptListStrictSorted_length_le hsort
       rw [hpush_eq] at hnext
       refine fromPb_inner_step_placed_sepWP hmemmove fsp cap ptr chunkPtr b0 b1 b2 b3 [] s
-        (by omega) hcap hlen st P post hpc hrun hsp_al hx19 hx22 hx26 hx28 hx29 ?_
+        (by omega) hcap hptr_nw hlen st P post hpc hrun hsp_al hx19 hx22 hx26 hx28 hx29 ?_
       intro s1 hpc1 hrun1 hsp1 htr1 hvm1 hacp1 hx19_1 hx21_1 hx22_1 hx24_1 hx25_1 hx26_1 hx28_1 hx29_1 hvregs_1
       have hx21_s1 : s1.readReg64 (Reg.gpr 21#5) = 4#64 := hx21_1.trans hx21
       wp_steps 2
@@ -289,7 +306,7 @@ theorem fromPb_inner_loop_placed_sepWP [LibsignalPlacement] {A : RustAlloc}
       have hlen : s.vec.length ≤ 65536 := ptListStrictSorted_length_le hsort
       rw [hpush_step] at hnext
       refine fromPb_inner_step_placed_sepWP hmemmove fsp cap ptr chunkPtr b0 b1 b2 b3 rest s
-        (by omega) hcap hlen st P post hpc hrun hsp_al hx19 hx22 hx26 hx28 hx29 ?_
+        (by omega) hcap hptr_nw hlen st P post hpc hrun hsp_al hx19 hx22 hx26 hx28 hx29 ?_
       intro s1 hpc1 hrun1 hsp1 htr1 hvm1 hacp1 hx19_1 hx21_1 hx22_1 hx24_1 hx25_1 hx26_1 hx28_1 hx29_1 hvregs_1
       have hsub4 : BitVec.ofNat 64 (4 * (n + 1 + 1)) - 4#64 = BitVec.ofNat 64 (4 * (n + 1)) :=
         bv64_mul4_succ_sub_four (n + 1)
@@ -501,7 +518,7 @@ theorem fromPb_outer_alloc_and_push_placed_wpp [LibsignalPlacement]
     (halloc : subroutine_ok ((blkPC_376).rebase (blkPl_376).base (Rust.withPanics ext))
       (lsρ spqrRustAllocSym) (rustCliAllocBudgetSpec M A lim false))
     (hmemmove : subroutine_ok ((blkPC_376).rebase (blkPl_376).base (Rust.withPanics ext))
-      (lsρ spqrMemmoveSym) (sessionMemmoveVmAcpSpec 0))
+      (lsρ spqrMemmoveSym) (sessionMemmoveBoundedVmAcpSpec 0))
     {Q Qp : State → SepProp → Prop}
     (s0 : State) (fsp ptsPtr : BitVec 64)
     (hfsp_align : (fsp &&& 15#64 == 0#64) = true)
@@ -810,8 +827,11 @@ theorem fromPb_outer_alloc_and_push_placed_wpp [LibsignalPlacement]
         rw [hsp1_0]
         have hsort_nil : SortedSetPtStrictSorted { vec := [] } := by
           simp [SortedSetPtStrictSorted, PtListStrictSorted]
+        refine SepWP.weaken_pre
+          (sepConj_mono_left (tempVecPtAt_noWrap A fsp (BitVec.ofNat 64 (n + 1)) ptr_tmp { vec := [] })) ?_
+        refine SepWP.focus_pure (sepConj_assoc _ _ _) fun hptr_nw => ?_
         refine fromPb_inner_loop_placed_sepWP hmemmove fsp (BitVec.ofNat 64 (n + 1)) ptr_tmp
-          (by rw [htoNat_cap]; omega) n pts ptr_u8 { vec := [] } s1 _ _
+          (by rw [htoNat_cap]; omega) hptr_nw n pts ptr_u8 { vec := [] } s1 _ _
           hn_eq (by rw [htoNat_cap]; simp) hsort_nil
           hpc1 hrun1 hsp_al1 hx19_1 hx21_1 hx22_1 hx26_1 hx28_1 hx29_1 ?_
         intro sf_l hpc_f hrun_f hsp_f htr_f hvm_f hacp_f _ _ hx24_f hx25_f _ hx29_f hvregs_f
@@ -875,7 +895,7 @@ theorem fromPb_outer_alloc_and_push_placed_wpp_of_hookSat [LibsignalPlacement]
     {ext : String → Option (State → State)}
     (hshim_sat : HookSat (Rust.withPanics ext) spqrRustNoAllocShimSym rustAllocShimVmSpec)
     (halloc_sat : HookSat (Rust.withPanics ext) spqrRustAllocSym (rustCliAllocBudgetSpec M A lim false))
-    (hmemmove_sat : HookSat (Rust.withPanics ext) spqrMemmoveSym (sessionMemmoveVmAcpSpec 0))
+    (hmemmove_sat : HookSat (Rust.withPanics ext) spqrMemmoveSym (sessionMemmoveBoundedVmAcpSpec 0))
     {Q Qp : State → SepProp → Prop}
     (s0 : State) (fsp ptsPtr : BitVec 64)
     (hfsp_align : (fsp &&& 15#64 == 0#64) = true)

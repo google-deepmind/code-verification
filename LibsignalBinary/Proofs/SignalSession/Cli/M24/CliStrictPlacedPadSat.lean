@@ -104,7 +104,7 @@ open VerifiedLibraries.Mallocng (MallocngAuxvAt mallocngAddrsOfPlacement)
 /-! ## 1. SWAR-Padded `MainOkCliExt{Pq,Over}B2NeedLocksPadPlacedAt` & Top Constructors -/
 
 /-- Route-B2 `NeedLocks` + `argvAtROPad` 5-clause PQXDH `main` specification. -/
-def MainOkCliExtPqB2NeedLocksPadPlacedAt
+@[expose] def MainOkCliExtPqB2NeedLocksPadPlacedAt
     (mpl mmpl : Obj.MultiPlacement)
     (ext : CliHooks → String → Option (State → State))
     (mainIdx : Nat) (inputsOf : Inputs → ProcessInputs) (CodeOk : Memory → Prop)
@@ -151,7 +151,7 @@ def MainOkCliExtPqB2NeedLocksPadPlacedAt
             CommitOk (pqRecvInputs WP p c rc) (MainResult.ofAnswer a))
 
 /-- Route-B2 `NeedLocks` + `argvAtROPad` `NoMatch` `main` specification. -/
-def MainOkCliExtOverB2NeedLocksPadPlacedAt
+@[expose] def MainOkCliExtOverB2NeedLocksPadPlacedAt
     (mpl mmpl : Obj.MultiPlacement)
     (ext : CliHooks → String → Option (State → State))
     (mainIdx : Nat) (inputsOf : Inputs → ProcessInputs) (CodeOk : Memory → Prop)
@@ -417,7 +417,7 @@ theorem mainOkCliExtOverB2NeedLocksPadPlacedAt_of_runTight_and_hops_sat
 
 /-- SWAR-padded sibling of `CliStrictPlaced.MuslHarnessFineNeedLocksPerInput`, supplying
 `b2MainEntryPreFinePad` (`argvAtROPad`) at `mainPc`. -/
-def MuslHarnessFineNeedLocksPadPerInput (exitStk : Nat) (libcAddr : BitVec 64)
+@[expose] def MuslHarnessFineNeedLocksPadPerInput (exitStk : Nat) (libcAddr : BitVec 64)
     (elf : ElfImage) (P : Program) (mainPc : BitVec 64)
     (inputsOf : Inputs → ProcessInputs)
     (mmpl : Obj.MultiPlacement) (lim : BudgetLimits) (st : FineBudget)
@@ -524,7 +524,7 @@ theorem muslHarnessFineNeedLocksPadPerInput_of_startup
   exact ⟨s0, sm, Fr, γ, hload, hsteps, hpc, hrun, hal, hfs, htr, hx0, hEntry, hexit⟩
 
 /-- Guarded twin of `MuslHarnessFineNeedLocksPadPerInput`. -/
-def MuslHarnessFineNeedLocksGuardedPadPerInput (exitStk : Nat) (libcAddr : BitVec 64)
+@[expose] def MuslHarnessFineNeedLocksGuardedPadPerInput (exitStk : Nat) (libcAddr : BitVec 64)
     (elf : ElfImage) (P : Program) (mainPc : BitVec 64)
     (inputsOf : Inputs → ProcessInputs)
     (mmpl : Obj.MultiPlacement) (lim : BudgetLimits) (st : FineBudget)

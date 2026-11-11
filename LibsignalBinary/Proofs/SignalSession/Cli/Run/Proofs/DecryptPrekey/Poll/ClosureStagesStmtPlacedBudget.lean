@@ -14,6 +14,7 @@ public import LibsignalBinary.Heap.IfaceBudgetLemmas
 public import LibsignalBinary.Heap.RustStdAllocBudgetBridge
 public import LibsignalBinary.Proofs.PublicApi.StoreKit.PlacedBudget
 public import LibsignalBinary.Proofs.RecordCodecs.DepsBudget
+public import LibsignalBinary.Proofs.SignalSession.Cli.HooksDehook.WithLsRet -- proof-setup: allow-public-import
 public import LibsignalBinary.Proofs.SignalSession.Cli.Run.Proofs.DecryptPrekey.Poll.ClosureStageDefsPlacedBudget
 public import LibsignalBinary.Proofs.SignalSession.Cli.Run.Proofs.DecryptPrekey.Poll.ClosureStageP2DefsPlacedBudget
 public import LibsignalBinary.Proofs.SignalSession.Cli.Run.Proofs.DecryptPrekey.Poll.ClosureStagesStmtPlaced
@@ -99,6 +100,7 @@ open LibsignalBinary.Proofs.PublicApi.StoreKit.SessionStoreKitBudget
 open LibsignalBinary.Proofs.PublicApi.StoreKit.IdentityStoreKitBudget
   (IdentityStoreBudgetEnv SaveStepEnv retagIdentityStore)
 open LibsignalBinary.Proofs.RecordCodecs.DepsBudget (CodecHooksPlaced)
+open LibsignalBinary.Proofs.SignalSession.Cli.HooksDehook.WithLsRet (withLsRet)
 open LibsignalBinary.Proofs.SignalSession.Cli.Run.Slots.DecryptPrekeySlotPlacedBudget
   (DpPollGhostStateBudget dpSlotPollKStatePlaced)
 open LibsignalBinary.Proofs.SignalSession.Cli.SpecsPlacedBudget
@@ -132,14 +134,16 @@ structure RunHooksPlaced [LibsignalPlacement] {M : AllocCostModel}
   allocFs : AllocContractsFsPlaced A lim ext
   panics : CliPanicHooksPlaced ext
   memcpyRO : HookSat ext LibsignalTripleRatchet.lsMemcpySym (withVmPreserved sessionMemcpyRegionROSpec)
-  bcmp : HookSat ext "bcmp" (withVmPreserved cliBcmpSpec)
+  bcmp : HookSat ext "bcmp" (withVmPreserved cliBcmpSpec).keepsFs
   fs : ∀ (prog : Program) (i : Nat), [IsLsBlockProg prog i ext] → TraceFsSound prog
   utf8 : ∀ stk : Nat, HookSat ext lsFromUtf8Sym (withVmPreserved (fromUtf8AsciiSpec stk))
-  memrchr : ∀ stk : Nat, HookSat ext lsMemrchrSym (withVmPreserved (memrchrSpec stk))
+  memrchr : HookSat ext lsMemrchrSym (withLsRet (withVmPreserved (memrchrSpec extHookStack)))
   codecHooks : CodecHooksPlaced M A lim ext
   allocZeroed : HookSat ext lsRustAllocZeroedSymCli (rustCliAllocBudgetSpec M A lim true)
   stringClone : HookSat ext SignalSession.lsStringCloneSym (stringCloneBudgetSpec M A lim)
   formatInner : HookSat ext lsFormatInnerSym (formatInnerBudgetSpec M A lim)
+  blackBox : HookSat ext SignalSession.lsBlackBoxSym
+    LibsignalBinary.Proofs.ConsumeMessageKey.FindIndexProofs.CtEqSat.blackBoxSpecSat
 
 /-! ## 1. Path B Stage P4 (`M4`) Envelopes, Spatial Entry/Exit & Three-Way Outcome (`StageP4MatchedBranchPlaced`) -/
 

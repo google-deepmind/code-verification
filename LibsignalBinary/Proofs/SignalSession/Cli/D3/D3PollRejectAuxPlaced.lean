@@ -38,6 +38,7 @@ public import LibsignalBinary.Proofs.SignalSession.Cli.KitInst.SelfSpecPlaced
 public import LibsignalBinary.Proofs.SignalSession.Cli.Main.Proofs.UuidFsPlaced
 import Arm64.Trusted.Spec.Hoare
 import Arm64.Trusted.Spec.SepLogic
+import LibsignalBinary.Proofs.Cli.E2E.Pqxdh.ResponderClosure.Kits.StageP2PurePlacedBbSat
 import ProofLib.SepLogic.WPp
 import LibsignalBinary.Proofs.Cli.E2E.Pqxdh.ResponderClosure.Kits.StageP4
 import LibsignalBinary.Proofs.SignalSession.Cli.Run.Proofs.DecryptPrekey.Poll.ClosureStmts
@@ -103,7 +104,7 @@ open CryptoVerification.SignalSession.Cli.KitInst hiding
   cliPreKeyStoreSpecPlaced cliSignedPreKeyStoreSpecPlaced cliKyberPreKeyStoreSpecPlaced
   cliPreKeyStoreSpecPlaced_quiet cliSignedPreKeyStoreSpecPlaced_quiet
 open LibsignalBinary.Proofs.SignalSession.Cli.AllocGhostLinkTransfer
-  (CliGhostHooks cliGhostExterns cliGhostExterns_other)
+  (CliGhostHooks cliGhostExterns)
 
 /-! ## 1. Pure Store & Message Rejection Predicates and Kit Invariant Projections -/
 
@@ -261,62 +262,6 @@ theorem stageP1ProgPlaced_eq_dpPollProgPlaced [LibsignalPlacement]
       Poll.dpPollProgPlaced (cliGhostExterns g (cliExternsPlaced mmpl W)) :=
   rfl
 
-private theorem cliGhostExterns_blackBox_placed
-    (mmpl : Obj.MultiPlacement) (g : CliGhostHooks) (W : CliHooks) :
-    cliGhostExterns g (cliExternsPlaced mmpl W) lsBlackBoxU8Sym =
-      some CryptoVerification.LibsignalSession.blackBoxHook :=
-  (cliGhostExterns_other g (cliExternsPlaced mmpl W)
-    (by decide) (by decide) (by decide) (by decide) (by decide)
-    (by decide) (by decide) (by decide) (by decide) (by decide)).trans
-    (RunGlue.cliExternsPlaced_row mmpl W (Slots.blackBox_row_placed mmpl W))
-
-private theorem subroutine_ok_withLsCl_of_spec_map [LibsignalPlacement] {α β : Type}
-    {prog : Program} {entry : BitVec 64} {specA : Spec α} {specB : Spec β}
-    (f : β → α)
-    (hpre : ∀ x s, specB.pre x s = specA.pre (f x) s)
-    (hpost : ∀ x s0 sf, specA.post (f x) s0 sf = specB.post x s0 sf)
-    (hpan : ∀ x s0 sf, specA.onPanic (f x) s0 sf = specB.onPanic x s0 sf)
-    (hexit : ∀ x code s0 sf, specA.onExit (f x) code s0 sf = specB.onExit x code s0 sf)
-    (hoom : ∀ x s0 sf, specA.onOom (f x) s0 sf = specB.onOom x s0 sf)
-    (hok : subroutine_ok prog entry (withLsCl lsmpl specA)) :
-    subroutine_ok prog entry (withLsCl lsmpl specB) := by
-  refine subroutine_ok_outcome_intro fun x R s0 hpc hrun hp halign => ?_
-  have hp' : s0.mem ⊨ (withLsCl lsmpl specA).pre (f x) s0 ∗ R := by
-    dsimp only [withLsCl] at hp ⊢
-    rwa [← hpre x s0]
-  refine hok.mono_outcome (f x) R s0 hpc hrun hp' halign ?_
-  rintro sf (⟨hret, hcs, hq⟩ | ⟨hp1, hpa⟩ | ⟨code, he1, he2⟩ | ⟨ho1, hoo⟩)
-  · refine Or.inl ⟨hret, hcs, ?_⟩
-    dsimp only [withLsCl] at hq ⊢
-    rwa [← hpost x s0 sf]
-  · refine Or.inr (Or.inl ⟨hp1, ?_⟩)
-    dsimp only [withLsCl] at hpa ⊢; rwa [← hpan x s0 sf]
-  · refine Or.inr (Or.inr (Or.inl ⟨code, he1, ?_⟩))
-    dsimp only [withLsCl] at he2 ⊢; rwa [← hexit x code s0 sf]
-  · refine Or.inr (Or.inr (Or.inr ⟨ho1, ?_⟩))
-    dsimp only [withLsCl] at hoo ⊢; rwa [← hoom x s0 sf]
-
-private theorem promoteMatchingMissGen_placed_of_blackBox [LibsignalPlacement] {A : RustAlloc}
-    {ext : String → Option (State → State)}
-    (h_bb : ext lsBlackBoxU8Sym = some CryptoVerification.LibsignalSession.blackBoxHook) :
-    Over.PromoteMatchingMissGenPlacedProp A ext := by
-  have h50' : subroutine_ok (lsProg_518 ext) (lsmpl.base 50)
-      (withLsCl lsmpl (Over.promoteMatchingSessionMissSpec A)) :=
-    ls_subroutine_ok_cl_of_callee (callerProg := lsProg_518 ext)
-      (Over.promote_matching_session_miss_placed_ok h_bb)
-  exact subroutine_ok_withLsCl_of_spec_map
-    (fun x : Over.P2PromoteMissGhost =>
-      (⟨x.recPtr, x.msgVer, x.serPtr, x.serBytes, x.outPtr, x.g, x.r, x.s⟩ :
-        Over.PromoteMissGhost))
-    (fun _ _ => rfl) (fun _ _ _ => rfl) (fun _ _ _ => rfl)
-    (fun _ _ _ _ => rfl) (fun _ _ _ => rfl) h50'
-
-theorem promoteMatchingMissGen_cli_placed [LibsignalPlacement]
-    (mmpl : Obj.MultiPlacement) (g : CliGhostHooks) (W : CliHooks) :
-    Over.PromoteMatchingMissGenPlacedProp E2E.HooksE.A0
-      (cliGhostExterns g (cliExternsPlaced mmpl W)) :=
-  promoteMatchingMissGen_placed_of_blackBox (cliGhostExterns_blackBox_placed mmpl g W)
-
 theorem cliStageP2ClosureHooksPlaced_d3 [LibsignalPlacement]
     (mmpl : Obj.MultiPlacement) (g : CliGhostHooks) (W : CliHooks)
     (hG : Slots.CliGhostA0Hooks E2E.HooksE.A0 g) :
@@ -352,6 +297,16 @@ theorem cliUuidTryParse_placed_ok_d3 [LibsignalPlacement]
       ⌜False⌝ from rfl, satisfies_pure_sepConj] at hpan
     exact False.elim hpan.1
 
+private theorem cliGhostExterns_blackBox_sat_d3 [LibsignalPlacement]
+    (mmpl : Obj.MultiPlacement) (g : CliGhostHooks) (W : CliHooks)
+    (hG : Slots.CliGhostA0Hooks E2E.HooksE.A0 g) :
+    HookSat (cliGhostExterns g (cliExternsPlaced mmpl W))
+      lsBlackBoxSym
+      LibsignalBinary.Proofs.ConsumeMessageKey.FindIndexProofs.CtEqSat.blackBoxSpecSat :=
+  LibsignalBinary.Proofs.SignalSession.Cli.Run.Slots.ExtraGhostSpecs.hookSat_cliGhostExterns_of_extraOk
+    g (cliExternsPlaced mmpl W) hG.extraOk fun _ _ hRow =>
+      hRow.blackBox_budget_ok (by decide : 16 ≤ 16) (by decide)
+
 theorem cliStageP2BaseCalleesPlaced4K_d3 [LibsignalPlacement]
     (mmpl : Obj.MultiPlacement) (g : CliGhostHooks) (W : CliHooks)
     (hG : Slots.CliGhostA0Hooks E2E.HooksE.A0 g) :
@@ -363,8 +318,8 @@ theorem cliStageP2BaseCalleesPlaced4K_d3 [LibsignalPlacement]
     (Slots.cliExternsPlaced_sessionMemcpy_sat mmpl g W hG allocHookStack)
     (Slots.cliGhostExterns_panic_handle_error mmpl g W)
     (Slots.cliGhostExterns_panic_handle_alloc_error mmpl g W)
-    (Kits.isSameAccount_4k_placed_ok_on_stageP1
-      (cliGhostExterns_blackBox_placed mmpl g W)
+    (LibsignalBinary.Proofs.Cli.E2E.Pqxdh.ResponderClosure.Kits.StageP2PurePlacedBbSat.isSameAccount_4k_placed_ok_on_stageP1_sat
+      (cliGhostExterns_blackBox_sat_d3 mmpl g W hG)
       (cliUuidTryParse_placed_ok_d3 mmpl g W))
 
 theorem cliStrToOwnedLocal2_placed_ok [LibsignalPlacement]

@@ -13,6 +13,7 @@ public import LibsignalBinary.Proofs.SignalSession.Cli.Run.Glue.BcmpHookPlaced
 public import LibsignalBinary.Proofs.SignalSession.Cli.SpecsPlaced
 public import LibsignalBinary.Proofs.E2E.Pqxdh.Initiator.SessionStateCallees
 public import LibsignalBinary.Proofs.E2E.Pqxdh.TopLevel.SessionInitiateACommon
+public import LibsignalBinary.Proofs.SignalSession.Cli.HooksDehook.WithLsRet
 public import LibsignalBinary.Proofs.SignalSession.Cli.Run.Slots.CliHookSat
 import Arm64.Trusted.Spec.Hoare
 import Arm64.Trusted.Spec.SepLogic
@@ -49,6 +50,8 @@ open CryptoVerification.E2E.Pqxdh.Initiator
 open CryptoVerification.E2E.Pqxdh.TopLevel
 open CryptoVerification.SignalSession CryptoVerification.SignalSession.Cli
 open CryptoVerification.SignalSession.Cli.MainHops
+open LibsignalBinary.Proofs.Placed.ElfLsRetAddr (LsRetAddr624 lsRetAddr624_blockPlacement_base_add)
+open LibsignalBinary.Proofs.SignalSession.Cli.HooksDehook.WithLsRet (withLsRet)
 
 private abbrev allocHookStack : Nat := 4096
 
@@ -277,7 +280,7 @@ theorem setUnackPreKeyMsg_exact_stack_epoch_placed_cl_ok [LibsignalPlacement]
     (hdealloc : HookSat H lsRustDeallocSym (rustDeallocSpec A))
     (hmemcpy : HookSat H lsMemcpySym sessionMemcpyRegionSpec)
     (hpanic : H lsHandleErrorSym = some Rust.panicked)
-    (hTime : HookSat H lsDurationSinceSym durationSinceEpochAllocSpec) :
+    (hTime : HookSat H lsDurationSinceSym (withLsRet durationSinceEpochAllocSpec)) :
     subroutine_ok ((blkPC_33).rebase (blkPl_33).base H) (blkPl_33).base
       (withLsCodeLoaded lsmpl (setUnackPreKeyMsgEpochInnerSpec A)) := by
   have hshim' : subroutine_ok ((blkPC_33).rebase (blkPl_33).base H)
@@ -287,7 +290,8 @@ theorem setUnackPreKeyMsg_exact_stack_epoch_placed_cl_ok [LibsignalPlacement]
   have hmemcpy' : subroutine_ok ((blkPC_33).rebase (blkPl_33).base H)
       (lsρ lsMemcpySym) sessionMemcpyRegionSpec := ls_hook_ok_of_mem hmemcpy
   have htime' : subroutine_ok ((blkPC_33).rebase (blkPl_33).base H)
-      (lsρ lsDurationSinceSym) durationSinceEpochAllocSpec := ls_hook_ok_of_mem hTime
+      (lsρ lsDurationSinceSym) (withLsRet durationSinceEpochAllocSpec) := ls_hook_ok_of_mem hTime
+  dsimp only [withLsRet] at htime'
   have hdealloc' : subroutine_ok ((blkPC_33).rebase (blkPl_33).base H)
       (lsρ lsRustDeallocSym) (rustDeallocSpec A) := ls_hook_ok_of_mem hdealloc
   have hpanic' : ((blkPC_33).rebase (blkPl_33).base H).externAt? (lsρ lsHandleErrorSym) =
@@ -388,6 +392,8 @@ theorem setUnackPreKeyMsg_exact_stack_epoch_placed_cl_ok [LibsignalPlacement]
       (h120_8 ▸ h120_16 ▸ pointsTo64_triple_entails_memRegion24_epoch_placed (s0.sp - 120#64) _ _ _)
     have hsp2 : sf_2.sp = s0.sp - 144#64 := by rw [‹sf_2.sp = sf_1.sp›, ‹sf_1.sp =
       sf.sp›, ‹sf.sp = sm.sp›, hspm]
+    have hlr_ds : LsRetAddr624 ((blkPl_33).base + 160#64) :=
+      lsRetAddr624_blockPlacement_base_add 33 160#64 (by decide) (by decide)
     rw [‹sf.sp = sm.sp›, hspm]
     wp_call htime' (s0.sp - 136#64, s0.sp - 120#64)
     rw [hsp2]
@@ -415,7 +421,7 @@ theorem setUnackPreKeyMsg_exact_stack_epoch_placed_ok [LibsignalPlacement]
     (hdealloc : HookSat H lsRustDeallocSym (rustDeallocSpec A))
     (hmemcpy : HookSat H lsMemcpySym sessionMemcpyRegionSpec)
     (hpanic : H lsHandleErrorSym = some Rust.panicked)
-    (hTime : HookSat H lsDurationSinceSym durationSinceEpochAllocSpec) :
+    (hTime : HookSat H lsDurationSinceSym (withLsRet durationSinceEpochAllocSpec)) :
     subroutine_ok ((blkPC_33).rebase (blkPl_33).base H) (blkPl_33).base
       (setUnackPreKeyMsgExactStackEpochSpecPlaced A) :=
   LibsignalPublicApi.StoreKit.subroutine_ok_withLsCodeRoLoaded_of_withLsCodeLoaded
@@ -430,7 +436,7 @@ theorem setUnackPreKeyMsg_exact_stack_epoch_placed_at_block [LibsignalPlacement]
     (hdealloc : HookSat H lsRustDeallocSym (rustDeallocSpec A))
     (hmemcpy : HookSat H lsMemcpySym sessionMemcpyRegionSpec)
     (hpanic : H lsHandleErrorSym = some Rust.panicked)
-    (hTime : HookSat H lsDurationSinceSym durationSinceEpochAllocSpec)
+    (hTime : HookSat H lsDurationSinceSym (withLsRet durationSinceEpochAllocSpec))
     (hi : i < 619 := by decide) :
     subroutine_ok callerProg (blkPl_33).base
       (setUnackPreKeyMsgExactStackEpochSpecPlaced A) := by
@@ -467,7 +473,7 @@ theorem setUnackPreKeyMsg_exact_stack_epoch_placed_ok_cli [LibsignalPlacement]
         lsHandleErrorSym = some Rust.panicked)
     (hTime : HookSat
       (CryptoVerification.SignalSession.Cli.RunGlue.cliGhostExterns g (cliExternsPlaced mmpl W))
-      lsDurationSinceSym durationSinceEpochAllocSpec)
+      lsDurationSinceSym (withLsRet durationSinceEpochAllocSpec))
     (hi : i < 619 := by decide) :
     subroutine_ok callerProg (blkPl_33).base
       (setUnackPreKeyMsgExactStackEpochSpecPlaced E2E.HooksE.A0) :=

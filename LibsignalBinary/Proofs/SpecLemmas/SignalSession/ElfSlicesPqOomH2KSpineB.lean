@@ -159,7 +159,8 @@ theorem h2ksb_witness_hGSpqr {mpl mmpl : MultiPlacement}
       memset := hGK.memset
       memcpy := hGK.memcpy
       memcpy_exact := hGK.memcpy_exact
-      memset_acp := hGK.memset_acp }
+      memset_acp := hGK.memset_acp
+      extraOk := hGK.extraOk }
 
 /-- Lift `w.hGK` (`h2k_CliGhostAllocHooksK`) to plain `CliGhostAllocHooks`. -/
 theorem h2ksb_witness_hG {mpl mmpl : MultiPlacement}

@@ -36,18 +36,6 @@ open CryptoVerification.SignalSession CryptoVerification.SignalSession.Cli
 open CryptoVerification.SignalSession.Cli.Main.Placed
 open CryptoVerification.LibsignalPublicApi.StoreKit
 
-theorem cliExternsPlaced_strlen (mmpl : Obj.MultiPlacement) (W : CliHooks) :
-    cliExternsPlaced mmpl W "strlen" = some strlenHook :=
-  main_cliExternsPlaced_row mmpl W
-    (List.mem_append_right _ (List.mem_of_getElem? (i := 2) rfl))
-    (by simp [isCliPanicSymbolPlaced, cliPanicSymbolsPlaced, Rust.isPanicSymbol])
-
-theorem cliExternsPlaced_fromUtf8 (mmpl : Obj.MultiPlacement) (W : CliHooks) :
-    cliExternsPlaced mmpl W lsFromUtf8Sym = some (fromUtf8Hook W.utf8Err) :=
-  main_cliExternsPlaced_row mmpl W
-    (List.mem_append_right _ (List.mem_of_getElem? (i := 6) rfl))
-    (by simp [isCliPanicSymbolPlaced, cliPanicSymbolsPlaced, Rust.isPanicSymbol, lsFromUtf8Sym])
-
 /-- `strlen` satisfies `withLsRoCl lsmpl (strlenSpec hookStack)` at `lsρ "strlen"` on Block `617`. -/
 theorem strlen_ok_placed [LibsignalPlacement] {H : LibsignalHooks} {hookStack : Nat}
     (hext : H "strlen" = some strlenHook) :
@@ -66,17 +54,5 @@ theorem fromUtf8Ascii_ok_placed [LibsignalPlacement] {H : LibsignalHooks} {hookS
   subroutine_ok_rocl_of_plain <|
     ls_hook_ok_ultra_of_mem (prog := lsProg_617 H) (i := 617)
       ⟨fromUtf8Hook err, hext, fromUtf8Hook_ok hookStack err⟩ (by decide)
-
-theorem strlen_ok_cliExterns_placed [LibsignalPlacement] {hookStack : Nat}
-    (mmpl : Obj.MultiPlacement) (W : CliHooks) :
-    subroutine_ok (lsProg_617 (cliExternsPlaced mmpl W)) (lsρ "strlen")
-      (withLsRoCl lsmpl (strlenSpec hookStack)) :=
-  strlen_ok_placed (cliExternsPlaced_strlen mmpl W)
-
-theorem fromUtf8Ascii_ok_cliExterns_placed [LibsignalPlacement] {hookStack : Nat}
-    (mmpl : Obj.MultiPlacement) (W : CliHooks) :
-    subroutine_ok (lsProg_617 (cliExternsPlaced mmpl W)) (lsρ lsFromUtf8Sym)
-      (withLsRoCl lsmpl (fromUtf8AsciiSpec hookStack)) :=
-  fromUtf8Ascii_ok_placed (err := W.utf8Err) (cliExternsPlaced_fromUtf8 mmpl W)
 
 end CryptoVerification.SignalSession.Cli.MainHops

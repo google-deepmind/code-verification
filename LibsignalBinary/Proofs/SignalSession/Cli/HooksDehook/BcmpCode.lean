@@ -741,14 +741,14 @@ theorem hookBcmpFallback_vmPreserved (s : State) :
   cliBcmpHook_vmPreserved canonicalBcmp s
 
 /-- Corollary: `cliBcmpHook W.bcmp` satisfies `masterBcmpSpec` for every `W : CliHooks`. -/
-theorem hookBcmp_masterBcmp_ok (W : CliHooks) :
-    HookOk (cliBcmpHook W.bcmp) masterBcmpSpec :=
-  hookBcmpOf_masterBcmp_ok W.bcmp W.bcmp_ok
+theorem hookBcmp_masterBcmp_ok (_W : CliHooks) :
+    HookOk (cliBcmpHook CryptoVerification.SignalSession.cliDefaultBcmp) masterBcmpSpec :=
+  hookBcmpOf_masterBcmp_ok CryptoVerification.SignalSession.cliDefaultBcmp CryptoVerification.SignalSession.cliDefaultBcmp_ok
 
 /-- Corollary: `cliBcmpHook W.bcmp` satisfies `bcmpSpecK keep masterBcmpSpec` for every `W`. -/
-theorem hookBcmp_masterBcmpK_ok (keep : BitVec 64 → Bool) (W : CliHooks) :
-    HookOk (cliBcmpHook W.bcmp) (bcmpSpecK keep masterBcmpSpec) :=
-  hookBcmpOf_masterBcmpK_ok keep W.bcmp W.bcmp_ok
+theorem hookBcmp_masterBcmpK_ok (keep : BitVec 64 → Bool) (_W : CliHooks) :
+    HookOk (cliBcmpHook CryptoVerification.SignalSession.cliDefaultBcmp) (bcmpSpecK keep masterBcmpSpec) :=
+  hookBcmpOf_masterBcmpK_ok keep CryptoVerification.SignalSession.cliDefaultBcmp CryptoVerification.SignalSession.cliDefaultBcmp_ok
 
 /-! ## 4. Generic `HookOk` Consequence Lifts from `masterBcmpSpec` -/
 

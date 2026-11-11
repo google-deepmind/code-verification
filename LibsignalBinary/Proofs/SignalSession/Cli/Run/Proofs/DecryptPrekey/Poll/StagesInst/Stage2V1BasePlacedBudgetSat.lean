@@ -9,11 +9,15 @@ limitations under the License.
 
 module
 
+public import LibsignalBinary.Proofs.ConsumeMessageKey.FindIndexProofs.CtEqSat -- proof-setup: allow-public-import
 public import LibsignalBinary.Proofs.SignalSession.Cli.Run.Proofs.DecryptPrekey.Poll.StagesInst.Stage2V1BasePlacedBudget -- proof-setup: allow-public-import
 public import LibsignalBinary.Proofs.TripleRatchet.Hkdf.CommonSat -- proof-setup: allow-public-import
 public import LibsignalBinary.Proofs.TripleRatchet.Hooks.DefsBudget -- proof-setup: allow-public-import
+import LibsignalBinary.Proofs.E2E.Pqxdh.ResponderCore.CryptoBridgePlacedBudgetSat
+import LibsignalBinary.Proofs.E2E.Pqxdh.ResponderCore.CryptoCalleesPlacedBudgetBbSat
 import LibsignalBinary.Proofs.E2E.Pqxdh.ResponderCore.CryptoCalleesPlacedBudgetSat
 import LibsignalBinary.Proofs.TripleRatchet.Hkdf.CommonBudgetSat
+import LibsignalBinary.Proofs.TripleRatchet.Keys.CreateChainBudget
 
 /-!
 # `HookSat` Sibling of `Stage2V1BasePlacedBudget` (`Stage2V1BasePlacedBudgetSat`)
@@ -34,43 +38,48 @@ open Arm64 ProofLib ProofLib.ObjectLoad ProofLib.ProgramReflection SepProp
 open CryptoGames.LibsignalSession (Crypto)
 open CryptoVerification
   (IsLsBlockProg LibsignalHooks LibsignalPlacement
-   lsBlackBoxU8Sym lsRustDeallocSym lsRustNoAllocShimSym lsmpl)
+   lsRustDeallocSym lsRustNoAllocShimSym lsmpl)
 open CryptoVerification.E2E (UnreachedPqxdhPrimitives modelPrims)
 open CryptoVerification.E2E.Pqxdh.Initiator (Primitives StructuralPrims)
 open CryptoVerification.E2E.Pqxdh.ResponderCore
   (PrimitivesMatchCrypto lsDalekMontToEdSym lsDalekTorsionFreeSym lsKyberDecapsSym
    ofSignalPqxdhPrimitives)
-open CryptoVerification.LibsignalSession (blackBoxHook)
 open CryptoVerification.LibsignalTripleRatchet
-  (diffieHellmanSpec lsMemsetSym withLsCodeRoLoaded zeroizeSecretSpec)
+  (diffieHellmanSpec keys_ls_hook_ok_of_mem keys_ls_subroutine_ok_of_block_cro lsMemsetSym
+   withLsCodeRoLoaded zeroizeSecretSpec)
 open CryptoVerification.LibsignalTripleRatchet.Keys
   (lsDhSym lsRustAllocSym lsSharedDropSym lsStaticDropSym)
-open CryptoVerification.SignalSession (CliHooks cliExternsPlaced)
-open CryptoVerification.SignalSession.Cli.RunGlue
-  (CliGhostHooks cliExternsPlaced_row cliGhostExterns cliGhostExterns_other)
+open CryptoVerification.SignalSession (CliHooks cliExternsPlaced lsBlackBoxSym)
+open CryptoVerification.SignalSession.Cli.RunGlue (CliGhostHooks cliGhostExterns)
 open CryptoVerification.SignalSession.Cli.RunProofs.Poll (cliModelPrims_matchCrypto)
-open CryptoVerification.SignalSession.Cli.Slots
-  (blackBox_row_placed cliGhostExterns_sat_of_cliExternsPlaced)
+open CryptoVerification.SignalSession.Cli.Slots (cliGhostExterns_sat_of_cliExternsPlaced)
 open LibsignalBinary.Heap
   (AllocCostModel BudgetLimits RustCliAllocBudget
    rustCliAllocBudgetSpec rustCliDeallocBudgetSpec)
 open LibsignalBinary.Heap.SpecBudget (withVmPreserved)
+open LibsignalBinary.Proofs.ConsumeMessageKey.FindIndexProofs.CtEqSat
+  (blackBoxSpecSat hookSat_blackBox_of_eq)
 open LibsignalBinary.Proofs.E2E.Pqxdh.Initiator.HandshakeDeriveBudget
   (PqxdhHkdfExpandMultiInfoPlacedOk PqxdhHkdfExtractPlacedOk
    handshakeKeysDerivePlacedBaseSpec handshakeKeysDerivePlacedVmSpec)
 open LibsignalBinary.Proofs.E2E.Pqxdh.ResponderCore.CryptoBridgePlacedBudget
-  (PqxdhCalculateAgreementPlacedFrozenOk PqxdhCalculateAgreementPlacedOk
-   pqxdhCalculateAgreement_placed_frozen_ok_of_block pqxdhCalculateAgreement_placed_ok_of_block)
+  (PqxdhCalculateAgreementPlacedFrozenOk PqxdhCalculateAgreementPlacedOk)
+open LibsignalBinary.Proofs.E2E.Pqxdh.ResponderCore.CryptoBridgePlacedBudgetSat
+  (expand_multi_info_placed_vm_ok_of_other_block_sat)
 open LibsignalBinary.Proofs.E2E.Pqxdh.ResponderCore.CryptoCalleesPlacedBudget
   (cryptoBoolRegStubBudgetSpec kyberDecapsStubBudgetSpec)
+open LibsignalBinary.Proofs.E2E.Pqxdh.ResponderCore.CryptoCalleesPlacedBudgetBbSat
+  (calculateAgreement_placed_ok_unconditional_sat
+   pqxdhCalculateAgreement_placed_frozen_ok_of_block_sat
+   pqxdhCalculateAgreement_placed_ok_of_block_sat)
 open LibsignalBinary.Proofs.E2E.Pqxdh.ResponderCore.CryptoCalleesPlacedBudgetSat
-  (createChain_placed_ok_of_block_sat createChain_placed_ok_x_of_block_sat
+  (extract_placed_vm_ok_of_other_block_sat
    handshakeKeysDerive_placed_ok_of_block_sat handshakeKeysDerive_placed_vm_ok_of_block_sat
    pqxdhHkdfExpandMultiInfo_placed_ok_sat pqxdhHkdfExtract_placed_ok_sat)
 open LibsignalBinary.Proofs.SignalSession.Cli.Run.Slots.CliHookSatPlacedBudget
   (CliGhostAllocHooks cliExternsPlaced_alloc_budget_sat cliExternsPlaced_dealloc_budget_sat
-   cliExternsPlaced_diffieHellman_budget_sat
-   cliExternsPlaced_sharedSecretDrop_budget_sat cliExternsPlaced_staticSecretDrop_budget_sat)
+   cliExternsPlaced_diffieHellman_budget_sat cliGhostExterns_blackBoxSat_budget_sat
+   cliGhostExterns_sharedSecretDrop_budget_sat cliGhostExterns_staticSecretDrop_budget_sat)
 open LibsignalBinary.Proofs.SignalSession.Cli.Run.Proofs.DecryptPrekey.Poll.StagesInst.Stage2V1BasePlacedBudget
   (ResponderPqxdhPlacedHookContracts cliExternsPlaced_kemDecaps_budget_sat
    cliExternsPlaced_noAllocShimBudget_sat cliExternsPlaced_toEdwards_budget_sat
@@ -80,6 +89,8 @@ open LibsignalBinary.Proofs.TripleRatchet.Hkdf.CommonBudgetSat
   (HkdfPlacedHooks.toBudgetSat HkdfPlacedHooks.toExactBudgetSat HkdfPlacedHooksExactBudgetSat)
 open LibsignalBinary.Proofs.TripleRatchet.Hkdf.CommonSat (HkdfPlacedHooksExactSat)
 open LibsignalBinary.Proofs.TripleRatchet.Hooks.DefsBudget (sessionMemsetRegionBudgetSpec)
+open LibsignalBinary.Proofs.TripleRatchet.Keys.CreateChainBudget
+  (createChain_placed_ok_of_contracts subroutine_ok_createChainSpecX_of_createChainSpec)
 open LibsignalBinary.Proofs.TripleRatchet.Keys.DefsBudget (createChainSpec createChainSpecX)
 
 private theorem hookSat_noAllocShimBudget_of_withVmPreserved_local {H : LibsignalHooks}
@@ -132,7 +143,7 @@ public structure ResponderPqxdhPlacedHookContractsSat [LibsignalPlacement]
   dh               : HookSat H lsDhSym (withVmPreserved (diffieHellmanSpec C.X))
   sharedDrop       : HookSat H lsSharedDropSym (withVmPreserved zeroizeSecretSpec)
   staticDrop       : HookSat H lsStaticDropSym (withVmPreserved zeroizeSecretSpec)
-  blackBox         : H lsBlackBoxU8Sym = some blackBoxHook
+  blackBox         : HookSat H lsBlackBoxSym blackBoxSpecSat
   noAllocShim      : HookSat H lsRustNoAllocShimSym noAllocShimBudgetSpec
   alloc            : HookSat H lsRustAllocSym (rustCliAllocBudgetSpec M A lim false)
   dealloc          : HookSat H lsRustDeallocSym (rustCliDeallocBudgetSpec M A lim)
@@ -152,7 +163,7 @@ public theorem ResponderPqxdhPlacedHookContracts.toSat [LibsignalPlacement]
     dh := hH.dh
     sharedDrop := hH.sharedDrop
     staticDrop := hH.staticDrop
-    blackBox := hH.blackBox
+    blackBox := hookSat_blackBox_of_eq hH.blackBox
     noAllocShim := hH.noAllocShim
     alloc := hH.alloc
     dealloc := hH.dealloc
@@ -170,7 +181,7 @@ public theorem ResponderPqxdhPlacedHookContractsSat.calculateAgreement_ok [Libsi
     (hP : PrimitivesMatchCrypto P C)
     (hi : i < 619 := by decide) :
     PqxdhCalculateAgreementPlacedOk M P A lim callerProg :=
-  pqxdhCalculateAgreement_placed_ok_of_block hP hH.dh hH.sharedDrop hH.blackBox
+  pqxdhCalculateAgreement_placed_ok_of_block_sat hP hH.dh hH.sharedDrop hH.blackBox
     hH.noAllocShim hH.alloc hH.staticDrop hi
 
 /-- Bundle projection: `PqxdhCalculateAgreementPlacedFrozenOk` on any caller block `i < 619`. -/
@@ -183,7 +194,7 @@ public theorem ResponderPqxdhPlacedHookContractsSat.calculateAgreement_frozen_ok
     (hP : PrimitivesMatchCrypto P C)
     (hi : i < 619 := by decide) :
     PqxdhCalculateAgreementPlacedFrozenOk M P A lim callerProg :=
-  pqxdhCalculateAgreement_placed_frozen_ok_of_block hP hH.dh hH.sharedDrop hH.blackBox
+  pqxdhCalculateAgreement_placed_frozen_ok_of_block_sat hP hH.dh hH.sharedDrop hH.blackBox
     hH.noAllocShim hH.alloc hH.staticDrop hi
 
 /-- Bundle projection: `HandshakeDeriveBudget.PqxdhHkdfExtractPlacedOk` on any caller block `i < 619`. -/
@@ -263,11 +274,16 @@ public theorem ResponderPqxdhPlacedHookContractsSat.createChain_ok [LibsignalPla
     (hi : i < 619 := by decide) :
     subroutine_ok callerProg (lsmpl.base 40)
       (withLsCodeRoLoaded lsmpl (createChainSpec M A lim C)) := by
-  have : HkdfPlacedHooksExactSat C.F H := hH.hkdf
-  have : HkdfPlacedHooksExactBudgetSat C.F H :=
-    HkdfPlacedHooksExactBudgetSat.of_exactSat hH.memsetBudget
-  exact createChain_placed_ok_of_block_sat hH.dh hH.sharedDrop hH.blackBox
-    hH.noAllocShim hH.alloc hH.staticDrop hH.dealloc hi
+  have _ : HkdfPlacedHooksExactBudgetSat C.F H :=
+    @HkdfPlacedHooksExactBudgetSat.of_exactSat C.F H hH.memsetBudget hH.hkdf
+  have h40 := createChain_placed_ok_of_contracts
+    (keys_ls_subroutine_ok_of_block_cro
+      (calculateAgreement_placed_ok_unconditional_sat hH.dh hH.sharedDrop hH.blackBox
+        hH.noAllocShim hH.alloc hH.staticDrop))
+    (extract_placed_vm_ok_of_other_block_sat C H)
+    (expand_multi_info_placed_vm_ok_of_other_block_sat C H)
+    (keys_ls_hook_ok_of_mem hH.dealloc)
+  exact keys_ls_subroutine_ok_of_block_cro h40 hi (by decide) (by decide)
 
 /-- Bundle projection: `<RootKey>::create_chain` at `createChainStackX` (Block `40`) on any caller
 block `i < 619`. -/
@@ -280,11 +296,17 @@ public theorem ResponderPqxdhPlacedHookContractsSat.createChain_x_ok [LibsignalP
     (hi : i < 619 := by decide) :
     subroutine_ok callerProg (lsmpl.base 40)
       (withLsCodeRoLoaded lsmpl (createChainSpecX M A lim C)) := by
-  have : HkdfPlacedHooksExactSat C.F H := hH.hkdf
-  have : HkdfPlacedHooksExactBudgetSat C.F H :=
-    HkdfPlacedHooksExactBudgetSat.of_exactSat hH.memsetBudget
-  exact createChain_placed_ok_x_of_block_sat hH.dh hH.sharedDrop hH.blackBox
-    hH.noAllocShim hH.alloc hH.staticDrop hH.dealloc hi
+  have _ : HkdfPlacedHooksExactBudgetSat C.F H :=
+    @HkdfPlacedHooksExactBudgetSat.of_exactSat C.F H hH.memsetBudget hH.hkdf
+  have h40 := subroutine_ok_createChainSpecX_of_createChainSpec
+    (createChain_placed_ok_of_contracts
+      (keys_ls_subroutine_ok_of_block_cro
+        (calculateAgreement_placed_ok_unconditional_sat hH.dh hH.sharedDrop hH.blackBox
+          hH.noAllocShim hH.alloc hH.staticDrop))
+      (extract_placed_vm_ok_of_other_block_sat C H)
+      (expand_multi_info_placed_vm_ok_of_other_block_sat C H)
+      (keys_ls_hook_ok_of_mem hH.dealloc))
+  exact keys_ls_subroutine_ok_of_block_cro h40 hi (by decide) (by decide)
 
 /-- `ResponderPqxdhPlacedHookContractsSat` at `cliGhostExterns g (cliExternsPlaced mmpl W)` from
 `CliGhostAllocHooks M A lim g`, `hMs`, and `HookSat` contracts for `alloc`, `dealloc`, and
@@ -308,13 +330,9 @@ public theorem cliResponderPqxdhHookContractsPlaced_of_hookSat_sat [LibsignalPla
     memsetBudget := hMs
     dh := cliGhostExterns_sat_of_cliExternsPlaced mmpl g W
       (cliExternsPlaced_diffieHellman_budget_sat mmpl W)
-    sharedDrop := cliGhostExterns_sat_of_cliExternsPlaced mmpl g W
-      (cliExternsPlaced_sharedSecretDrop_budget_sat mmpl W)
-    staticDrop := cliGhostExterns_sat_of_cliExternsPlaced mmpl g W
-      (cliExternsPlaced_staticSecretDrop_budget_sat mmpl W)
-    blackBox := (cliGhostExterns_other g (cliExternsPlaced mmpl W)
-      (by decide) (by decide) (by decide) (by decide) (by decide) (by decide)).trans
-      (cliExternsPlaced_row mmpl W (blackBox_row_placed mmpl W))
+    sharedDrop := cliGhostExterns_sharedSecretDrop_budget_sat g (cliExternsPlaced mmpl W) hG.extraOk
+    staticDrop := cliGhostExterns_staticSecretDrop_budget_sat g (cliExternsPlaced mmpl W) hG.extraOk
+    blackBox := cliGhostExterns_blackBoxSat_budget_sat g (cliExternsPlaced mmpl W) hG.extraOk
     noAllocShim := hnoAllocShim
     alloc := halloc
     dealloc := hdealloc

@@ -9,6 +9,7 @@ limitations under the License.
 
 module
 
+public import LibsignalBinary.Proofs.HookDischarge.Libc.Memmove -- proof-setup: allow-public-import
 public import LibsignalBinary.Proofs.SpqrV1.Alloc.VecDequeGrowBudgetAux
 public import LibsignalBinary.Proofs.SpqrV1.Poly.AddChunk.LoopPlacedBudget
 public import LibsignalBinary.Proofs.SpqrV1.Poly.AddChunk.ProofPlacedBudgetAux
@@ -54,7 +55,7 @@ open CryptoVerification (
 )
 open CryptoVerification.RustHeap (allocHookStack)
 open CryptoVerification.LibsignalSpqrV1 (Pt SortedSetPt)
-open CryptoVerification.LibsignalTripleRatchet (sessionMemmoveSpec)
+open LibsignalBinary.Proofs.HookDischarge.Libc.Memmove (sessionMemmoveBoundedSpec)
 open CryptoVerification.SpqrV1.Alloc (
   GrowGhost growOneStack
   spqrHandleErrorSym spqrMemmoveSym spqrRustAllocSym spqrRustNoAllocShimSym spqrRustReallocSym
@@ -556,7 +557,7 @@ theorem bsearchReplace_cl_placed_wpp [LibsignalPlacement]
     {M : AllocCostModel} {A : RustCliAllocBudget M} {lim : BudgetLimits}
     {ext : String → Option (State → State)}
     (hmemmove_sat : HookSat (Rust.withPanics ext) spqrMemmoveSym
-      (withAllocVmPreserved (sessionMemmoveSpec growOneStack)))
+      (withAllocVmPreserved (sessionMemmoveBoundedSpec growOneStack)))
     (hgrow_full : subroutine_ok ((blkPC_419).rebase (blkPl_419).base (Rust.withPanics ext))
       (lsmpl.base 357) (withLsCodeLoaded lsmpl (withAllocCallPreserved (growOnePtFullSpec M A lim))))
     {target_pc : BitVec 64} {s0 st : State}
@@ -805,7 +806,7 @@ theorem bsearchPush_cl_placed_wpp [LibsignalPlacement]
     {M : AllocCostModel} {A : RustCliAllocBudget M} {lim : BudgetLimits}
     {ext : String → Option (State → State)}
     (hmemmove_sat : HookSat (Rust.withPanics ext) spqrMemmoveSym
-      (withAllocVmPreserved (sessionMemmoveSpec growOneStack)))
+      (withAllocVmPreserved (sessionMemmoveBoundedSpec growOneStack)))
     (hgrow_full : subroutine_ok ((blkPC_419).rebase (blkPl_419).base (Rust.withPanics ext))
       (lsmpl.base 357) (withLsCodeLoaded lsmpl (withAllocCallPreserved (growOnePtFullSpec M A lim))))
     (hgrow_empty : subroutine_ok ((blkPC_419).rebase (blkPl_419).base (Rust.withPanics ext))

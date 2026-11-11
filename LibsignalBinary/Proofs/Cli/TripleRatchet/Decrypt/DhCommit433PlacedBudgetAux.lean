@@ -57,6 +57,7 @@ open CryptoVerification.LibsignalTripleRatchet.Decrypt.DhCommit.DhCommitFacts (
   evictGcs le_of_eq_succ_lt map_snd_evictGcs map_snd_zip_append
   sckWord0 sckWord16 sckWord20 sckWord28 sckWord8 vecAt_chains_eq zip_map_fst_snd)
 open LibsignalBinary.Heap (AllocCostModel AllocEvent BudgetLimits FitsEnv FitsEvents RustCliAllocBudget rustCliAllocNoOomSpec rustCliDeallocBudgetSpec rustDeallocEvents)
+open LibsignalBinary.Proofs.HookDischarge.Libc.Memmove (sessionMemmoveBoundedBudgetSpec)
 open LibsignalBinary.Proofs.SessionRecordAt.Stage1X.GrowOneXBudget (GrowOne104Env fitsEnv_growOne104_iff growOne104Events)
 open LibsignalBinary.Proofs.TripleRatchet.Alloc.DefsBudget (chainKeyToPbSpecWithStack framelessMemcpyBudgetSpec noAllocShimBudgetSpec publicKeySerializeSpecWithStack)
 open LibsignalBinary.Proofs.TripleRatchet.Decrypt.DhCommitMainBudgetCore (DhCommitBlockVmWp DhCommitEnv dhCommitAllocEvents fitsEvents_of_fitsEnv_dhCommitEnv)
@@ -65,7 +66,6 @@ open LibsignalBinary.Proofs.TripleRatchet.Decrypt.DhCommitMainBudgetStep5 (dhCom
 open LibsignalBinary.Proofs.TripleRatchet.Decrypt.DhCommitStep12Budget (dhCommitStep12Events dhCommitStep12Pre dhCommit_step1_2_withStack_placed)
 open LibsignalBinary.Proofs.TripleRatchet.Decrypt.DhCommitStep3Budget (CommitStep3bVmWp DhCommitStep3BlockWp dhCommitStep3Events dhCommitStep3aEvents growOneSpecWithStack)
 open LibsignalBinary.Proofs.TripleRatchet.Decrypt.RootBudgetAux (TrGhostCaps dhStepNewChainsCap s3AfterCaps trGhostCaps)
-open LibsignalBinary.Proofs.TripleRatchet.Hooks.DefsBudget (sessionMemmoveBudgetSpec)
 
 set_option maxRecDepth 200000
 set_option maxHeartbeats 400000
@@ -640,7 +640,7 @@ theorem dhCommit_pinned_withStack_env_of_wp [LibsignalPlacement] {M : AllocCostM
     (hAlloc : subroutine_ok prog (lsmpl.ρ lsRustAllocSym) (rustCliAllocNoOomSpec M A lim false))
     (hDealloc : subroutine_ok prog (lsmpl.ρ lsRustDeallocSym) (rustCliDeallocBudgetSpec M A lim))
     (hMemcpy : subroutine_ok prog (lsmpl.ρ "memcpy") framelessMemcpyBudgetSpec)
-    (hMemmove : subroutine_ok prog (lsmpl.ρ "memmove") (sessionMemmoveBudgetSpec dropStk))
+    (hMemmove : subroutine_ok prog (lsmpl.ρ "memmove") (sessionMemmoveBoundedBudgetSpec dropStk))
     (x : TryDecryptGhost) (trG : TrGhost) (tr : TripleRatchet (List (BitVec 8)))
     (st1 : SessionState (List (BitVec 8))) (sc : SenderChain) (receiverChainKey : ChainKey)
     (newSenderKey : KeyPair) (finalRootKey : RootKey) (senderChainKey : ChainKey)

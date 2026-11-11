@@ -14,6 +14,7 @@ public import LibsignalBinary.Proofs.SignalSession.Cli.Main.Proofs.CliSlotCallee
 public import LibsignalBinary.Proofs.SignalSession.Cli.Run.Proofs.Initiate.HooksPlacedBudget -- proof-setup: allow-public-import
 public import LibsignalBinary.Proofs.SignalSession.Cli.Run.Proofs.Initiate.LocalCalleesPlacedBudgetSat -- proof-setup: allow-public-import
 public import LibsignalBinary.Proofs.SignalSession.Cli.Run.Slots.CliHookSatPlacedBudget -- proof-setup: allow-public-import
+public import LibsignalBinary.Proofs.SignalSession.Cli.Run.Slots.ExtraGhostSpecs -- proof-setup: allow-public-import
 public import LibsignalBinary.Proofs.TripleRatchet.Hooks.DefsBudget -- proof-setup: allow-public-import
 import Arm64.Trusted.Spec.Hoare
 import Arm64.Trusted.Spec.SepLogic
@@ -21,6 +22,7 @@ import LibsignalBinary.Proofs.Common.SharedHelpers
 meta import LibsignalBinary.Proofs.Common.SharedHelpers -- shake: keep
 import LibsignalBinary.Proofs.E2E.Pqxdh.Initiator.ModelBridge
 import LibsignalBinary.Proofs.E2E.Pqxdh.ResponderCore.CryptoBridgePlacedBudgetSat
+import LibsignalBinary.Proofs.E2E.Pqxdh.ResponderCore.CryptoCalleesPlacedBudgetBbSat
 import LibsignalBinary.Proofs.E2E.Pqxdh.ResponderCore.CryptoCalleesPlacedBudgetSat
 import LibsignalBinary.Proofs.TripleRatchet.Hkdf.CommonBudgetSat
 import LibsignalBinary.Proofs.TripleRatchet.Hkdf.CommonSat
@@ -71,10 +73,10 @@ open LibsignalBinary.Heap.SpecBudget (withVmPreserved)
 open LibsignalBinary.Proofs.Cli.PublicApi.MessageDecrypt.WithStoresVT.CorePlacedBudget
   (recordDecryptPlacedSpecTPTight)
 open LibsignalBinary.Proofs.E2E.Pqxdh.Initiator.HandshakeDeriveBudget (handshakeKeysDerive_placed_ok)
-open LibsignalBinary.Proofs.E2E.Pqxdh.ResponderCore.CryptoBridgePlacedBudget
-  (ct_eq_ro_placed_vm_ok_of_block)
 open LibsignalBinary.Proofs.E2E.Pqxdh.ResponderCore.CryptoBridgePlacedBudgetSat
   (expand_multi_info_placed_vm_ok_of_other_block_sat)
+open LibsignalBinary.Proofs.E2E.Pqxdh.ResponderCore.CryptoCalleesPlacedBudgetBbSat
+  (calculateAgreement_placed_ok_unconditional_sat)
 open LibsignalBinary.Proofs.E2E.Pqxdh.ResponderCore.CryptoCalleesPlacedBudgetSat
   (extract_placed_vm_ok_of_other_block_sat pqxdhHkdfExpandMultiInfo_placed_ok_sat
    pqxdhHkdfExtract_placed_ok_sat)
@@ -97,11 +99,11 @@ open LibsignalBinary.Proofs.SignalSession.Cli.Run.Proofs.Initiate.StoreCalleesPl
 open LibsignalBinary.Proofs.SignalSession.Cli.Run.Proofs.Ratchet.DecryptLemmas.SpecPlacedBudget
   (InnerDecryptPlacedOk decIdKitPlaced decSessKitPlaced withStoresDecPlacedSpecVTP)
 open LibsignalBinary.Proofs.SignalSession.Cli.Run.Slots.CliHookSatPlacedBudget (CliGhostAllocHooks)
+open LibsignalBinary.Proofs.SignalSession.Cli.Run.Slots.ExtraGhostSpecs (ExtraSpecOk)
 open LibsignalBinary.Proofs.TripleRatchet.Alloc.DefsBudget (noAllocShimBudgetSpec)
 open LibsignalBinary.Proofs.TripleRatchet.Hkdf.CommonBudgetSat (HkdfPlacedHooksExactBudgetSat)
 open LibsignalBinary.Proofs.TripleRatchet.Hkdf.CommonSat (HkdfPlacedHooksExactSat)
 open LibsignalBinary.Proofs.TripleRatchet.Hooks.DefsBudget (sessionMemsetRegionBudgetSpec)
-open LibsignalBinary.Proofs.TripleRatchet.Keys.AgreeBudget (calculateAgreement_placed_ok)
 open LibsignalBinary.Proofs.TripleRatchet.Keys.CreateChainBudget
   (createChain_placed_ok_of_contracts extractBudgetSpec
    subroutine_ok_createChainSpecX_of_createChainSpec)
@@ -204,14 +206,15 @@ theorem coinsFillCliPlacedOk_cli [LibsignalPlacement]
   LibsignalBinary.Proofs.SignalSession.Cli.Main.Proofs.CliSlotCalleesInstPlacedBudgetAux.coinsFillCliPlacedOk_cli
     mmpl g W hG
 
-/-- Unconditional Block-`17` `isSameAccountDistinctSpec` contract on `initProgPlaced mmpl g W`. -/
-theorem w3IsSameAccount_placed_ok [LibsignalPlacement]
+/-- Block-`17` `isSameAccountDistinctSpec` contract on `initProgPlaced mmpl g W` from `ExtraSpecOk g`. -/
+theorem w3IsSameAccount_placed_ok_sat [LibsignalPlacement]
     (mmpl : Obj.MultiPlacement) (g : CliGhostHooks)
-    (A : CryptoVerification.RustHeap.RustAlloc) (W : CliHooks) :
+    (A : CryptoVerification.RustHeap.RustAlloc) (W : CliHooks)
+    (hOk : ExtraSpecOk g) :
     subroutine_ok (initProgPlaced mmpl g W) (lsmpl.base 17)
       (withLsCodeRoLoaded lsmpl (isSameAccountDistinctSpec A uuidTryParse)) :=
-  LibsignalBinary.Proofs.SignalSession.Cli.Main.Proofs.CliSlotCalleesInstPlacedBudgetAux.w3IsSameAccount_placed_ok
-    mmpl g A W
+  LibsignalBinary.Proofs.SignalSession.Cli.Main.Proofs.CliSlotCalleesInstPlacedBudgetAux.w3IsSameAccount_placed_ok_sat
+    mmpl g A W hOk
 
 /-- Block-`54` `extractBudgetSpec W.C.F` contract on Block `40` under
 `LibsignalTripleRatchet.withLsCodeRoLoaded lsmpl` from `CliGhostAllocHooks` and `hMs`. -/
@@ -250,7 +253,7 @@ theorem w3A4_placed_ok [LibsignalPlacement] {M : AllocCostModel}
     HkdfPlacedHooksExactBudgetSat.of_exactSat hMs
   exact
     { verifySignature := hSpqr.verifySignature
-      isSameAccount := w3IsSameAccount_placed_ok mmpl g A.repAlloc W
+      isSameAccount := w3IsSameAccount_placed_ok_sat mmpl g A.repAlloc W hG.extraOk
       spqrInitialState := hSpqr.spqrInitialState_initProg
       pqxdhHkdfExtract := fun X => pqxdhHkdfExtract_placed_ok_sat
         (primitivesMatchCrypto_modelPrims X ⟨W.C, W.Q⟩)
@@ -315,12 +318,9 @@ private theorem createChain40_cro_placed_ok [LibsignalPlacement]
   have : HkdfPlacedHooksExactSat W.C.F (cliGhostExterns g (cliExternsPlaced mmpl W)) := hh.hkdf
   have : HkdfPlacedHooksExactBudgetSat W.C.F (cliGhostExterns g (cliExternsPlaced mmpl W)) :=
     HkdfPlacedHooksExactBudgetSat.of_exactSat (hookSat_of_keepsFs hh.memsetRegionKeepsFs)
-  have hct207 := ct_eq_ro_placed_vm_ok_of_block
-    (callerProg := (blkPC_207).rebase (blkPl_207).base (cliGhostExterns g (cliExternsPlaced mmpl W)))
-    hh.blackBox (by decide)
   have hag40 := keys_ls_subroutine_ok_of_block_cro
     (callerProg := (blkPC_40).rebase (blkPl_40).base (cliGhostExterns g (cliExternsPlaced mmpl W)))
-    (calculateAgreement_placed_ok hh.dh hh.sharedDrop hct207
+    (calculateAgreement_placed_ok_unconditional_sat hh.dh hh.sharedDrop hh.blackBox
       (hookSat_noAllocShimBudget_of_withVmPreserved hh.shim) hh.rawAlloc hh.staticDrop)
   have hext40 := extract_placed_vm_ok_of_other_block_sat W.C
     (callerProg := (blkPC_40).rebase (blkPl_40).base (cliGhostExterns g (cliExternsPlaced mmpl W)))

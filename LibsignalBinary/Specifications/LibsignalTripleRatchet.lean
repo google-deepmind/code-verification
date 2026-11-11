@@ -24,11 +24,11 @@ import all Init.Data.String.TakeDrop
 from this file (see `Computational/docs/TRUSTED_BASE.md`):
 - The SPQR interface: the structure `SpqrModel` and its fields `send`, `recv`, `sendPanics`,
   `recvPanics` (the PQXDH-mode and SPQR V1 theorems).
-- Concrete hooks and a helper: `pubFromSecretHook`, `diffieHellmanHook`, `zeroizeSecretHook`,
-  `readVec32` (rows of the CLI's hook table `cliHookTablePlaced`, `SignalSession/CliRun.lean`,
-  which the statements about the CLI's ELF use).
-Everything else here, the layered program `tripleRatchetProg` / `tripleRatchetExterns`,
-`entryOf` and `rngFillHook` included, is checked by Lean.
+- Concrete hooks and a helper: `pubFromSecretHook`, `diffieHellmanHook`, `readVec32` (rows of the
+  CLI's hook table `cliHookTablePlaced` in `SignalSession/CliBinaryPq.lean`, used by ELF theorems).
+Everything else here, `tripleRatchetProg` / `tripleRatchetExterns`, `entryOf`, `rngFillHook` and
+`zeroizeSecretHook` (no row since the second stock `ld.lld` cutover de-hooked x25519-dalek's
+`StaticSecret` / `SharedSecret` destructors) included, is checked by Lean.
 
 This file states what the compiled AArch64 code of libsignal's triple ratchet (the Double Ratchet
 combined with the post-quantum SPQR ratchet) does, in terms of the pure session model

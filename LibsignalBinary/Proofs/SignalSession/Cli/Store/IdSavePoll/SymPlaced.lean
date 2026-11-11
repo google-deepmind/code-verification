@@ -226,6 +226,23 @@ private theorem abstract_state_p {prog : Program} {ret : BitVec 64} {s : State}
     SepWPp prog ret s P Q Qp :=
   k s rfl
 
+private theorem publicKeyEqMem16_lscro_of_publicKeyEq [LibsignalPlacement] {prog : Program}
+    {callee : BitVec 64}
+    (hEq : subroutine_ok prog callee (StoreKit.withLsCodeRoLoaded lsmpl Getters.publicKeyEqSpec)) :
+    subroutine_ok prog callee
+      (StoreKit.withLsCodeRoLoaded lsmpl
+        LibsignalBinary.Proofs.ConsumeMessageKey.FindIndexProofs.CtEqSat.publicKeyEqMemSpec16) := by
+  refine subroutine_ok_refine_frame hEq fun ⟨p1, pk1, p2, pk2, sp⟩ R s0 hp =>
+    ⟨(p1, pk1, p2, pk2, sp), stackAt (sp - 64#64) 16, ?_, fun sf hq => ?_⟩
+  · dsimp only [StoreKit.withLsCodeRoLoaded, Getters.publicKeyEqSpec,
+      LibsignalBinary.Proofs.ConsumeMessageKey.FindIndexProofs.CtEqSat.publicKeyEqMemSpec16] at hp ⊢
+    rw [LibsignalBinary.Proofs.ConsumeMessageKey.FindIndexProofs.CtEqSat.memRegion_80_eq_publicKeyEqFrame_16 sp] at hp
+    exact Satisfies.mono (Entails.of_eq (by simp only [sepConj_assoc]; rw [sepConj_left_comm (stackAt (sp - 64#64) 16)])) hp
+  · dsimp only [StoreKit.withLsCodeRoLoaded, Getters.publicKeyEqSpec,
+      LibsignalBinary.Proofs.ConsumeMessageKey.FindIndexProofs.CtEqSat.publicKeyEqMemSpec16] at hq ⊢
+    rw [LibsignalBinary.Proofs.ConsumeMessageKey.FindIndexProofs.CtEqSat.memRegion_80_eq_publicKeyEqFrame_16 sp]
+    exact Satisfies.mono (Entails.of_eq (by simp only [sepConj_assoc])) hq
+
 private theorem ispoll_branch_ok_some_220_placed [LibsignalPlacement] {A : RustAlloc}
     {H : LibsignalHooks} {rd : ReadRule} {pathOk : List (BitVec 8) → Prop}
     {getStk putStk stk : Nat}
@@ -234,7 +251,8 @@ private theorem ispoll_branch_ok_some_220_placed [LibsignalPlacement] {A : RustA
     (hPut : subroutine_ok ((blkPC_565).rebase (blkPl_565).base H) (lsmpl.base 543)
       (dirPutStrSpecPlaced A putStk))
     (hEq : subroutine_ok ((blkPC_565).rebase (blkPl_565).base H) (lsmpl.base 212)
-      (StoreKit.withLsCodeRoLoaded lsmpl Getters.publicKeyEqSpec))
+      (StoreKit.withLsCodeRoLoaded lsmpl
+        LibsignalBinary.Proofs.ConsumeMessageKey.FindIndexProofs.CtEqSat.publicKeyEqMemSpec16))
     (hstk : saveMinStk getStk putStk ≤ stk)
     (hhi : stk ≤ 2 ^ 64)
     {s0 s : State} (x : IdPollGhost) (k : IdentityKey)
@@ -331,9 +349,9 @@ private theorem ispoll_branch_ok_some_220_placed [LibsignalPlacement] {A : RustA
   ispoll_rw_pre hrew_pk
   conv =>
     arg 4
-    rw [stackAt_sub_split (s0.sp - 0xd0#64) (eqStk_le_saveSubMax getStk putStk) hsub_hi]
+    rw [stackAt_sub_split (s0.sp - 0xd0#64) (eqStk16_le_saveSubMax getStk putStk) hsub_hi]
     simp only [sepConj_assoc]
-  refine ispoll_call_publicKeyEq_placed (ret_pc := (blkPl_565).base + offAfterEq)
+  refine ispoll_call_publicKeyEq16_placed (ret_pc := (blkPl_565).base + offAfterEq)
     hEq (s0.sp - 0x90#64) k.publicKey x.call.call.keyA x.call.call.key.publicKey ?ispollF3
     (by wp_norm_goal) (by wp_norm_lhs) (by wp_norm_lhs) (by wp_norm_goal) (by wp_norm_goal)
     hinv_eq
@@ -349,7 +367,7 @@ private theorem ispoll_branch_ok_some_220_placed [LibsignalPlacement] {A : RustA
     simp only [State.spAligned] at hsp_align ⊢
     rwa [hsp3, ← hsp]
   conv => arg 4; simp only [State.sp, wp_norm, arm64_norm, hsp, hsp3]
-  ispoll_rw_pre (stackAt_sub_split (s0.sp - 0xd0#64) (eqStk_le_saveSubMax getStk putStk) hsub_hi).symm
+  ispoll_rw_pre (stackAt_sub_split (s0.sp - 0xd0#64) (eqStk16_le_saveSubMax getStk putStk) hsub_hi).symm
   ispoll_fold_pre (slot90_bytes32_16_collapse s0.sp k.publicKey.bytes.toList_length)
   ispoll_fold_pre (s48_byte7_entails_memRegion16 s0.sp d5 b6
     (s56w.extractLsb' 8 8) (s56w.extractLsb' 16 8) (s56w.extractLsb' 24 8)
@@ -392,7 +410,7 @@ private theorem ispoll_branch_ok_some_220_placed [LibsignalPlacement] {A : RustA
       hx19_4 hx20_4 hx24_4 hx26_4 hx29_4 hc4 hnlen hclen hgr hans)
   exact Entails.of_eq (by unfold idSaveBoxAt; ispoll_ac_rfl)
 
-theorem ispoll_branch_ok_some_placed [LibsignalPlacement] {A : RustAlloc}
+theorem ispoll_branch_ok_some_placed_16 [LibsignalPlacement] {A : RustAlloc}
     {H : LibsignalHooks} {rd : ReadRule} {pathOk : List (BitVec 8) → Prop}
     {getStk putStk stk : Nat}
     (hC : AllocContractsXCliPlaced A H)
@@ -403,7 +421,8 @@ theorem ispoll_branch_ok_some_placed [LibsignalPlacement] {A : RustAlloc}
     (hDec : subroutine_ok ((blkPC_565).rebase (blkPl_565).base H) (lsmpl.base 18)
       (StoreKit.withLsCodeRoLoaded lsmpl (RecordCodecsBinary.identityKeyDecodeRawSpec A)))
     (hEq : subroutine_ok ((blkPC_565).rebase (blkPl_565).base H) (lsmpl.base 212)
-      (StoreKit.withLsCodeRoLoaded lsmpl Getters.publicKeyEqSpec))
+      (StoreKit.withLsCodeRoLoaded lsmpl
+        LibsignalBinary.Proofs.ConsumeMessageKey.FindIndexProofs.CtEqSat.publicKeyEqMemSpec16))
     (hstk : saveMinStk getStk putStk ≤ stk)
     (hhi : stk ≤ 2 ^ 64)
     {s0 s : State} (x : IdPollGhost) (k : IdentityKey) {bs : List (BitVec 8)}
@@ -561,6 +580,69 @@ theorem ispoll_branch_ok_some_placed [LibsignalPlacement] {A : RustAlloc}
       hnlen hclen hgr hans)
   exact Entails.of_eq (by ispoll_ac_rfl)
 
+theorem ispoll_branch_ok_some_placed [LibsignalPlacement] {A : RustAlloc}
+    {H : LibsignalHooks} {rd : ReadRule} {pathOk : List (BitVec 8) → Prop}
+    {getStk putStk stk : Nat}
+    (hC : AllocContractsXCliPlaced A H)
+    (hSer : subroutine_ok ((blkPC_565).rebase (blkPl_565).base H) (lsmpl.base 205)
+      (StoreKit.withLsCodeRoLoaded lsmpl (publicKeySerializeSpecX A)))
+    (hPut : subroutine_ok ((blkPC_565).rebase (blkPl_565).base H) (lsmpl.base 543)
+      (dirPutStrSpecPlaced A putStk))
+    (hDec : subroutine_ok ((blkPC_565).rebase (blkPl_565).base H) (lsmpl.base 18)
+      (StoreKit.withLsCodeRoLoaded lsmpl (RecordCodecsBinary.identityKeyDecodeRawSpec A)))
+    (hEq : subroutine_ok ((blkPC_565).rebase (blkPl_565).base H) (lsmpl.base 212)
+      (StoreKit.withLsCodeRoLoaded lsmpl Getters.publicKeyEqSpec))
+    (hstk : saveMinStk getStk putStk ≤ stk)
+    (hhi : stk ≤ 2 ^ 64)
+    {s0 s : State} (x : IdPollGhost) (k : IdentityKey) {bs : List (BitVec 8)}
+    (c1 c2 c3 c4 c5 c6 c7 c15 : BitVec 8)
+    (s16 : BitVec 64) (s24 : BitVec 8) (s32 : BitVec 64) (s40 : BitVec 8)
+    (s48 s56w : BitVec 64)
+    (hpc : s.pc = (blkPl_565).base + offAfterGet)
+    (hrun : s.status = .Running)
+    (hsp : s.sp = s0.sp - 0xd0#64)
+    (hsp_align : s.spAligned = true)
+    (hvregs : calleeSavedVRegs s = calleeSavedVRegs s0)
+    (htr : s.trace = s0.trace)
+    (hinv : StoreKit.LibsignalCodeRoLoaded lsmpl s.mem)
+    (hx19 : s.readReg64 .x19 = x.call.fut)
+    (hx20 : s.readReg64 .x20 = x.call.out)
+    (hx24 : s.readReg64 .x24 = x.self)
+    (hx29 : s.readReg64 .x29 = s0.sp - 0x60#64)
+    (hnlen : x.call.call.addr.name.bytes.length < 2 ^ 32)
+    (hclen : x.peers.changed.length < 2 ^ 32)
+    (hser : k.serialize = bs)
+    (hgr : Except.ok bs = x.peers.get rd s0.fs.files x.call.call.addr.val.name) :
+    SepWPp ((blkPC_565).rebase (blkPl_565).base H) (s0.readReg64 .lr) s
+      (getResultAt A (s0.sp - 0x90#64) (.ok bs) ∗
+        dirAt A (x.self + 0x28#64) x.peers ∗
+        memRegion x.call.out 48 ∗
+        idSaveBoxAt x.call.fut x.self x.call.call.addrA x.call.call.keyA 0#8 ∗
+        protocolAddressAt A x.call.call.addr x.call.call.addrA ∗
+        (x.call.call.keyA ↦ₛ x.call.call.key.publicKey.bytes.toList) ∗
+        FromRecordCallees.lsLogOff ∗ A.pool ∗
+        memRegion (s0.sp - BitVec.ofNat 64 stk) (stk - saveMinStk getStk putStk) ∗
+        stackAt (s0.sp - 0xd0#64) (saveSubMax getStk putStk) ∗
+        memRegion (s0.sp - 0xd0#64) 8 ∗
+        overlap7View1 (s0.sp - 0xc8#64) c1 c2 c3 c4 c5 c6 c7 ∗
+        ((s0.sp - 0xc1#64) ↦₈ c15) ∗
+        ((s0.sp - 0xc0#64) ↦₆₄ s16) ∗
+        ((s0.sp - 0xb8#64) ↦₈ s24) ∗
+        memRegion (s0.sp - 0xb7#64) 7 ∗
+        ((s0.sp - 0xb0#64) ↦₆₄ s32) ∗
+        ((s0.sp - 0xa8#64) ↦₈ s40) ∗
+        memRegion (s0.sp - 0xa7#64) 7 ∗
+        ((s0.sp - 0xa0#64) ↦₆₄ s48) ∗
+        ((s0.sp - 0x98#64) ↦₆₄ s56w) ∗
+        savedCalleeSlots s0)
+      (fun sf P_f => sf.sp = s0.sp ∧ CalleeSavedPreserved s0 sf ∧
+        (P_f ⊢ (idSavePollSpecPlaced rd pathOk A stk).post x s0 sf))
+      (fun sf P_f => P_f ⊢ (idSavePollSpecPlaced rd pathOk A stk).onPanic x s0 sf) :=
+  ispoll_branch_ok_some_placed_16 (pathOk := pathOk) hC hSer hPut hDec
+    (publicKeyEqMem16_lscro_of_publicKeyEq hEq) hstk hhi x k
+    c1 c2 c3 c4 c5 c6 c7 c15 s16 s24 s32 s40 s48 s56w
+    hpc hrun hsp hsp_align hvregs htr hinv hx19 hx20 hx24 hx29 hnlen hclen hser hgr
+
 private theorem sepWPp_post_mono_p {prog : Program} {ret : BitVec 64} {s : State}
     {P : SepProp} {Q1 Q2 Qp1 Qp2 : State → SepProp → Prop}
     (hQ : ∀ sf P_f, Q1 sf P_f → Q2 sf P_f)
@@ -572,8 +654,9 @@ private theorem sepWPp_post_mono_p {prog : Program} {ret : BitVec 64} {s : State
   · exact ⟨sf, hsteps, Or.inr (Or.inl ⟨hst, P_f, hm_f, hQp sf P_f hqp⟩)⟩
   · exact ⟨sf, hsteps, Or.inr (Or.inr hoom)⟩
 
-/-- Core relocatable `[LibsignalPlacement]` verification of `save_identity::{closure#0}` (Block `565`). -/
-theorem idSavePoll_placed_ok_of_deps_core [LibsignalPlacement] {A : RustAlloc}
+/-- Core relocatable `[LibsignalPlacement]` verification of `save_identity::{closure#0}` (Block `565`)
+on `publicKeyEqMemSpec16` (`80` B). -/
+theorem idSavePoll_placed_ok_of_deps_core_16 [LibsignalPlacement] {A : RustAlloc}
     {H : LibsignalHooks} {rd : ReadRule} {pathOk : List (BitVec 8) → Prop}
     {getStk putStk stk : Nat}
     (hC : AllocContractsXCliPlaced A H)
@@ -586,7 +669,8 @@ theorem idSavePoll_placed_ok_of_deps_core [LibsignalPlacement] {A : RustAlloc}
     (hDec : subroutine_ok ((blkPC_565).rebase (blkPl_565).base H) (lsmpl.base 18)
       (StoreKit.withLsCodeRoLoaded lsmpl (RecordCodecsBinary.identityKeyDecodeRawSpec A)))
     (hEq : subroutine_ok ((blkPC_565).rebase (blkPl_565).base H) (lsmpl.base 212)
-      (StoreKit.withLsCodeRoLoaded lsmpl Getters.publicKeyEqSpec))
+      (StoreKit.withLsCodeRoLoaded lsmpl
+        LibsignalBinary.Proofs.ConsumeMessageKey.FindIndexProofs.CtEqSat.publicKeyEqMemSpec16))
     (hstk : saveMinStk getStk putStk ≤ stk) :
     subroutine_ok ((blkPC_565).rebase (blkPl_565).base H) (blkPl_565).base
       (idSavePollSpecPlaced rd pathOk A stk) := by
@@ -723,10 +807,31 @@ theorem idSavePoll_placed_ok_of_deps_core [LibsignalPlacement] {A : RustAlloc}
         c1 c2 c3 c4 c5 c6 c7 c15 s16 s24 s32 s40 s48 s56w
         hpc1 hrun1 hsp1 hsp_al1 hvregs_1 htr1 hinv1 hx19_1 hx20_1 hx24_1 hx29_1
         hnlen hclen hgr_eq
-    · exact ispoll_branch_ok_some_placed (pathOk := pathOk) hC hSer hPut hDec hEq hstk hhi x k
+    · exact ispoll_branch_ok_some_placed_16 (pathOk := pathOk) hC hSer hPut hDec hEq hstk hhi x k
         c1 c2 c3 c4 c5 c6 c7 c15 s16 s24 s32 s40 s48 s56w
         hpc1 hrun1 hsp1 hsp_al1 hvregs_1 htr1 hinv1 hx19_1 hx20_1 hx24_1 hx29_1
         hnlen hclen hser hgr_eq
+
+/-- Core relocatable `[LibsignalPlacement]` verification of `save_identity::{closure#0}` (Block `565`). -/
+theorem idSavePoll_placed_ok_of_deps_core [LibsignalPlacement] {A : RustAlloc}
+    {H : LibsignalHooks} {rd : ReadRule} {pathOk : List (BitVec 8) → Prop}
+    {getStk putStk stk : Nat}
+    (hC : AllocContractsXCliPlaced A H)
+    (hSer : subroutine_ok ((blkPC_565).rebase (blkPl_565).base H) (lsmpl.base 205)
+      (StoreKit.withLsCodeRoLoaded lsmpl (publicKeySerializeSpecX A)))
+    (hGet : subroutine_ok ((blkPC_565).rebase (blkPl_565).base H) (lsmpl.base 589)
+      (dirGetSpecPlaced rd pathOk A getStk))
+    (hPut : subroutine_ok ((blkPC_565).rebase (blkPl_565).base H) (lsmpl.base 543)
+      (dirPutStrSpecPlaced A putStk))
+    (hDec : subroutine_ok ((blkPC_565).rebase (blkPl_565).base H) (lsmpl.base 18)
+      (StoreKit.withLsCodeRoLoaded lsmpl (RecordCodecsBinary.identityKeyDecodeRawSpec A)))
+    (hEq : subroutine_ok ((blkPC_565).rebase (blkPl_565).base H) (lsmpl.base 212)
+      (StoreKit.withLsCodeRoLoaded lsmpl Getters.publicKeyEqSpec))
+    (hstk : saveMinStk getStk putStk ≤ stk) :
+    subroutine_ok ((blkPC_565).rebase (blkPl_565).base H) (blkPl_565).base
+      (idSavePollSpecPlaced rd pathOk A stk) :=
+  idSavePoll_placed_ok_of_deps_core_16 (pathOk := pathOk) hC hSer hGet hPut hDec
+    (publicKeyEqMem16_lscro_of_publicKeyEq hEq) hstk
 
 end Placed
 

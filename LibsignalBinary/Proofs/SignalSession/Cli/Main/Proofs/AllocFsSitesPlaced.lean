@@ -102,20 +102,6 @@ theorem session_memcpy_region_ro_rocl (hA : AllocContractsFsPlaced A H) (stk : N
   LibsignalPublicApi.StoreKit.ls_subroutine_ok_rocl_of_block (i := i) (j := 617)
     (hA.session_memcpy_region_ro stk h1 h2) hi
 
-theorem memmove_rocl (hA : AllocContractsFsPlaced A H) (stk : Nat := extHookStack)
-    (h1 : extHookStack ≤ stk := by decide) (h2 : stk ≤ 2 ^ 64 := by decide)
-    (hi : i < 619 := by decide) :
-    subroutine_ok prog (lsρ memmoveName)
-      (LibsignalPublicApi.StoreKit.withLsRoCl lsmpl (libcMemmoveSpec stk).keepsFs) :=
-  LibsignalPublicApi.StoreKit.ls_subroutine_ok_rocl_of_block (i := i) (j := 617) (hA.memmove stk h1 h2) hi
-
-theorem session_memmove_rocl (hA : AllocContractsFsPlaced A H) (stk : Nat := extHookStack)
-    (h1 : extHookStack ≤ stk := by decide) (h2 : stk ≤ 2 ^ 64 := by decide)
-    (hi : i < 619 := by decide) :
-    subroutine_ok prog (lsρ memmoveName)
-      (LibsignalPublicApi.StoreKit.withLsRoCl lsmpl (sessionMemmoveSpec stk).keepsFs) :=
-  LibsignalPublicApi.StoreKit.ls_subroutine_ok_rocl_of_block (i := i) (j := 617) (hA.session_memmove stk h1 h2) hi
-
 theorem memset_rocl (hA : AllocContractsFsPlaced A H) (stk : Nat := extHookStack)
     (h1 : extHookStack ≤ stk := by decide) (h2 : stk ≤ 2 ^ 64 := by decide)
     (hi : i < 619 := by decide) :
@@ -238,20 +224,6 @@ theorem session_memcpy_region_rocl (hA : AllocContractsXCliPlaced A H) (stk : Na
       (LibsignalPublicApi.StoreKit.withLsRoCl lsmpl (withStack sessionMemcpyRegionSpec stk)) :=
   LibsignalPublicApi.StoreKit.ls_subroutine_ok_rocl_of_block (i := i) (j := 617)
     (hA.session_memcpy_region stk h1 h2) hi
-
-theorem memmove_rocl (hA : AllocContractsXCliPlaced A H) (stk : Nat := extHookStack)
-    (h1 : extHookStack ≤ stk := by decide) (h2 : stk ≤ 2 ^ 64 := by decide)
-    (hi : i < 619 := by decide) :
-    subroutine_ok prog (lsρ memmoveName)
-      (LibsignalPublicApi.StoreKit.withLsRoCl lsmpl (libcMemmoveSpec stk)) :=
-  LibsignalPublicApi.StoreKit.ls_subroutine_ok_rocl_of_block (i := i) (j := 617) (hA.memmove stk h1 h2) hi
-
-theorem session_memmove_rocl (hA : AllocContractsXCliPlaced A H) (stk : Nat := extHookStack)
-    (h1 : extHookStack ≤ stk := by decide) (h2 : stk ≤ 2 ^ 64 := by decide)
-    (hi : i < 619 := by decide) :
-    subroutine_ok prog (lsρ memmoveName)
-      (LibsignalPublicApi.StoreKit.withLsRoCl lsmpl (sessionMemmoveSpec stk)) :=
-  LibsignalPublicApi.StoreKit.ls_subroutine_ok_rocl_of_block (i := i) (j := 617) (hA.session_memmove stk h1 h2) hi
 
 theorem memset_rocl (hA : AllocContractsXCliPlaced A H) (stk : Nat := extHookStack)
     (h1 : extHookStack ≤ stk := by decide) (h2 : stk ≤ 2 ^ 64 := by decide)

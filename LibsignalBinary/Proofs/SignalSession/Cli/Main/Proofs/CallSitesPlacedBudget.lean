@@ -37,7 +37,7 @@ open CryptoVerification.SignalSession
   (lsFromUtf8Sym lsRustAllocSymCli lsRustDeallocSymCli lsRustNoAllocShimSymCli)
 open CryptoVerification.SignalSession.Cli.Main.Placed (blkPC_617 blkPl_617 lsProg_617)
 open CryptoVerification.SignalSession.Cli.MainHops
-  (fromUtf8AsciiSpec lsHandleErrorSymMain strlenSpec)
+  (fromUtf8AsciiSpec lsHandleErrorSymMain)
 open CryptoVerification.SpqrV1.Alloc (sessionMemcpyRegionROSpec)
 
 namespace LibsignalBinary.Proofs.SignalSession.Cli.Main.Proofs.CallSitesPlacedBudget
@@ -148,14 +148,6 @@ theorem main_session_memcpy_ro_fs_placed_ok [LibsignalPlacement] {M : AllocCostM
       (withLsRoCl lsmpl (withStack (withVmPreserved sessionMemcpyRegionROSpec) stk).keepsFs) :=
   AllocFsSitesPlacedBudget.AllocContractsFsPlaced.session_memcpy_region_ro_rocl hC
     (prog := lsProg_617 H) (i := 617) stk hstk h64
-
-theorem main_strlen_placed_ok [LibsignalPlacement] {M : AllocCostModel}
-    {A : RustCliAllocBudget M} {lim : BudgetLimits} {H : LibsignalHooks}
-    {uuidParse : UuidParser} {hookStack resStack : Nat}
-    (hc : MainCalleesBlk617 A lim H uuidParse hookStack resStack) :
-    subroutine_ok ((blkPC_617).rebase (blkPl_617).base H) (lsρ "strlen")
-      (withLsRoCl lsmpl (withVmPreserved (strlenSpec hookStack))) :=
-  hc.strlen
 
 theorem main_fromUtf8_placed_ok [LibsignalPlacement] {M : AllocCostModel}
     {A : RustCliAllocBudget M} {lim : BudgetLimits} {H : LibsignalHooks}

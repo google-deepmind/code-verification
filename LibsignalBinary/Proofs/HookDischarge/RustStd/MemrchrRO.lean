@@ -48,8 +48,8 @@ open VerifiedLibraries.RustStd (coreMultiLib coreMemrchrSym cmNoSvc0_2
   memrchr_prefix_check_false memrchr_loop1_ptr_eq memrchr_loop1_hit_idx
   memrchr_loop2_ptr_eq memrchr_loop3_ptr_eq)
 open CryptoVerification.LibsignalTripleRatchet (extHookStack)
-open CryptoVerification.SignalSession (CliHooks cliExternsPlaced lsMemrchrSym memrchrHook)
-open CryptoVerification.SignalSession.Cli.MainHops (MemrchrCall cliExternsPlaced_memrchr memrchrIdx)
+open CryptoVerification.SignalSession (memrchrHook)
+open CryptoVerification.SignalSession.Cli.MainHops (MemrchrCall memrchrIdx)
 open LibsignalBinary.Heap (VmPreserved)
 open LibsignalBinary.Heap.Fine (VmPreserved.of_eq hookOk_withVmPreserved hookSat_of_hookOk)
 open LibsignalBinary.Heap.SpecBudget (subroutine_ok_of_withVmPreserved withVmPreserved)
@@ -970,15 +970,5 @@ theorem memrchrSpecRO_vm_toSat {H : String → Option (State → State)} {sym : 
     (stk : Nat) (h : H sym = some memrchrHook) :
     HookSat H sym (withVmPreserved (memrchrSpecRO stk)) :=
   hookSat_of_hookOk h (memrchrHook_ro_vm_ok stk)
-
-/-- `cliExternsPlaced` instantiation of `memrchrSpecRO_toSat` at `lsMemrchrSym`. -/
-theorem cliExternsPlaced_memrchrRO_toSat (mmpl : MultiPlacement) (W : CliHooks) (stk : Nat) :
-    HookSat (cliExternsPlaced mmpl W) lsMemrchrSym (memrchrSpecRO stk) :=
-  memrchrSpecRO_toSat stk (cliExternsPlaced_memrchr mmpl W)
-
-/-- `cliExternsPlaced` instantiation of `memrchrSpecRO_vm_toSat` at `lsMemrchrSym`. -/
-theorem cliExternsPlaced_memrchrRO_vm_toSat (mmpl : MultiPlacement) (W : CliHooks) (stk : Nat) :
-    HookSat (cliExternsPlaced mmpl W) lsMemrchrSym (withVmPreserved (memrchrSpecRO stk)) :=
-  memrchrSpecRO_vm_toSat stk (cliExternsPlaced_memrchr mmpl W)
 
 end LibsignalBinary.Proofs.HookDischarge.RustStd.MemrchrRO

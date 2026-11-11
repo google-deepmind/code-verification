@@ -34,7 +34,7 @@ open Arm64 ProofLib
 open CryptoVerification (IsLsBlockProg LibsignalHooks LibsignalPlacement lsmpl lsρ)
 open CryptoVerification.LibsignalPublicApi.StoreKit (ls_subroutine_ok_rocl_of_block withLsRoCl)
 open CryptoVerification.LibsignalTripleRatchet
-  (extHookStack memcpyName memmoveName memsetName sessionMemcpyRegionSpec sessionShimSpec withStack)
+  (extHookStack memcpyName memsetName sessionMemcpyRegionSpec sessionShimSpec withStack)
 open CryptoVerification.SpqrV1.Alloc (sessionMemcpyRegionROSpec)
 open CryptoVerification.SignalSession
   (lsRustAllocSymCli lsRustDeallocSymCli lsRustNoAllocShimSymCli lsRustReallocSymCli)
@@ -43,7 +43,7 @@ open LibsignalBinary.Heap.SpecBudget (withVmPreserved)
 open LibsignalBinary.Proofs.TripleRatchet.Alloc.DefsBudget
   (session2MemcpyBudgetSpecX session2ShimBudgetSpecX)
 open LibsignalBinary.Proofs.TripleRatchet.Hooks.DefsBudget
-  (sessionMemcpyBudgetSpec sessionMemcpyRegionBudgetSpec sessionMemmoveBudgetSpec
+  (sessionMemcpyBudgetSpec sessionMemcpyRegionBudgetSpec
    sessionMemsetBudgetSpec sessionMemsetRegionBudgetSpec sessionShimBudgetSpec)
 open LibsignalBinary.Proofs.TripleRatchet.Hooks2Budget
   (rustAllocSpecWithStack rustDeallocExternSpecWithStack rustReallocExternSpecWithStack)
@@ -115,20 +115,6 @@ theorem session_memcpy_region_ro_rocl (hA : AllocContractsFsPlaced A lim H) (stk
     subroutine_ok prog (lsρ memcpyName)
       (withLsRoCl lsmpl (withStack (withVmPreserved sessionMemcpyRegionROSpec) stk).keepsFs) :=
   ls_subroutine_ok_rocl_of_block (i := i) (j := 617) (hA.session_memcpy_region_ro stk h1 h2) hi
-
-theorem memmove_rocl (hA : AllocContractsFsPlaced A lim H) (stk : Nat := extHookStack)
-    (h1 : extHookStack ≤ stk := by decide) (h2 : stk ≤ 2 ^ 64 := by decide)
-    (hi : i < 619 := by decide) :
-    subroutine_ok prog (lsρ memmoveName)
-      (withLsRoCl lsmpl (withVmPreserved (libcMemmoveSpec stk)).keepsFs) :=
-  ls_subroutine_ok_rocl_of_block (i := i) (j := 617) (hA.memmove stk h1 h2) hi
-
-theorem session_memmove_rocl (hA : AllocContractsFsPlaced A lim H) (stk : Nat := extHookStack)
-    (h1 : extHookStack ≤ stk := by decide) (h2 : stk ≤ 2 ^ 64 := by decide)
-    (hi : i < 619 := by decide) :
-    subroutine_ok prog (lsρ memmoveName)
-      (withLsRoCl lsmpl (sessionMemmoveBudgetSpec stk).keepsFs) :=
-  ls_subroutine_ok_rocl_of_block (i := i) (j := 617) (hA.session_memmove stk h1 h2) hi
 
 theorem memset_rocl (hA : AllocContractsFsPlaced A lim H) (stk : Nat := extHookStack)
     (h1 : extHookStack ≤ stk := by decide) (h2 : stk ≤ 2 ^ 64 := by decide)
@@ -282,20 +268,6 @@ theorem memcpy2_rocl (hA : AllocContractsXCliPlaced A lim H) (hi : i < 619 := by
     simp only [sepConj_assoc, satisfies_pure_sepConj] at hq ⊢
     rcases hq with ⟨hro, hvm, ⟨hx0, htr⟩, hrest⟩
     exact ⟨hro, ⟨hx0, htr, hvm⟩, hrest⟩
-
-theorem memmove_rocl (hA : AllocContractsXCliPlaced A lim H) (stk : Nat := extHookStack)
-    (h1 : extHookStack ≤ stk := by decide) (h2 : stk ≤ 2 ^ 64 := by decide)
-    (hi : i < 619 := by decide) :
-    subroutine_ok prog (lsρ memmoveName)
-      (withLsRoCl lsmpl (withVmPreserved (libcMemmoveSpec stk))) :=
-  ls_subroutine_ok_rocl_of_block (i := i) (j := 617) (hA.memmove stk h1 h2) hi
-
-theorem session_memmove_rocl (hA : AllocContractsXCliPlaced A lim H) (stk : Nat := extHookStack)
-    (h1 : extHookStack ≤ stk := by decide) (h2 : stk ≤ 2 ^ 64 := by decide)
-    (hi : i < 619 := by decide) :
-    subroutine_ok prog (lsρ memmoveName)
-      (withLsRoCl lsmpl (sessionMemmoveBudgetSpec stk)) :=
-  ls_subroutine_ok_rocl_of_block (i := i) (j := 617) (hA.session_memmove stk h1 h2) hi
 
 theorem memset_rocl (hA : AllocContractsXCliPlaced A lim H) (stk : Nat := extHookStack)
     (h1 : extHookStack ≤ stk := by decide) (h2 : stk ≤ 2 ^ 64 := by decide)

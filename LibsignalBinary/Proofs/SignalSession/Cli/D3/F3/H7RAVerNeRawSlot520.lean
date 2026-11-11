@@ -36,6 +36,7 @@ public import LibsignalBinary.Proofs.SignalSession.Cli.Run.Proofs.DecryptPrekey.
 public import LibsignalBinary.Proofs.SignalSession.Cli.Run.Proofs.DecryptPrekey.Poll.StagesInst.Stage2V1KitsPlacedBudgetAux
 public import LibsignalBinary.Proofs.SignalSession.Cli.Run.Proofs.DecryptPrekey.Poll.StagesInst.Stage4V1InstPlacedBudget
 public import LibsignalBinary.Proofs.SpqrV1.Top.InitialState.DefsPlacedBudget
+import LibsignalBinary.Proofs.Cli.E2E.Pqxdh.ResponderClosure.Kits.StageP2PurePlacedBudgetSat
 import LibsignalBinary.Proofs.Common.SharedHelpers
 meta import LibsignalBinary.Proofs.Common.SharedHelpers -- shake: keep
 import LibsignalBinary.Proofs.E2E.Pqxdh.ResponderCore.InitBobErrOwnedPlacedBudget
@@ -125,7 +126,7 @@ open CryptoVerification.SignalSession.Cli.MainHops (
 open CryptoVerification.SignalSession.Cli.Run.Placed (lsProg_579)
 open CryptoVerification.SignalSession.Cli.RunCompose (DecPkGhost RunSem dpPollNeed)
 open CryptoVerification.SignalSession.Cli.RunGlue (
-  CliGhostHooks cliExternsPlaced_row cliGhostExterns cliGhostExterns_other withPanics_cliGhostExterns
+  CliGhostHooks cliGhostExterns withPanics_cliGhostExterns
 )
 open CryptoVerification.SignalSession.Cli.RunProofs (
   SessMatchesPm cliDecryptPrekeyNeed dpWrapFrame pkStoreKeys pkToE? pmOfE
@@ -149,7 +150,7 @@ open CryptoVerification.SignalSession.Cli.RunProofs.Poll (
 )
 open CryptoVerification.SignalSession.Cli.RunSkeleton (CalleeSlot.OkPlaced RunBudgets)
 open CryptoVerification.SignalSession.Cli.Slots (
-  FilesOkPeer blackBox_row_placed cliGhostExterns_sat_of_cliExternsPlaced
+  FilesOkPeer cliGhostExterns_sat_of_cliExternsPlaced
   encodeInjOn_deserializeScopeP_Q loadRec scopeIn scopeKit
 )
 open LibsignalBinary.Heap (
@@ -168,7 +169,7 @@ open LibsignalBinary.Proofs.Cli.E2E.Pqxdh.ResponderClosure.Kits.StageP2Mid3Place
 )
 open LibsignalBinary.Proofs.Cli.E2E.Pqxdh.ResponderClosure.Kits.StageP2PurePlacedBudget (
   InitializeBobV1OptFieldsEnv StageP2BaseCalleesPlaced4K.of_hooks
-  initializeBobSession_ok_v1_of_env_4k_frozen_placed_on_stageP1 isSameAccount_4k_placed_ok_on_stageP1
+  initializeBobSession_ok_v1_of_env_4k_frozen_placed_on_stageP1
   p2_errOwned_frozen_to_defs4K_placed
 )
 open LibsignalBinary.Proofs.Cli.E2E.Pqxdh.ResponderClosure.Kits.StageP2V1PlacedBudget (
@@ -603,10 +604,8 @@ private theorem h7ra_cliStageP2BaseCalleesPlaced4K [LibsignalPlacement] {M : All
     hh.codecHooks.alloc
     hh.codecHooks.dealloc
     (hookSat_p2Memcpy4K_of_vm hh.codecHooks.memcpy)
-    (isSameAccount_4k_placed_ok_on_stageP1
-      ((cliGhostExterns_other gh (cliExternsPlaced mmpl W)
-          (by decide) (by decide) (by decide) (by decide) (by decide) (by decide)).trans
-        (cliExternsPlaced_row mmpl W (blackBox_row_placed mmpl W)))
+    (LibsignalBinary.Proofs.Cli.E2E.Pqxdh.ResponderClosure.Kits.StageP2PurePlacedBudgetSat.isSameAccount_4k_placed_ok_on_stageP1_sat
+      hh.blackBox
       (uuidTryParse_placed_vm_code_ok (cliGhostExterns gh (cliExternsPlaced mmpl W))))
 
 private theorem h7ra_cliInitBobV1FrozenOkPlaced4K [LibsignalFullPlacement] {M : AllocCostModel}
@@ -781,8 +780,8 @@ theorem h7ra_stageP2Over_archive_at_cliRunBudgets_frozen_ok [LibsignalFullPlacem
       LibsignalBinary.Proofs.SignalSession.Cli.Run.Proofs.DecryptPrekey.Poll.ClosureStagesStmtPlacedBudget.RunHooksPlaced
         A lim (cliGhostExterns gh (cliExternsPlaced mmpl W)) :=
     ⟨hh0.alloc, hh0.allocFs, hh0.panics, hh0.memcpyRO, hh0.bcmp, hh0.fs, hh0.utf8, hh0.memrchr,
-      hh0.codecHooks, hh0.allocZeroed, hh0.stringClone, hh0.formatInner⟩
-  have hPromMiss := cliPromoteMatchingMissGen_placed_ok A.repAlloc mmpl gh W
+      hh0.codecHooks, hh0.allocZeroed, hh0.stringClone, hh0.formatInner, hh0.blackBox⟩
+  have hPromMiss := cliPromoteMatchingMissGen_placed_ok A.repAlloc mmpl gh W hh.blackBox
   have hPromOver := cliPromoteOverGen_archive_placed_ok mmpl gh W hh hGrow hRaw
   subst hg1
   rcases hregs1 with ⟨hx8, hx9, hx10, hx11, hx12, hx13, hx14, hx15, hx16,

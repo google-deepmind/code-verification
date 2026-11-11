@@ -16,6 +16,7 @@ public import LibsignalBinary.Proofs.SpecLemmas.SignalSession.ElfF3Relink.Inst
 public import ProofLib.ProgramReflection
 public meta import ProofLib.ProgramReflection
 import Arm64.Trusted.Spec.SepLogic
+import LibsignalBinary.Proofs.HookDischarge.Libc.Strlen
 
 /-!
 # Concrete Startup Framing, `F3CodeOk`, and `CliElfF3B2NeedLocksAssumptions`
@@ -53,9 +54,10 @@ open LibsignalBinary.Heap (BudgetLimits)
 open LibsignalBinary.Heap.Fine
   (CliElfMallocngLayout StartupVmPreserved f3MallocngMpl f3SegByteSum f3SegCount f3StdLayout
    fineCostModel fineHookRustCliAllocBudget)
+open LibsignalBinary.Proofs.HookDischarge.Libc.Strlen (StrlenSwarPadBound)
 open LibsignalBinary.Proofs.SignalSession.Cli.F3.L4B.CliStrictPlaced2
   (CliElfF3B2NeedLocksAssumptions MuslHarnessFineNeedLocksGuardedPerInput
-   MuslHarnessFineNeedLocksPerInput StdMainEntryLr cliBudgetLimits
+   MuslHarnessFineNeedLocksPerInput StdMainEntryLr argvAtRO cStrAtRO cliBudgetLimits
    muslHarnessFineNeedLocksGuardedPerInput_of_startup)
 open LibsignalBinary.Proofs.SignalSession.Cli.F3.L4B.F3HarnessPlaced
   (CliElfTokenCellsPlacedAt cliElfMallocngLayout_iff_patchElfTokensPlacedAt cliProgExtPlacedAt
@@ -64,7 +66,7 @@ open LibsignalBinary.Proofs.SignalSession.Cli.F3.L4B.F3HarnessPlaced
    externAt?_cliProgExtPlacedSigAt_eq_none loadState_patchElfTokensPlacedAt lsLogOffAt
    patchElfTokensPlacedAt tokenInitPlacedAtMpl)
 open LibsignalBinary.Proofs.SignalSession.Cli.F3Relink.Startup
-  (F3StartupCode argvAtRO cStrAtRO f3StartupExtraChunks f3StartupMainPre
+  (F3StartupCode f3StartupExtraChunks f3StartupMainPre
    f3StartupMainPreNeedLocks f3StartupResidual steps_lift_setTidOnly)
 open LibsignalBinary.Proofs.SignalSession.Cli.F3Relink.TlsZero
   (F3BssGlobals F3DataGlobals F3InitGlobals F3LayoutImageFacts F3RoConstants F3TlsState
@@ -904,14 +906,6 @@ private theorem s0_satisfies_f3InitAllSep_and_statics {mpl : Obj.MultiPlacement}
       (sepConj_mono_left rwAtomListSep_f3CliStaticsAtoms_entails)))) ?_
   sep_entail
 
-private theorem absorb_ro_pad {U C Pad : SepProp}
-    (hdup : (U ∗ (C ∗ Pad)) = U) (hc : (C ∗ C) = C) :
-    U ⊢ C ∗ U := by
-  refine Entails.trans (Entails.of_eq hdup.symm) ?_
-  refine Entails.trans (sepConj_mono_right (sepConj_mono_left (Entails.of_eq hc.symm))) ?_
-  refine Entails.trans (Q := C ∗ (U ∗ (C ∗ Pad))) (by sep_entail) ?_
-  exact sepConj_mono_right (Entails.of_eq hdup)
-
 private theorem argvTable_dup_argvAtRO {img : ElfImage} {inputs : ProcessInputs} {s0 : State}
     (hinfo : InitialStackInfo img inputs s0) (hargs : ArgsValid inputs) :
     let sl := StackLayout.of img inputs
@@ -922,6 +916,7 @@ private theorem argvTable_dup_argvAtRO {img : ElfImage} {inputs : ProcessInputs}
   dsimp only
   let sl := StackLayout.of img inputs
   have hlen : sl.argvAddrs.length = inputs.argv.length := hinfo.argvAddrs_length
+  have htop48 : inputs.init.stackTop.toNat ≤ 2 ^ 48 := hinfo.stackTop_align.2.2
   suffices hgen : ∀ (k : Nat), k ≤ inputs.argv.length →
       (((sl.argvTableAddr + BitVec.ofNat 64 (8 * k)) ↦₆₄ᵣ* (sl.argvAddrs.drop k ++ [0#64])) ∗
         (sl.argvBase ↦ᵣ sl.upperStrBytes)) ⊢
@@ -953,19 +948,22 @@ private theorem argvTable_dup_argvAtRO {img : ElfImage} {inputs : ProcessInputs}
       rw [BitVec.add_assoc, show (8#64 : BitVec 64) = BitVec.ofNat 64 8 from rfl, ← BitVec.ofNat_add]
       exact congrArg (sl.argvTableAddr + BitVec.ofNat 64 ·) (by omega)
     rw [hstep_addr]
-    obtain ⟨pad, _, _, _, _, hdup_str⟩ := hinfo.dup_argv_cstr_padded hargs hk_lt
+    obtain ⟨pad, _hno0, _hpad8, hswar, htop, hdup_str⟩ := hinfo.dup_argv_cstr_padded hargs hk_lt
+    have h48_lt : (2 ^ 48 : Nat) < 2 ^ 64 := by decide
+    have hpad_ok : StrlenSwarPadBound sl.argvAddrs[k] inputs.argv[k] pad :=
+      ⟨hswar, by dsimp only [sl]; omega⟩
     have habs_str : (sl.argvBase ↦ᵣ sl.upperStrBytes) ⊢
-        (sl.argvAddrs[k] ↦ᵣ (inputs.argv[k] ++ [0#8])) ∗ (sl.argvBase ↦ᵣ sl.upperStrBytes) := by
-      have hdup_str' : ((sl.argvBase ↦ᵣ sl.upperStrBytes) ∗
-          ((sl.argvAddrs[k] ↦ᵣ (inputs.argv[k] ++ [0#8])) ∗
-            ((sl.argvAddrs[k] + BitVec.ofNat 64 (inputs.argv[k] ++ [0#8]).length) ↦ᵣ pad))) =
-          (sl.argvBase ↦ᵣ sl.upperStrBytes) := by
-        dsimp only [sl]; rw [← pointsToBytesRO_append]; exact hdup_str
-      exact absorb_ro_pad hdup_str' (pointsToBytesRO_dup _ _)
+        cStrAtRO sl.argvAddrs[k] inputs.argv[k] ∗ (sl.argvBase ↦ᵣ sl.upperStrBytes) := by
+      have hdup' : (sl.argvBase ↦ᵣ sl.upperStrBytes) =
+          (sl.argvAddrs[k] ↦ᵣ (inputs.argv[k] ++ [0#8] ++ pad)) ∗
+            (sl.argvBase ↦ᵣ sl.upperStrBytes) := by
+        dsimp only [sl]
+        exact hdup_str.symm.trans (sepConj_comm _ _)
+      exact Entails.trans (Entails.of_eq hdup')
+        (sepConj_mono_left (Entails.sepExists_right pad (Entails.pure_right hpad_ok (Entails.refl _))))
     have hih := ih (k + 1) (by omega) (by omega)
     refine Entails.trans ?_
       (sepConj_mono_left (Entails.sepExists_right sl.argvAddrs[k] (Entails.refl _)))
-    dsimp only [cStrAtRO]
     refine Entails.trans
       (sepConj_mono_left (sepConj_mono_left (Entails.of_eq (pointsTo64RO_dup _ _).symm))) ?_
     refine Entails.trans
@@ -973,24 +971,23 @@ private theorem argvTable_dup_argvAtRO {img : ElfImage} {inputs : ProcessInputs}
         ((sl.argvTableAddr + BitVec.ofNat 64 (8 * k)) ↦₆₄ᵣ sl.argvAddrs[k]) ∗
         (((sl.argvTableAddr + BitVec.ofNat 64 (8 * (k + 1))) ↦₆₄ᵣ*
           (sl.argvAddrs.drop (k + 1) ++ [0#64])) ∗
-          ((sl.argvAddrs[k] ↦ᵣ (inputs.argv[k] ++ [0#8])) ∗
+          (cStrAtRO sl.argvAddrs[k] inputs.argv[k] ∗
             (sl.argvBase ↦ᵣ sl.upperStrBytes))))
-      (Entails.trans (by sep_entail)
-        (sepConj_mono_right (sepConj_mono_right (sepConj_mono_right
-          habs_str))))
+      (Entails.trans (Entails.of_eq (by sep_ac_rfl))
+        (sepConj_mono_right (sepConj_mono_right (sepConj_mono_right habs_str))))
       ?_
     refine Entails.trans
       (Q := ((sl.argvTableAddr + BitVec.ofNat 64 (8 * k)) ↦₆₄ᵣ sl.argvAddrs[k]) ∗
-        (sl.argvAddrs[k] ↦ᵣ (inputs.argv[k] ++ [0#8])) ∗
+        cStrAtRO sl.argvAddrs[k] inputs.argv[k] ∗
         ((sl.argvTableAddr + BitVec.ofNat 64 (8 * k)) ↦₆₄ᵣ sl.argvAddrs[k]) ∗
         (((sl.argvTableAddr + BitVec.ofNat 64 (8 * (k + 1))) ↦₆₄ᵣ*
           (sl.argvAddrs.drop (k + 1) ++ [0#64])) ∗
           (sl.argvBase ↦ᵣ sl.upperStrBytes)))
-      (by sep_entail)
+      (Entails.of_eq (by sep_ac_rfl))
       ?_
     exact Entails.trans
       (sepConj_mono_right (sepConj_mono_right (sepConj_mono_right hih)))
-      (by sep_entail)
+      (Entails.of_eq (by sep_ac_rfl))
 
 private theorem pointsToBytes_flatMap_u64 {a : BitVec 64} (ws : List (BitVec 64))
     (hal : a.toNat % 8 = 0) (hbnd : a.toNat + 8 * ws.length ≤ 2 ^ 48) :
@@ -1605,16 +1602,6 @@ theorem cliElf_f3MallocngLayout : CliElfMallocngLayout cliElfImage cliBudgetLimi
     cliBudgetLimits_layout_bounds.2.1
     cliBudgetLimits_layout_bounds.2.2
 
-private theorem startup_argvAtRO_eq_strict_argvAtRO (a : BitVec 64) (xs : List (List (BitVec 8))) :
-    argvAtRO a xs =
-      LibsignalBinary.Proofs.SignalSession.Cli.F3.L4B.CliStrictPlaced2.argvAtRO a xs := by
-  induction xs generalizing a with
-  | nil => rfl
-  | cons s ss ih =>
-    simp only [argvAtRO, cStrAtRO,
-      LibsignalBinary.Proofs.SignalSession.Cli.F3.L4B.CliStrictPlaced2.argvAtRO,
-      LibsignalBinary.Proofs.SignalSession.Cli.F3.L4B.CliStrictPlaced2.cStrAtRO, ih]
-
 set_option maxHeartbeats 4000000 in
 set_option maxRecDepth 4000000 in
 /-- `MuslHarnessFineNeedLocksGuardedPerInput` at `StdMainEntryLr f3StdLayout` on
@@ -1971,7 +1958,7 @@ theorem cliElf_f3MuslHarnessLr_of_linkedAt {mpl mmpl : Obj.MultiPlacement}
               (sm.readReg64 .x1) (("libsignal-cli" :: i.argv).map bytesOfString) ∗
             stackAt sm.sp cliMainStk ∗ cliStaticsPlacedAt mpl ∗ Fr) := by
       have hargv_eq : inputs0.argv = ("libsignal-cli" :: i.argv).map bytesOfString := rfl
-      rw [hlibc_mmpl, htp_sm, hx1_sm, hsp_sm, ← startup_argvAtRO_eq_strict_argvAtRO, ← hargv_eq]
+      rw [hlibc_mmpl, htp_sm, hx1_sm, hsp_sm, ← hargv_eq]
       refine Satisfies.mono ?_ hm_sm_post
       dsimp only [Fr]
       refine Entails.trans

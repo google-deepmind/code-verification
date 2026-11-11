@@ -88,14 +88,8 @@ open LibsignalBinary.Proofs.E2E.Pqxdh.Initiator.SessionStateCalleesBudget
    withReceiverChain_empty_placed_ok withSenderChainNonePlacedSpec withSenderChain_none_placed_ok)
 open LibsignalBinary.Proofs.E2E.Pqxdh.Initiator.SmallCalleesBudget
   (setKyberCiphertextNoneBudgetSpec setUnackKyberPreKeyIdBudgetSpec)
-open LibsignalBinary.Proofs.E2E.Pqxdh.ResponderCore.CryptoBridgePlacedBudget
-  (ct_eq_ro_placed_vm_ok_of_block pqxdhCalculateAgreement_placed_ok_of_block)
-open LibsignalBinary.Proofs.E2E.Pqxdh.ResponderCore.CryptoBridgePlacedBudgetAuxSat
-  (expand_multi_info_placed_vm_ok_sat)
 open LibsignalBinary.Proofs.E2E.Pqxdh.WireEntries.RecvWireSameAccountBudget
   (isSameAccountDistinctSpec)
-open LibsignalBinary.Proofs.E2E.Pqxdh.WireEntries.RecvWireSameAccountPlacedBudget
-  (isSameAccountEqDistinct_placed_ok_at)
 open LibsignalBinary.Proofs.SignalSession.Cli.AllocGhostLinkTransfer
   (CliGhostHooks cliGhostExterns)
 open LibsignalBinary.Proofs.SignalSession.Cli.Run.Proofs.Initiate.DropSessionStructureLocal5PlacedBudget
@@ -113,7 +107,7 @@ open LibsignalBinary.Proofs.SignalSession.Cli.Run.Proofs.Initiate.Stage4Lemmas.S
 open LibsignalBinary.Proofs.SignalSession.Cli.Run.Proofs.Initiate.Stage5Lemmas.ScratchAndStoreCallsPlacedBudget
   (promoteStateEmptyBudgetSpec)
 open LibsignalBinary.Proofs.SignalSession.Cli.Run.Slots.SetUnackEpochPlacedBudget
-  (cliExternsPlaced_durationSinceEpochAlloc_budget_sat setUnackPreKeyMsgEpochInnerSpec
+  (hookSat_withLsRet_drop_keepsFs setUnackPreKeyMsgEpochInnerSpec
    setUnackPreKeyMsg_exact_stack_epoch_placed_at_block)
 open LibsignalBinary.Proofs.TripleRatchet.Alloc.DefsBudget
   (derivePublicKeyBytesSpec noAllocShimBudgetSpec
@@ -125,8 +119,6 @@ open LibsignalBinary.Proofs.TripleRatchet.FromRecordCallees.DefsBudget
 open LibsignalBinary.Proofs.TripleRatchet.Hkdf.CommonBudgetSat (HkdfPlacedHooksExactBudgetSat)
 open LibsignalBinary.Proofs.TripleRatchet.Hkdf.CommonSat (HkdfPlacedHooksExactSat)
 open LibsignalBinary.Proofs.TripleRatchet.Hooks.DefsBudget (sessionMemcpyRegionBudgetSpec)
-open LibsignalBinary.Proofs.TripleRatchet.Keys.CreateChainBudget
-  (createChain_placed_ok createChain_placed_ok_x expandMultiInfoBudgetSpec)
 open LibsignalBinary.Proofs.TripleRatchet.Keys.DefsBudget (createChainSpec createChainSpecX)
 
 /-! ## 1. Internal `RunHooksPlaced` Helper for Block `523` (`kem::Key<Public>::serialize [local#1]`) -/
@@ -376,7 +368,7 @@ theorem dropSessionStructure_cli_placed_ok [LibsignalPlacement]
     (drop_session_structure5_placed_ok hh.rawDealloc)
 
 /-- Row 3 helper: discharge `isSameAccount` (Block `17`) on `initProgPlaced mmpl gh W` from a Block-`252`
-`uuidTryParse` witness via `RecvWireSameAccountPlacedBudget.isSameAccountEqDistinct_placed_ok_at`. -/
+`uuidTryParse` witness via `LocalCalleesPlacedBudget.isSameAccount_cli_placed_ok_of_uuidTryParse`. -/
 theorem isSameAccount_cli_placed_ok_of_uuidTryParse [LibsignalPlacement]
     {M : AllocCostModel} {A : RustCliAllocBudget M} {lim : BudgetLimits}
     (mmpl : MultiPlacement) (gh : CliGhostHooks) (W : CliHooks)
@@ -385,12 +377,10 @@ theorem isSameAccount_cli_placed_ok_of_uuidTryParse [LibsignalPlacement]
       (blkPl_252).base (withLsCodeLoaded lsmpl (withVmPreserved (uuidTryParseCodeSpec uuidTryParse)))) :
     subroutine_ok (initProgPlaced mmpl gh W) (lsmpl.base 17)
       (withLsCodeRoLoaded lsmpl (isSameAccountDistinctSpec A.repAlloc uuidTryParse)) :=
-  subroutine_ok_withLsCodeRoLoaded_of_withLsCodeLoaded
-    (isSameAccountEqDistinct_placed_ok_at A.repAlloc (callerProg := initProgPlaced mmpl gh W)
-      hh.blackBox huuid)
+  LocalCalleesPlacedBudget.isSameAccount_cli_placed_ok_of_uuidTryParse mmpl gh W hh huuid
 
 /-- Row 3b: `<PrivateKey>::calculate_agreement` (Block `207`), proved unconditionally from
-`CryptoBridgePlacedBudget.pqxdhCalculateAgreement_placed_ok_of_block`. -/
+`LocalCalleesPlacedBudget.calculateAgreement_cli_placed_ok`. -/
 theorem calculateAgreement_cli_placed_ok [LibsignalPlacement]
     {M : AllocCostModel} {A : RustCliAllocBudget M} {lim : BudgetLimits}
     (mmpl : MultiPlacement) (gh : CliGhostHooks) (W : CliHooks)
@@ -398,20 +388,8 @@ theorem calculateAgreement_cli_placed_ok [LibsignalPlacement]
     (X : UnreachedPqxdhPrimitives) :
     subroutine_ok (initProgPlaced mmpl gh W) (lsmpl.base 207)
       (withLsCodeRoLoaded lsmpl
-        (pqxdhCalculateAgreementPlacedInnerSpec (modelPrims X ⟨W.C, W.Q⟩) A lim)) := by
-  have h207 := pqxdhCalculateAgreement_placed_ok_of_block
-    (callerProg := initProgPlaced mmpl gh W) (i := 521)
-    (primitivesMatchCrypto_modelPrims X ⟨W.C, W.Q⟩)
-    hh.dh hh.sharedDrop hh.blackBox
-    (hookSat_noAllocShimBudget_of_withVmPreserved hh.shim)
-    hh.rawAlloc hh.staticDrop (by decide)
-  exact subroutine_ok_mono h207
-    (fun _ _ _ hp => by
-      obtain ⟨hc, hpre⟩ := extract_withLsCodeRoLoaded hp
-      dsimp only [CryptoVerification.LibsignalTripleRatchet.withLsCodeRoLoaded]
-      rw [sepConj_assoc, sepConj_left_comm, satisfies_pure_sepConj]
-      exact ⟨⟨hc.1, hc.2⟩, hpre⟩)
-    (fun _ _ _ _ hq => hq)
+        (pqxdhCalculateAgreementPlacedInnerSpec (modelPrims X ⟨W.C, W.Q⟩) A lim)) :=
+  LocalCalleesPlacedBudget.calculateAgreement_cli_placed_ok mmpl gh W hh X
 
 /-- Row 4: `<curve25519::PrivateKey>::derive_public_key_bytes` (Block `200`). -/
 theorem derivePubKeyBytes_cli_placed_ok [LibsignalPlacement]
@@ -449,16 +427,6 @@ theorem kemCtSerialize_cli_placed_ok [LibsignalPlacement]
     (calleeProg := lsProg_71 (cliGhostExterns gh (cliExternsPlaced mmpl W)))
     (kemCiphertextSerialize_placed_ok hh.shimVm hh.rawAlloc hh.allocMemcpyVm)
 
-private theorem hookSat_of_keepsFs {α : Type} {H : LibsignalHooks} {sym : String}
-    {spec : Spec α} (h : HookSat H sym spec.keepsFs) : HookSat H sym spec := by
-  rcases h with ⟨f, hf, hok⟩
-  refine ⟨f, hf, fun x R s0 hrun hpre hsp => ?_⟩
-  rcases hok x R s0 hrun hpre hsp with ⟨hkf, hsym, ⟨hret, hcc, hpost⟩ | hrest⟩
-  · dsimp only [Spec.keepsFs] at hpost
-    rw [sepConj_assoc, satisfies_pure_sepConj] at hpost
-    exact ⟨hkf, hsym, Or.inl ⟨hret, hcc, hpost.2⟩⟩
-  · exact ⟨hkf, hsym, Or.inr hrest⟩
-
 /-- Row 7: `<RootKey>::create_chain` (Block `40`) at `createChainStack`. -/
 theorem rootKeyCreateChain_cli_placed_ok [LibsignalPlacement]
     {M : AllocCostModel} {A : RustCliAllocBudget M} {lim : BudgetLimits}
@@ -467,30 +435,8 @@ theorem rootKeyCreateChain_cli_placed_ok [LibsignalPlacement]
     (hh : RunHooksPlaced W A lim (cliGhostExterns gh (cliExternsPlaced mmpl W)))
     (ha4 : SubsetA4InitCalleesPlaced A lim InitStateEnv mmpl gh W) :
     subroutine_ok (initProgPlaced mmpl gh W) (lsmpl.base 40)
-      (withLsCodeRoLoaded lsmpl (createChainSpec M A lim W.C)) := by
-  have : HkdfPlacedHooksExactSat W.C.F (cliGhostExterns gh (cliExternsPlaced mmpl W)) := hh.hkdf
-  have : HkdfPlacedHooksExactBudgetSat W.C.F (cliGhostExterns gh (cliExternsPlaced mmpl W)) :=
-    HkdfPlacedHooksExactBudgetSat.of_exactSat (hookSat_of_keepsFs hh.memsetRegionKeepsFs)
-  have hct207 := ct_eq_ro_placed_vm_ok_of_block
-    (callerProg := (CryptoVerification.blkPC_207).rebase
-      (CryptoVerification.blkPl_207).base (cliGhostExterns gh (cliExternsPlaced mmpl W)))
-    hh.blackBox (by decide)
-  have hexp53 : subroutine_ok
-      (CryptoVerification.LibsignalTripleRatchet.lsProg_53 (cliGhostExterns gh (cliExternsPlaced mmpl W)))
-      (lsmpl.base 53)
-      (withLsCodeLoaded lsmpl (expandMultiInfoBudgetSpec W.C.F)) :=
-    expand_multi_info_placed_vm_ok_sat W.C (cliGhostExterns gh (cliExternsPlaced mmpl W))
-  have hexp40 : subroutine_ok
-      ((blkPC_40).rebase (blkPl_40).base (cliGhostExterns gh (cliExternsPlaced mmpl W)))
-      (lsmpl.base 53)
-      (withLsCodeLoaded lsmpl (expandMultiInfoBudgetSpec W.C.F)) :=
-    ls_subroutine_ok_of_block (callerProg := lsProg_40 (cliGhostExterns gh (cliExternsPlaced mmpl W)))
-      hexp53 (by decide) (by decide) (by decide)
-  exact transfer_tr_codeRoLoaded
-    (calleeProg := lsProg_40 (cliGhostExterns gh (cliExternsPlaced mmpl W)))
-    (createChain_placed_ok hh.dh hh.sharedDrop hct207
-      (hookSat_noAllocShimBudget_of_withVmPreserved hh.shim)
-      hh.rawAlloc hh.staticDrop ha4.hkdfExtract40 hexp40 hh.rawDealloc)
+      (withLsCodeRoLoaded lsmpl (createChainSpec M A lim W.C)) :=
+  LocalCalleesPlacedBudget.rootKeyCreateChain_cli_placed_ok mmpl gh W hh ha4
 
 /-- Row 7b: `<RootKey>::create_chain` (Block `40`) at `createChainStackX`. -/
 theorem rootKeyCreateChainX_cli_placed_ok [LibsignalPlacement]
@@ -500,30 +446,8 @@ theorem rootKeyCreateChainX_cli_placed_ok [LibsignalPlacement]
     (hh : RunHooksPlaced W A lim (cliGhostExterns gh (cliExternsPlaced mmpl W)))
     (ha4 : SubsetA4InitCalleesPlaced A lim InitStateEnv mmpl gh W) :
     subroutine_ok (initProgPlaced mmpl gh W) (lsmpl.base 40)
-      (withLsCodeRoLoaded lsmpl (createChainSpecX M A lim W.C)) := by
-  have : HkdfPlacedHooksExactSat W.C.F (cliGhostExterns gh (cliExternsPlaced mmpl W)) := hh.hkdf
-  have : HkdfPlacedHooksExactBudgetSat W.C.F (cliGhostExterns gh (cliExternsPlaced mmpl W)) :=
-    HkdfPlacedHooksExactBudgetSat.of_exactSat (hookSat_of_keepsFs hh.memsetRegionKeepsFs)
-  have hct207 := ct_eq_ro_placed_vm_ok_of_block
-    (callerProg := (CryptoVerification.blkPC_207).rebase
-      (CryptoVerification.blkPl_207).base (cliGhostExterns gh (cliExternsPlaced mmpl W)))
-    hh.blackBox (by decide)
-  have hexp53 : subroutine_ok
-      (CryptoVerification.LibsignalTripleRatchet.lsProg_53 (cliGhostExterns gh (cliExternsPlaced mmpl W)))
-      (lsmpl.base 53)
-      (withLsCodeLoaded lsmpl (expandMultiInfoBudgetSpec W.C.F)) :=
-    expand_multi_info_placed_vm_ok_sat W.C (cliGhostExterns gh (cliExternsPlaced mmpl W))
-  have hexp40 : subroutine_ok
-      ((blkPC_40).rebase (blkPl_40).base (cliGhostExterns gh (cliExternsPlaced mmpl W)))
-      (lsmpl.base 53)
-      (withLsCodeLoaded lsmpl (expandMultiInfoBudgetSpec W.C.F)) :=
-    ls_subroutine_ok_of_block (callerProg := lsProg_40 (cliGhostExterns gh (cliExternsPlaced mmpl W)))
-      hexp53 (by decide) (by decide) (by decide)
-  exact transfer_tr_codeRoLoaded
-    (calleeProg := lsProg_40 (cliGhostExterns gh (cliExternsPlaced mmpl W)))
-    (createChain_placed_ok_x hh.dh hh.sharedDrop hct207
-      (hookSat_noAllocShimBudget_of_withVmPreserved hh.shim)
-      hh.rawAlloc hh.staticDrop ha4.hkdfExtract40 hexp40 hh.rawDealloc)
+      (withLsCodeRoLoaded lsmpl (createChainSpecX M A lim W.C)) :=
+  LocalCalleesPlacedBudget.rootKeyCreateChainX_cli_placed_ok mmpl gh W hh ha4
 
 /-- Row 8: `spqr_chain_params` (Block `74`). -/
 theorem spqrChainParams_cli_placed_ok [LibsignalPlacement] (mmpl : MultiPlacement) (gh : CliGhostHooks) (W : CliHooks) :
@@ -580,8 +504,7 @@ theorem setUnackPreKeyMsg_cli_placed_ok [LibsignalPlacement]
       (withLsCodeRoLoaded lsmpl (setUnackPreKeyMsgEpochInnerSpec A lim)) :=
   setUnackPreKeyMsg_exact_stack_epoch_placed_at_block (callerProg := initProgPlaced mmpl gh W) (i := 521)
     hh.sessionShim hh.rawAlloc hh.rawDealloc hh.sessionMemcpyRegion
-    (CryptoVerification.SignalSession.Cli.Slots.cliGhostExterns_sat_of_cliExternsPlaced mmpl gh W
-      (cliExternsPlaced_durationSinceEpochAlloc_budget_sat mmpl W)) (by decide)
+    (hookSat_withLsRet_drop_keepsFs hh.durationSince) (by decide)
 
 /-- Row 15: `<SessionState>::set_unacknowledged_kyber_pre_key_id` (Block `34`). -/
 theorem setUnackKyberId_cli_placed_ok [LibsignalPlacement] (mmpl : MultiPlacement) (gh : CliGhostHooks) (W : CliHooks) :

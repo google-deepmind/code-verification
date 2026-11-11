@@ -44,7 +44,6 @@ open CryptoVerification (
   lsHandleErrorSym lsMemcpySym lsRustAllocSym lsRustDeallocSym lsRustNoAllocShimSym lsRustReallocSym
   lsmpl withLsCl
 )
-open CryptoVerification.LibsignalTripleRatchet (extHookStack)
 open CryptoVerification.LibsignalTripleRatchet.Prost (sliceCursorAfter sliceCursorAt)
 open CryptoVerification.LibsignalPublicApi.StoreKit (
   LibsignalCodeRoLoaded extract_withLsCodeRoLoaded withLsCodeRoLoaded
@@ -91,7 +90,7 @@ open LibsignalBinary.Proofs.TripleRatchet.Alloc.DefsBudget (
   framelessMemcpyBudgetSpec noAllocShimBudgetSpec
 )
 open LibsignalBinary.Proofs.TripleRatchet.Hooks.DefsBudget (
-  sessionMemmoveBudgetSpec sessionShimBudgetSpec
+  sessionShimBudgetSpec
 )
 open LibsignalBinary.Proofs.Cli.E2E.Pqxdh.ResponderClosure.PrevDec.ArmChainRecvPushAPlacedBudget (
   growOne_plain_post_elim_sp_q_ext growOne_plain_pre_eq_q_ext
@@ -980,13 +979,12 @@ theorem overPrevDecode_cro_placed_of_hooks_chain5 [LibsignalPlacement] {M : Allo
     (hrealloc : HookSat ext lsRustReallocSym (rustCliReallocBudgetSpec M A lim))
     (hdealloc : HookSat ext lsRustDeallocSym (rustCliDeallocBudgetSpec M A lim))
     (hmc : HookSat ext lsMemcpySym framelessMemcpyBudgetSpec)
-    (hmemmove : HookSat ext "memmove" (sessionMemmoveBudgetSpec extHookStack))
     (hpanic_raw : ext lsHandleErrorSym = some Rust.panicked)
     (hChain5 : ChainMerge5CroPlacedOkExt A lim ext) :
     OverPrevDecodeCroPlacedAt A lim ext :=
   overPrevDecode_cro_placed_of_alloc_bm6w_chain5
     (AllocContractsPlaced.of_hooks halloc hdealloc hrealloc
-      (sessionShim_of_noAllocShim hshim) hmemmove)
+      (sessionShim_of_noAllocShim hshim))
     (bytes_merge_6_placed_ok_w_cro (callerProg := lsProg_518 ext)
       hshim halloc hrealloc hdealloc hmc hpanic_raw)
     hChain5

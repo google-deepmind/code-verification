@@ -57,7 +57,7 @@ open CryptoVerification.SignalSession (
   lsRustNoAllocShimSymCli lsRustReallocSymCli lsStringCloneSym
 )
 open CryptoVerification.SignalSession.Cli.RunGlue (
-  CliGhostHooks IsFsC cliExternsPlaced_row cliGhostExterns cliGhostExterns_other
+  CliGhostHooks IsFsC cliExternsPlaced_row cliExtraGhostSyms cliGhostExterns cliGhostExterns_other
 )
 open CryptoVerification.SignalSession.Cli.Slots (
   aesDec_row_placed fmtWrite_row_placed formatInner_row_placed
@@ -118,9 +118,11 @@ private theorem cliGhost_row_eq (mmpl : Obj.MultiPlacement) (gh : CliGhostHooks)
     (h7 : sym ≠ lsReadFileSym := by decide)
     (h8 : sym ≠ lsReadStdinSym := by decide)
     (h9 : sym ≠ lsMemsetSym := by decide)
-    (h10 : sym ≠ lsMemcpySym := by decide) :
+    (h10 : sym ≠ lsMemcpySym := by decide)
+    (hExtra : cliExtraGhostSyms.contains sym = false ∨ gh.extra.lookup sym = none := by
+      left; decide) :
     cliGhostExterns gh (cliExternsPlaced mmpl W) sym = some f :=
-  (cliGhostExterns_other gh (cliExternsPlaced mmpl W) h1 h2 h3 h4 h5 h6 h7 h8 h9 h10).trans
+  (cliGhostExterns_other gh (cliExternsPlaced mmpl W) h1 h2 h3 h4 h5 h6 h7 h8 h9 h10 hExtra).trans
     (cliExternsPlaced_row mmpl W hrow)
 
 /-! ## 2. Closed Formatting & `mallocng` AES-CBC Hook Contracts on `cliGhostExterns` -/

@@ -12,6 +12,7 @@ module
 public import Arm64.Trusted.Spec.Hoare
 public import LibsignalBinary.Proofs.SignalSession.Cli.D3.F3.D3MainLiftGlueF3
 public import LibsignalBinary.Proofs.SpecLemmas.SignalSession.ElfSlicesPqOomH2KMainEntryFits
+import LibsignalBinary.Proofs.SpecLemmas.SignalSession.ElfSlicesPqOomH2KMainEntryFitsSat
 
 /-!
 # Arbitrary-Domain D3 Block-`579 → 617 → Real Externs` Lift (`ElfSlicesPqOomH2KD3MainLiftGlue`)
@@ -44,8 +45,6 @@ open CryptoVerification.SignalSession.Cli.MainHops
   (LsCodeInv RunCall cliIo cliMainStk cliResStack cliWrOk mProgPlaced mainFrameSize)
 open CryptoVerification.SignalSession.Cli.RunCompose (RunSem runRel)
 open CryptoVerification.SignalSession.Cli.RunGlue (CliGhostHooks cliGhostExterns)
-open CryptoVerification.SignalSession.Cli.Slots
-  (cliGhostExterns_fromUtf8_eq cliGhostExterns_memrchr_eq)
 open LibsignalBinary.Heap (AllocEvent)
 open LibsignalBinary.Heap.Fine (fineCostModel fineHookRustCliAllocBudget)
 open LibsignalBinary.Proofs.SignalSession.Cli.D3.F3.D3MainLiftGlueF3 (Block617TransferFixedHyp)
@@ -57,17 +56,20 @@ open LibsignalBinary.Proofs.SignalSession.Cli.F3.L4B.M24L4BEquiv
   (subroutine_ok_b2MainSpecTightNeedLocksFineAt_iff)
 open LibsignalBinary.Proofs.SignalSession.Cli.M24.B2MainFrameComposeBudget (libsignalPlacementOf)
 open LibsignalBinary.Proofs.SignalSession.Cli.M24.MainEntryBudgetFitsInst
-  (MainEntryBudgetFitsCapOf cliGhostExterns_handleErrorMain cliGhostExterns_strlen domScopedRun)
+  (MainEntryBudgetFitsCapOf cliGhostExterns_handleErrorMain domScopedRun)
 open LibsignalBinary.Proofs.SignalSession.Cli.M24.MainIoBoundedPlaced (ReadStdinBoundedEnv)
 open LibsignalBinary.Proofs.SignalSession.Cli.M24.MainOkCliExtB2NeedLocksInst
   (initFsState_cliProcessInputs_eq)
 open LibsignalBinary.Proofs.SignalSession.Cli.Main.Proofs.M3PlacedBudgetFd (MainIoOfPlacedFd)
 open LibsignalBinary.Proofs.SignalSession.Cli.Run.Slots.CliHookSatPlacedBudget
-  (CliGhostAllocHooks allocContractsFsPlaced_of_hooks)
+  (CliGhostAllocHooks allocContractsFsPlaced_of_hooks
+   cliGhostExterns_fromUtf8RO_budget_sat cliGhostExterns_fromUtf8_budget_sat
+   cliGhostExterns_memrchrRO_budget_sat cliGhostExterns_memrchr_budget_sat
+   cliGhostExterns_strlenRO_budget_sat)
 open LibsignalBinary.Proofs.SpecLemmas.SignalSession.ElfSlicesPqOomH2KIfaces
   (runSpecTightPlacedPreFd)
-open LibsignalBinary.Proofs.SpecLemmas.SignalSession.ElfSlicesPqOomH2KMainEntryFits
-  (b2MainSpecTightNeedLocksFineAt_of_domScopedRunSem_and_budgetFitsCapOf_placed_preFd)
+open LibsignalBinary.Proofs.SpecLemmas.SignalSession.ElfSlicesPqOomH2KMainEntryFitsSat
+  (b2MainSpecTightNeedLocksFineAt_of_domScopedRunSem_and_budgetFitsCapOf_placed_preFd_sat)
 open VerifiedLibraries.Mallocng (mallocngAddrsOfPlacement)
 
 /-- Lifts Block-`579` `runSpecTightPlacedPreFd` and `MainEntryBudgetFitsCapOf` on
@@ -118,16 +120,23 @@ theorem ghostMainSubroutineD3_of_domScopedRunTight_preFd
   intro γ tp
   letI : LibsignalPlacement := libsignalPlacementOf mpl hblk hext_nodup
   have hM24 :=
-    b2MainSpecTightNeedLocksFineAt_of_domScopedRunSem_and_budgetFitsCapOf_placed_preFd
+    b2MainSpecTightNeedLocksFineAt_of_domScopedRunSem_and_budgetFitsCapOf_placed_preFd_sat
       (ext := fun W' => cliGhostExterns ghFixed (cliExternsPlaced mmpl W'))
       (W := W) (lim := cliBudgetLimits)
       hblk hext_nodup hCI Dom S
       hlibc initFsState_cliProcessInputs_eq
       (allocContractsFsPlaced_of_hooks mmpl ghFixed W (hG γ tp))
       (hioOf γ tp)
-      (cliGhostExterns_strlen mmpl ghFixed W)
-      (cliGhostExterns_fromUtf8_eq mmpl ghFixed W)
-      (cliGhostExterns_memrchr_eq mmpl ghFixed W)
+      (cliGhostExterns_strlenRO_budget_sat ghFixed (cliExternsPlaced mmpl W)
+        (hG γ tp).extraOk hookStack)
+      (cliGhostExterns_fromUtf8_budget_sat ghFixed (cliExternsPlaced mmpl W)
+        (hG γ tp).extraOk hookStack)
+      (cliGhostExterns_fromUtf8RO_budget_sat ghFixed (cliExternsPlaced mmpl W)
+        (hG γ tp).extraOk hookStack)
+      (cliGhostExterns_memrchr_budget_sat ghFixed (cliExternsPlaced mmpl W)
+        (hG γ tp).extraOk (Nat.le_refl extHookStack) (by decide))
+      (cliGhostExterns_memrchrRO_budget_sat ghFixed (cliExternsPlaced mmpl W)
+        (hG γ tp).extraOk (Nat.le_refl extHookStack) (by decide))
       (cliGhostExterns_handleErrorMain mmpl ghFixed W)
       hstk (hfitCap γ tp) (hrun γ tp)
   exact

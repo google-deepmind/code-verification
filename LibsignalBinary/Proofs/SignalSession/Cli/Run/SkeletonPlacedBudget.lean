@@ -12,6 +12,7 @@ module
 public import LibsignalBinary.Heap.RustStdAllocBudgetBridge
 public import LibsignalBinary.Proofs.RecordCodecs.DepsBudget
 public import LibsignalBinary.Proofs.SignalSession.Cli.Dir.Path.PlacedBudget
+public import LibsignalBinary.Proofs.SignalSession.Cli.HooksDehook.WithLsRet -- proof-setup: allow-public-import
 public import LibsignalBinary.Proofs.SignalSession.Cli.Main.Proofs.AddressPlacedBudget
 public import LibsignalBinary.Proofs.SignalSession.Cli.Main.Proofs.AllocFsSitesPlacedBudget
 public import LibsignalBinary.Proofs.SignalSession.Cli.Main.Proofs.Reserve11PlacedBudget
@@ -64,7 +65,7 @@ open CryptoVerification.LibsignalTripleRatchetRepr (uuidTryParse)
 open CryptoVerification.RecordCodecs.Placed (blkPC_18 blkPl_18 instIsLsBlockProg_18)
 open CryptoVerification.RecordCodecsBinary.IdentityKeyDecode (identityKey_decode_placed_ok)
 open CryptoVerification.SignalSession
-  (CliHooks cliExternsPlaced lsFormatInnerSym lsFromUtf8Sym lsMemrchrSym lsReadFileSym
+  (CliHooks cliExternsPlaced lsBlackBoxSym lsFormatInnerSym lsFromUtf8Sym lsMemrchrSym lsReadFileSym
    lsRustAllocZeroedSymCli lsStringCloneSym)
 open CryptoVerification.SignalSession.Cli (DirGhost cliBcmpSpec)
 open CryptoVerification.SignalSession.Cli.MainHops (cliIo cliWrOk fromUtf8AsciiSpec memrchrSpec)
@@ -88,9 +89,11 @@ open LibsignalBinary.Heap.SpecBudget (formatInnerBudgetSpec withVmPreserved)
 open LibsignalBinary.Proofs.RecordCodecs.DepsBudget (CodecHooksPlaced identityKeyDecodeRawSpec)
 open LibsignalBinary.Proofs.SignalSession.Cli.Dir.Path.PlacedBudget
   (PathEnv path_placed_caller_ok_of_deps)
+open LibsignalBinary.Proofs.SignalSession.Cli.HooksDehook.WithLsRet
+  (hookSat_withLsRet withLsRet)
 open LibsignalBinary.Proofs.SignalSession.Cli.Main.CalleesBudget (addressSpec)
 open LibsignalBinary.Proofs.SignalSession.Cli.Main.Proofs.AddressPlacedBudget
-  (address_placed_ok_rocl)
+  (address_placed_ok_rocl_ls)
 open LibsignalBinary.Proofs.SignalSession.Cli.Main.Proofs.AllocFsSitesPlacedBudget
   (AllocContractsFsPlaced.shim2_rocl)
 open LibsignalBinary.Proofs.SignalSession.Cli.Main.Proofs.Reserve11PlacedBudget
@@ -118,9 +121,9 @@ open LibsignalBinary.Proofs.SignalSession.Cli.AllocGhostLinkTransfer
 open LibsignalBinary.Proofs.SignalSession.Cli.Run.Slots.CliHookSatPlacedBudget
   (CliAllocHooks CliGhostAllocHooks CliGhostSpqrAllocHooks allocContractsFsPlaced_of_hooks
    allocContractsXCliPlaced_of_hooks
-   cliExternsPlaced_bcmp_budget_sat cliExternsPlaced_fromUtf8_budget_sat
-   cliExternsPlaced_memrchr_budget_sat cliGhostExterns_memcpyRegionRO_budget_sat
-   codecHooksPlaced_of_hooks)
+   cliGhostExterns_bcmp_keepsFs_budget_sat cliGhostExterns_blackBoxSat_budget_sat
+   cliGhostExterns_fromUtf8_budget_sat cliGhostExterns_memcpyRegionRO_budget_sat
+   cliGhostExterns_memrchr_budget_sat codecHooksPlaced_of_hooks)
 open LibsignalBinary.Proofs.SignalSession.Cli.SpecsPlacedBudget
   (AllocContractsFsPlaced AllocContractsXCliPlaced bundleReadSpecPlaced dirGetSpecPlaced
    pathSpecPlaced readFileSpecPlaced splitIdSpecPlaced splitSignedSpecPlaced)
@@ -137,14 +140,16 @@ structure RunHooksPlaced [LibsignalPlacement] {M : AllocCostModel}
   allocFs : AllocContractsFsPlaced A lim ext
   panics : CliPanicHooksPlaced ext
   memcpyRO : HookSat ext lsMemcpySym (withVmPreserved sessionMemcpyRegionROSpec)
-  bcmp : HookSat ext "bcmp" (withVmPreserved cliBcmpSpec)
+  bcmp : HookSat ext "bcmp" (withVmPreserved cliBcmpSpec).keepsFs
   fs : ∀ (prog : Program) (i : Nat), [IsLsBlockProg prog i ext] → TraceFsSound prog
   utf8 : ∀ stk : Nat, HookSat ext lsFromUtf8Sym (withVmPreserved (fromUtf8AsciiSpec stk))
-  memrchr : ∀ stk : Nat, HookSat ext lsMemrchrSym (withVmPreserved (memrchrSpec stk))
+  memrchr : HookSat ext lsMemrchrSym (withLsRet (withVmPreserved (memrchrSpec extHookStack)))
   codecHooks : CodecHooksPlaced M A lim ext
   allocZeroed : HookSat ext lsRustAllocZeroedSymCli (rustCliAllocBudgetSpec M A lim true)
   stringClone : HookSat ext lsStringCloneSym (stringCloneBudgetSpec M A lim)
   formatInner : HookSat ext lsFormatInnerSym (formatInnerBudgetSpec M A lim)
+  blackBox : HookSat ext lsBlackBoxSym
+    LibsignalBinary.Proofs.ConsumeMessageKey.FindIndexProofs.CtEqSat.blackBoxSpecSat
 
 /-- Allocation-event envelopes for the non-slot callees of `RunCalleesPlaced` (`read_file`,
 `Dir::get`, `read_bundle::{closure#0}`, `split_id`, `split_signed`). -/
@@ -222,13 +227,13 @@ theorem runAddress_placed_ok [LibsignalPlacement] {callerProg : Program} {i : Na
     subroutine_ok callerProg (lsmpl.base 580)
       (withLsCodeRoLoaded lsmpl (addressSpec A lim uuidTryParse resStack)) := by
   have hmemrchr : subroutine_ok (lsProg_580 ext) (lsρ lsMemrchrSym)
-      (withLsRoCl lsmpl (withVmPreserved (memrchrSpec extHookStack))) := by
+      (withLsRoCl lsmpl (withLsRet (withVmPreserved (memrchrSpec extHookStack)))) := by
     have hplain : subroutine_ok (lsProg_580 ext) (lsρ lsMemrchrSym)
-        (withVmPreserved (memrchrSpec extHookStack)) := by
+        (withLsRet (withVmPreserved (memrchrSpec extHookStack))) := by
       dsimp only [lsProg_580]
-      exact ls_hook_ok_ultra_of_mem (hh.memrchr extHookStack) (by decide)
+      exact ls_hook_ok_ultra_of_mem hh.memrchr (by decide)
     exact subroutine_ok_rocl_of_plain hplain
-  have hrocl := address_placed_ok_rocl (prog := callerProg) (i := i)
+  have hrocl := address_placed_ok_rocl_ls (prog := callerProg) (i := i)
     hh.allocFs hmemrchr hres hres64 hi
   refine subroutine_ok_mono hrocl (fun _ _ _ h => h) ?_ (fun _ _ _ _ hp => hp)
   intro x R s0 sf hpost
@@ -450,23 +455,15 @@ theorem RunHooksPlaced.of_ghost [LibsignalPlacement]
   allocFs := allocContractsFsPlaced_of_ghost mmpl W baseExt g hBase hG.toCliGhostAllocHooks
   panics := cliGhostExterns_panics g hBase.panics
   memcpyRO := cliGhostExterns_memcpyRegionRO_budget_sat baseExt hG.toCliGhostAllocHooks
-  bcmp := hookSat_of_eq
-    ((cliGhostExterns_other g baseExt (by decide) (by decide) (by decide)
-      (by decide) (by decide) (by decide)).trans hBase.bcmp_eq)
-    (cliExternsPlaced_bcmp_budget_sat mmpl W)
+  bcmp := cliGhostExterns_bcmp_keepsFs_budget_sat g baseExt hG.extraOk
   fs prog i _ := traceFsSound_lsProg_ghost hG hStrFsT hFsBase prog i
-  utf8 stk := hookSat_of_eq
-    ((cliGhostExterns_other g baseExt (by decide) (by decide) (by decide)
-      (by decide) (by decide) (by decide)).trans hBase.utf8_eq)
-    (cliExternsPlaced_fromUtf8_budget_sat mmpl W stk)
-  memrchr stk := hookSat_of_eq
-    ((cliGhostExterns_other g baseExt (by decide) (by decide) (by decide)
-      (by decide) (by decide) (by decide)).trans hBase.memrchr_eq)
-    (cliExternsPlaced_memrchr_budget_sat mmpl W stk)
+  utf8 stk := cliGhostExterns_fromUtf8_budget_sat g baseExt hG.extraOk stk
+  memrchr := cliGhostExterns_memrchr_budget_sat g baseExt hG.extraOk (Nat.le_refl _)
   codecHooks := codecHooksPlaced_of_ghost mmpl W baseExt g hBase hG.toCliGhostAllocHooks
   allocZeroed := ⟨g.allocZeroed, cliGhostExterns_allocZeroed g baseExt, hG.allocZeroed⟩
   stringClone := hStrClone
   formatInner := hFmt
+  blackBox := cliGhostExterns_blackBoxSat_budget_sat g baseExt hG.extraOk
 
 /-- Constructs `RunHooksPlaced A lim (cliGhostExterns g (cliExternsPlaced mmpl W))` from
 `CliGhostSpqrAllocHooks` and `HookSat` witnesses for `String::clone` and `format_inner`. -/

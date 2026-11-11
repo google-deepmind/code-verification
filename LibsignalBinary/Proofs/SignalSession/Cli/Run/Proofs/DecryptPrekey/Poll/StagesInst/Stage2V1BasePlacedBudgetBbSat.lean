@@ -59,8 +59,7 @@ open CryptoVerification.SignalSession.Cli.Slots (cliGhostExterns_sat_of_cliExter
 open LibsignalBinary.Heap
   (AllocCostModel BudgetLimits RustCliAllocBudget rustCliAllocBudgetSpec rustCliDeallocBudgetSpec)
 open LibsignalBinary.Heap.SpecBudget (withVmPreserved)
-open LibsignalBinary.Proofs.ConsumeMessageKey.FindIndexProofs.CtEqSat
-  (blackBoxSpecSat hookSat_blackBox_of_eq)
+open LibsignalBinary.Proofs.ConsumeMessageKey.FindIndexProofs.CtEqSat (blackBoxSpecSat)
 open LibsignalBinary.Proofs.E2E.Pqxdh.Initiator.HandshakeDeriveBudget
   (PqxdhHkdfExpandMultiInfoPlacedOk PqxdhHkdfExtractPlacedOk
    handshakeKeysDerivePlacedBaseSpec handshakeKeysDerivePlacedVmSpec)
@@ -82,12 +81,11 @@ open LibsignalBinary.Proofs.SignalSession.Cli.Run.Proofs.DecryptPrekey.Poll.Stag
    cliExternsPlaced_noAllocShimBudget_sat cliExternsPlaced_toEdwards_budget_sat
    cliExternsPlaced_torsionFree_budget_sat dalekMontToEdResponderBudgetSpec)
 open LibsignalBinary.Proofs.SignalSession.Cli.Run.Proofs.DecryptPrekey.Poll.StagesInst.Stage2V1BasePlacedBudgetSat
-  (ResponderPqxdhPlacedHookContractsSat cliResponderPqxdhHookContractsPlaced_of_hookSat_sat
-   cliResponderPqxdhHookContractsPlaced_of_runHooks_sat cliResponderPqxdhHookContractsPlaced_sat)
+  (ResponderPqxdhPlacedHookContractsSat)
 open LibsignalBinary.Proofs.SignalSession.Cli.Run.Slots.CliHookSatPlacedBudget
   (CliGhostAllocHooks cliExternsPlaced_alloc_budget_sat cliExternsPlaced_dealloc_budget_sat
-   cliExternsPlaced_diffieHellman_budget_sat cliExternsPlaced_sharedSecretDrop_budget_sat
-   cliExternsPlaced_staticSecretDrop_budget_sat)
+   cliExternsPlaced_diffieHellman_budget_sat cliGhostExterns_blackBoxSat_budget_sat
+   cliGhostExterns_sharedSecretDrop_budget_sat cliGhostExterns_staticSecretDrop_budget_sat)
 open LibsignalBinary.Proofs.TripleRatchet.Alloc.DefsBudget (noAllocShimBudgetSpec)
 open LibsignalBinary.Proofs.TripleRatchet.Hkdf.CommonBudgetSat (HkdfPlacedHooksExactBudgetSat)
 open LibsignalBinary.Proofs.TripleRatchet.Hkdf.CommonSat (HkdfPlacedHooksExactSat)
@@ -143,7 +141,7 @@ theorem ResponderPqxdhPlacedHookContractsSat.toBbSat [LibsignalPlacement]
     dh               := h.dh
     sharedDrop       := h.sharedDrop
     staticDrop       := h.staticDrop
-    blackBox         := hookSat_blackBox_of_eq h.blackBox
+    blackBox         := h.blackBox
     noAllocShim      := h.noAllocShim
     alloc            := h.alloc
     dealloc          := h.dealloc
@@ -306,10 +304,8 @@ theorem cliResponderPqxdhHookContractsPlaced_of_hookSat_bb_sat [LibsignalPlaceme
   memsetBudget := hMs
   dh := cliGhostExterns_sat_of_cliExternsPlaced mmpl g W
     (cliExternsPlaced_diffieHellman_budget_sat mmpl W)
-  sharedDrop := cliGhostExterns_sat_of_cliExternsPlaced mmpl g W
-    (cliExternsPlaced_sharedSecretDrop_budget_sat mmpl W)
-  staticDrop := cliGhostExterns_sat_of_cliExternsPlaced mmpl g W
-    (cliExternsPlaced_staticSecretDrop_budget_sat mmpl W)
+  sharedDrop := cliGhostExterns_sharedSecretDrop_budget_sat g (cliExternsPlaced mmpl W) hG.extraOk
+  staticDrop := cliGhostExterns_staticSecretDrop_budget_sat g (cliExternsPlaced mmpl W) hG.extraOk
   blackBox := hBb
   noAllocShim := hnoAllocShim
   alloc := halloc
@@ -369,8 +365,9 @@ theorem cliResponderPqxdhHookContractsPlaced_of_hookSat_sat_toBbSat [LibsignalPl
     ResponderPqxdhPlacedHookContractsBbSat M
       (ofSignalPqxdhPrimitives (modelPrims X ⟨W.C, W.Q⟩))
       W.C A lim (cliGhostExterns g (cliExternsPlaced mmpl W)) :=
-  ResponderPqxdhPlacedHookContractsSat.toBbSat
-    (cliResponderPqxdhHookContractsPlaced_of_hookSat_sat X mmpl g W hG hMs halloc hdealloc hnoAllocShim)
+  cliResponderPqxdhHookContractsPlaced_of_hookSat_bb_sat X mmpl g W hG hMs
+    (cliGhostExterns_blackBoxSat_budget_sat g (cliExternsPlaced mmpl W) hG.extraOk)
+    halloc hdealloc hnoAllocShim
 
 theorem cliResponderPqxdhHookContractsPlaced_sat_toBbSat [LibsignalPlacement] {M : AllocCostModel}
     {A : RustCliAllocBudget M} {lim : BudgetLimits}
@@ -381,8 +378,8 @@ theorem cliResponderPqxdhHookContractsPlaced_sat_toBbSat [LibsignalPlacement] {M
     ResponderPqxdhPlacedHookContractsBbSat M
       (ofSignalPqxdhPrimitives (modelPrims X ⟨W.C, W.Q⟩))
       W.C A lim (cliGhostExterns g (cliExternsPlaced mmpl W)) :=
-  ResponderPqxdhPlacedHookContractsSat.toBbSat
-    (cliResponderPqxdhHookContractsPlaced_sat X mmpl g W hG hMs)
+  cliResponderPqxdhHookContractsPlaced_bb_sat X mmpl g W hG hMs
+    (cliGhostExterns_blackBoxSat_budget_sat g (cliExternsPlaced mmpl W) hG.extraOk)
 
 theorem cliResponderPqxdhHookContractsPlaced_of_runHooks_sat_toBbSat [LibsignalPlacement]
     {M : AllocCostModel} {A : RustCliAllocBudget M} {lim : BudgetLimits}
@@ -395,7 +392,7 @@ theorem cliResponderPqxdhHookContractsPlaced_of_runHooks_sat_toBbSat [LibsignalP
     ResponderPqxdhPlacedHookContractsBbSat M
       (ofSignalPqxdhPrimitives (modelPrims X ⟨W.C, W.Q⟩))
       W.C A lim (cliGhostExterns g (cliExternsPlaced mmpl W)) :=
-  ResponderPqxdhPlacedHookContractsSat.toBbSat
-    (cliResponderPqxdhHookContractsPlaced_of_runHooks_sat X mmpl g W hG hh hMs)
+  cliResponderPqxdhHookContractsPlaced_of_runHooks_bb_sat X mmpl g W hG hh hMs
+    (cliGhostExterns_blackBoxSat_budget_sat g (cliExternsPlaced mmpl W) hG.extraOk)
 
 end LibsignalBinary.Proofs.SignalSession.Cli.Run.Proofs.DecryptPrekey.Poll.StagesInst.Stage2V1BasePlacedBudgetBbSat

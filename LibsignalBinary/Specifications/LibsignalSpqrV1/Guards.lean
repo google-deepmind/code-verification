@@ -56,7 +56,7 @@ What the guards establish:
   from `libsignalSessionImage.stubs`.
 
 Not covered: that the SPQR V1 `Once::call` sites address these cells is a property of the code. On
-the pinned stock `ld.lld` CLI ELF (`2f20c8363424…`, where `--gc-sections` retains `10` `bl 0x468930`
+the pinned stock `ld.lld` CLI ELF (`50066cbd7322…`, where `--gc-sections` retains `10` `bl 0x468930`
 `<Once>::call` sites in `.text.crate`, all in `spqr::encoding::*`, and places `STORAGE.0` at
 `0x46f000` and `TOKEN` at `0x46f008` in `.data.crate`, anchored on the placed route by
 `CliProbeLabelsAnchored` and `Placed.cliTokenPatchPlaced`), `llvm-objdump -d -C` on

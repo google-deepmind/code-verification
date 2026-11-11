@@ -4,21 +4,25 @@
  *   1. Four page-aligned, non-overlapping W^X `PT_LOAD` segments (`:ro` R, `:text_a` RX, `:text_b` RX,
  *      `:data` RW) starting at `0x400000` with `FILEHDR PHDRS` mapped at `[0x400000, 0x400000 + SIZEOF_HEADERS)`
  *      for musl `AT_PHDR` / `AT_PHNUM` discovery (`e_phnum = 7`):
- *      - `:ro`     `FLAGS(4)`;
+ *      - `:ro`     `FLAGS(4)` (`.rodata` plus optional `.rodata.lib2` for C2 `lib2_*.o` RO / `.data.rel.ro`);
  *      - `:text_a` `FLAGS(5)`: `.text.crate` holds all `lib0_*.o` crate blocks (including `main`),
  *        hooked `lib1_*.o` I/O definers (`write_file`, `write_stdout`), `extern_stubs_clean.o`
- *        (`udf #0` fail-stop/hook/panic stubs + displaced weak `__aarch64_*` atomics), hooked musl
- *        string primitives (`memmove.lo`, `bcmp.lo`, `strlen.lo`) plus `memcmp.lo` (reached by `bcmp`'s
- *        tail `b memcmp`), and `.text.compiler_rt.*`;
+ *        (`udf #0` fail-stop/hook/panic stubs + displaced weak `__aarch64_*` atomics + in-place
+ *        `KEEP(.text.__retired_*)` retired stub slots), hooked musl string primitives
+ *        (`memmove.lo`, `memcmp.lo`, `bcmp.lo`, `strlen.lo` when still hooked; moved to the
+ *        `.text.b_pre` tail after `memset.lo` in `stock/stock_c2.ld` under C2 `D-C2f = 2C`), and
+ *        `.text.compiler_rt.*`;
  *      - `:text_b` `FLAGS(5)` (`StdBinaryLayout.rxProgram`):
  *        - `.text.b_pre` (`< e_entry`) holds non-hook `lib1_*.o` definers (`read_file`, `read_stdin`,
  *          `RawVecInner::finish_grow`), `rdl_shim.o` (`__rdl_*` + 5 `__rust_*` shims), and musl
- *          `memcpy.lo` / `memset.lo`;
+ *          `memcpy.lo` / `memset.lo` (followed at C2 `2C` by `memmove.lo` -> `memcmp.lo` ->
+ *          `bcmp.lo` -> `strlen.lo`, `< e_entry`);
  *        - `.text` begins at `0x1000`-aligned `e_entry` with `KEEP(*crt1.o(.text.start ...))`
  *          (`_start == e_entry`), followed by `.init`, musl startup/exit/libc + `mallocng` + `main_rust.o`
- *          text, and `.fini`. Every `libsignalSessionExterns` entry resolves `< e_entry` (`hstubLt`),
- *          `e_entry - base(main) > 0` (`hmainOff`), and `:text_b` contains 0 `externAt?` hook keys
- *          outside `memcpy` / `memset` in `.text.b_pre` (`0` hook keys in `[e_entry, text_b_end)`).
+ *          text, and `.fini`, followed at the `:text_b` tail by optional `.text.lib2` (`*lib2_*.o`,
+ *          de-hooked `cli/rt` code enabled atomically at C2). Every hooked `libsignalSessionExterns`
+ *          entry resolves `< e_entry` (`hstubLt`), `e_entry - base(main) > 0` (`hmainOff`), and
+ *          `0` `externAt?` hook keys lie in `[e_entry, text_b_end)` (`lib2` is de-hooked code).
  *   2. Page-aligned RW layout in `:data`:
  *      - `.tdata`, `.tbss` (`PT_TLS` `0/0`), and `.data.crate` occupy the initial `:data` page;
  *      - Top-level `PROVIDE_HIDDEN` (`indent == 0` in `link.map`) and `. = ALIGN(0x1000);` align
@@ -44,8 +48,17 @@ SECTIONS
   . = 0x400000 + SIZEOF_HEADERS;
 
   .rodata : {
-    *(.rodata .rodata.* .gnu.linkonce.r.*)
-    *(.data.rel.ro .data.rel.ro.*)
+    *(EXCLUDE_FILE(*lib2_*.o) .rodata EXCLUDE_FILE(*lib2_*.o) .rodata.* EXCLUDE_FILE(*lib2_*.o) .gnu.linkonce.r.*)
+    *(EXCLUDE_FILE(*lib2_*.o) .data.rel.ro EXCLUDE_FILE(*lib2_*.o) .data.rel.ro.*)
+  } :ro =0
+
+  /* `.data.rel.ro` precedes `.rodata` in `.rodata.lib2` so `lib2_5.o` (`SystemTime::add`, whose
+   * only RO input is a 45-byte `align=1` `.rodata..Lanon` panic string) sits strictly at the end
+   * of `.rodata.lib2`: dropping `time_add` truncates `.rodata.lib2` without shifting earlier
+   * `.data.rel.ro` `Location` records or `.rodata` tables. */
+  .rodata.lib2 : {
+    *lib2_*.o(.data.rel.ro .data.rel.ro.*)
+    *lib2_*.o(.rodata .rodata.* .gnu.linkonce.r.*)
   } :ro =0
 
   . = ALIGN(0x1000);
@@ -56,6 +69,7 @@ SECTIONS
     main.o(.text .text.*)
     */main.o(.text .text.*)
     *extern_stubs_clean.o(.text .text.*)
+    KEEP(*extern_stubs_clean.o(.text.__retired_*))
     memmove.o(.text .text.*)
     */memmove.o(.text .text.*)
     *libc.a:memmove.lo(.text .text.*)
@@ -65,7 +79,7 @@ SECTIONS
     bcmp.o(.text .text.*)
     */bcmp.o(.text .text.*)
     *libc.a:bcmp.lo(.text .text.*)
-    *(.text.strlen .text.compiler_rt.*)
+    *(EXCLUDE_FILE(*lib2_*.o) .text.strlen EXCLUDE_FILE(*lib2_*.o) .text.compiler_rt.*)
   } :text_a =0
 
   . = ALIGN(0x1000);
@@ -88,8 +102,12 @@ SECTIONS
   .text : ALIGN(0x1000) {
     KEEP(*crt1.o(.text.start .text .text.*))
     KEEP(*(SORT_NONE(.init)))
-    *(.text .text.* .gnu.linkonce.t.*)
+    *(EXCLUDE_FILE(*lib2_*.o) .text EXCLUDE_FILE(*lib2_*.o) .text.* EXCLUDE_FILE(*lib2_*.o) .gnu.linkonce.t.*)
     KEEP(*(SORT_NONE(.fini)))
+  } :text_b =0
+
+  .text.lib2 : {
+    *lib2_*.o(.text .text.*)
   } :text_b =0
 
   . = ALIGN(0x1000);

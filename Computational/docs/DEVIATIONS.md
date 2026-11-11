@@ -1324,7 +1324,7 @@ effect: out of scope
 - Each valid pair of multi-block placements `mpl` (`libsignalSessionLib.LinkedAt bytes mpl`) and
   `mmpl` (`VerifiedLibraries.mallocngLib.LinkedAt bytes mmpl`,
   `Placed.CliElfCodeMatchesPlaced mpl mmpl elf`) places code and data where `elf` maps them (for the
-  pinned static non-PIE ELF `cliElfBytes`, linked with stock `ld.lld` under `third_party/libsignal/libsignal-session/cli-elf/stock.ld` at base `0x400000`, 4
+  pinned static non-PIE ELF `cliElfBytes`, linked with stock `ld.lld` under `third_party/libsignal/libsignal-session/cli-elf/stock/stock_c2.ld` at base `0x400000`, 4
   `PT_LOAD` segments). The process gets an 8 MiB stack with its top at `0x7fff_ffff_0000`
   (DEV-CLI7), the engine's default auxiliary vector (`AT_RANDOM` = 16 zero bytes, `AT_HWCAP` =
   `0x3`), `mmap` slots from `0x6000_0000_0000` (`SignalSession/Process.lean`), and `brk` starting at
@@ -1340,7 +1340,7 @@ effect: out of scope
 - The claim is about the ELF pinned by SHA-256 in `CliElf.lean` (`.GeneratedLean/cli-elf/libsignal-cli.elf`):
   libsignal v0.105.4's `libsignal-cli` CLI built from source by `scripts/cli-elf-stock --stdbin --build`
   with stock LLVM `ld.lld` (`22.1.8`, `--no-relax`, `-static`, `-no-pie`, `--gc-sections`,
-  `-T third_party/libsignal/libsignal-session/cli-elf/stock.ld`, pinned in
+  `-T third_party/libsignal/libsignal-session/cli-elf/stock/stock_c2.ld`, which `scripts/cli-elf-stock` renders from `cli-elf/stock.ld` (`_render_c2_stock_ld`: C2 moves the `4` libc rows `memmove`, `memcmp`, `bcmp`, `strlen` to the `.text.b_pre` tail below `e_entry`) and fails on any drift, pinned in
   `third_party/libsignal/libsignal-session/cli-elf/stock/inputs_stock_stdbin.lock`) from the
   compiled `rustc 1.98.1` crate objects and trimmed `alloc`/`std` sysroot members
   (`translation.toml` and `cli/io/translation.toml`: release profile
@@ -1437,12 +1437,12 @@ effect: out of scope
 - Under AAPCS64 (the Arm 64-bit procedure call standard) a callee may clobber all caller-saved
   state: `x0`–`x18`, the caller-saved SIMD/FP (vector / floating-point) registers and the NZCV
   condition flags. Each hook of `cliHookTablePlaced` writes only what its definition names and keeps
-  every other register (`cliBcmpHook` writes only `x0`, `durationSinceExactHook` only its 24
-  result bytes), so a compiled caller that wrongly relied on a caller-saved register surviving a
+  every other register (e.g. `writeStdoutHook` writes only `x0` and
+  the trace), so a compiled caller that wrongly relied on a caller-saved register surviving a
   hooked call would still verify.
 - Argued, not proved: correct compiler output never relies on caller-saved registers across a
   call; every reached call site keeps its live values in callee-saved registers and reads only the
-  outputs (`bcmp`: `cbnz w0`).
+  outputs.
 - Future work that would make it machine-checked: have these hooks havoc (overwrite with arbitrary
   values) every caller-saved register, the values drawn from the hook choice `W`, and re-run the
   proofs; the result would then hold for every AAPCS64-conforming libc (still for one ELF,
@@ -1517,24 +1517,23 @@ scope
 - The UUID parser is not a hook: `<uuid::Uuid>::try_parse` is in the image (the whole `uuid` crate
   is compiled in) and is verified against the trusted model `uuidTryParse`
   (`LibsignalBinary/Specifications/LibsignalTripleRatchetRepr.lean`, a transcription of uuid 1.26.1 `src/parser.rs`).
-- Like the primitives, `bcmp` (the libc byte compare LLVM emits for byte-slice `==`) is hooked in
-  `cliHookTablePlaced` rather than executed in the placed CLI proofs (on the stock `ld.lld`
-  ELF its 1-word `b memcmp` wrapper and `memcmp` are linked from `rustc 1.98.1`'s
-  `self-contained/libc.a`, while the fixed-image session export still gives it a zero-filled stub).
-  Its contract is trusted: `CliHooks.bcmp` is any result whose low 32 bits are zero exactly when the
-  strings are equal (`bcmp_ok`). It is universally quantified, not fixed, because the nonzero value
-  is libc dependent and AAPCS64 leaves the upper 32 bits of an `int` in `x0` unspecified
-  (`LibsignalBinary/Specifications/SignalSession/CliRun.lean`).
+- `bcmp` (the libc byte compare LLVM emits for byte-slice `==`) was a hook with a trusted contract
+  (`CliHooks.bcmp`: any result whose low 32 bits are zero exactly when the strings are equal,
+  `bcmp_ok`) until the second stock `ld.lld` cutover (C2) de-hooked it: the run now executes musl's
+  `bcmp` (and the `memcmp` it tail-calls) from the pinned ELF, and the `CliHooks` fields `bcmp` /
+  `bcmp_ok` / `utf8Err` were removed from the structure (D-C2b;
+  `LibsignalBinary/Specifications/SignalSession/CliRun.lean`).
 - Alongside the cryptographic primitives, the CLI's hook table `cliHookTablePlaced`
-  (`LibsignalBinary/Specifications/SignalSession/CliBinaryPq.lean`, `37` rows: `18` PQXDH/SPQR + `19`
+  (`LibsignalBinary/Specifications/SignalSession/CliBinaryPq.lean`, `27` rows: `18` PQXDH/SPQR + `9`
   base/IO/crypto, with hook definitions in `CliRun.lean` and retired fixed-image `cliHookTable` in
   `CliRunFixed.lean`) keeps `core::fmt::write` and `alloc::fmt::format::format_inner` (error-message
   formatting) hooked in this release by design (memory safety proved post-release together with the
-  cryptographic primitives), and hooks the non-crypto rows not yet de-hooked: the two write functions
-  `write_file` and `write_stdout` of the I/O crate (`libsignal_cli_io`), `memmove` (`hookMemmove :=
-  hookMemcpy`), `strlen`, `core::slice::memchr::memrchr`, `core::str::converts::from_utf8`,
-  `<SystemTime>::duration_since`, `<SystemTime as Add<Duration>>::add`, `subtle::black_box`, and the
-  two X25519 `Drop::drop` zeroize hooks. `read_file`, `read_stdin` (`1 MiB` stdin cap, `2 MiB` file
+  cryptographic primitives), and hooks the non-crypto rows not yet de-hooked: the two write
+  functions `write_file` and `write_stdout` of the I/O crate (`libsignal_cli_io`). The second stock
+  `ld.lld` cutover (C2) de-hooked `memmove`, `bcmp`, `strlen`, `core::slice::memchr::memrchr`,
+  `core::str::converts::from_utf8`, `<SystemTime>::duration_since`, `<SystemTime as
+  Add<Duration>>::add`, `subtle::black_box`, and the two X25519 `Drop::drop` destructors, whose
+  linked code runs. `read_file`, `read_stdin` (`1 MiB` stdin cap, `2 MiB` file
   cap, `< 4096`-B NUL-free paths), `memcpy`, and `memset` are no longer hooks: across `B2-TLIT`
   (`49 → 47`), F3 (`47 → 39`), and the stock `ld.lld` cutover (`39 → 37`, `cliHookTablePlaced_length_guard`—`9`
   external de-hooked symbols in `cliDehookedSymsPlaced` (`2` read, `5` `__rust_*` allocator, and
@@ -3483,13 +3482,18 @@ section that puts a term in a bound (DEV-CLI17, the excused-abort term, is retir
   `CliSpecPqxdhNoMatch`, and `CliSpecE`
   (`LibsignalBinary/Proofs/SpecLemmas/SignalSession/SmDirProofDefs.lean`), and completeness proofs
   in `Computational/Proofs/LibsignalCli/CliCapsCompleteness.lean`).
-- In the bounded-read CLI build (B2 removed the 2 `grow_one` hooks, `49 → 47`; the F3 + IO.6b cutover
-  removed `<String as Clone>::clone` and `7` external de-hooked symbols, `47 → 39`; and the stock `ld.lld`
-  cutover removes `memcpy` and `memset`—executed as `VerifiedLibraries.mallocngLib` blocks `20` and `21`
-  on the stock ELF—bringing `cliDehookedSymsPlaced` to `9` external de-hooked symbols and
-  `cliHookTablePlaced` to `37` rows (`39 → 37`), with `libsignal_cli_io::{read_file, read_stdin}`
-  running their linked `lib1_0.o` code while `write_file` and `write_stdout` stay linked in `lib1_0.o`
-  and intercepted at entry as disclosed trusted hooks until `W-DIS0`, see DEV-CLI19):
+- In the bounded-read CLI build (B2 removed the 2 `grow_one` hooks, `49 → 47`; the F3 + IO.6b
+  cutover removed `<String as Clone>::clone` and `7` external de-hooked symbols, `47 → 39`; the
+  stock `ld.lld` cutover removed `memcpy` and `memset`—executed as `VerifiedLibraries.mallocngLib`
+  blocks `20` and `21` on the stock ELF—leaving `9` external de-hooked symbols and `37` rows
+  (`39 → 37`); and the second stock `ld.lld` cutover (C2) removes `memmove`, `bcmp`, and `strlen`
+  (`self-contained/libc.a`; `bcmp` tail-calls the unhooked `memcmp`) and `memrchr`, `from_utf8`,
+  `SystemTime::duration_since`, `<SystemTime as Add<Duration>>::add`, `subtle::black_box`, and the
+  `2` X25519 `Drop::drop` destructors (compiled Rust in the C2 `lib2_*.o` objects), bringing
+  `cliDehookedSymsPlaced` to `19` external de-hooked symbols and `cliHookTablePlaced` to `27` rows
+  (`37 → 27`), with `libsignal_cli_io::{read_file, read_stdin}` running their linked `lib1_0.o` code
+  while `write_file` and `write_stdout` stay linked in `lib1_0.o` and intercepted at entry as
+  disclosed trusted hooks until `W-DIS0`, see DEV-CLI19):
   - `read_stdin` caps standard input at `stdinCapBytes = 2^20` (`1,048,576` B), exiting `2` with
     files unchanged when `stdin.length > stdinCapBytes`;
   - `read_file` caps file reads at `fileCapBytes = 2^21` (`2,097,152` B), and both `read_file` and

@@ -13,6 +13,7 @@ public import LibsignalBinary.Proofs.Common.SharedHelpers
 public meta import LibsignalBinary.Proofs.Common.SharedHelpers -- shake: keep
 public import LibsignalBinary.Proofs.Placed.BudgetPoolSync
 public meta import LibsignalBinary.Proofs.Placed.BudgetPoolSync -- shake: keep
+public import LibsignalBinary.Proofs.ConsumeMessageKey.FindIndexProofs.CtEqSat
 public import LibsignalBinary.Proofs.ConsumeMessageKey.FindIndexProofs.LoopBudget
 public import LibsignalBinary.Proofs.TripleRatchet.Getters.IdentityBudget
 public import LibsignalBinary.Proofs.RecordCodecs.IdentityKeyDecode
@@ -436,6 +437,206 @@ theorem idTrustPoll_placed_caller_ok_of_deps [LibsignalPlacement] {M : AllocCost
       (idTrustPollSpecPlaced rd pathOk A lim (CliIdTrustPollEnv GetEnv) stk) :=
   ls_transfer_lscro (callerProg := callerProg) (j := 566)
     (idTrustPoll_placed_ok_of_deps hC hGet hDec hEq hstk
+      hGetBlk hGetUnmut hDecBlk hDecUnmut hEqBlk hEqUnmut) hCallerBlk
+
+/-- `<PublicKey as PartialEq>::eq` (Block `212`) on `withVmPreserved publicKeyEqSpec16`
+(`80 = 64 + 16` B) under `HookSat H lsBlackBoxU8Sym blackBoxSpecSat`. -/
+theorem publicKeyEq_placed_ok_of_bb_16_sat [LibsignalPlacement] {H : LibsignalHooks}
+    (h_bb : HookSat H lsBlackBoxU8Sym
+      LibsignalBinary.Proofs.ConsumeMessageKey.FindIndexProofs.CtEqSat.blackBoxSpecSat) :
+    subroutine_ok ((blkPC_212).rebase (blkPl_212).base H)
+      (lsmpl.base 212)
+      (withLsCodeLoaded lsmpl
+        (withVmPreserved
+          LibsignalBinary.Proofs.ConsumeMessageKey.FindIndexProofs.CtEqSat.publicKeyEqSpec16)) :=
+  LibsignalBinary.Proofs.ConsumeMessageKey.FindIndexProofs.CtEqSat.publicKey_eq_placed_vm_ok_16_sat h_bb
+
+/-- `<PublicKey as PartialEq>::eq` (Block `212`) on `withVmPreserved publicKeyEqMemSpec16`
+(`80 = 64 + 16` B) under `HookSat H lsBlackBoxU8Sym blackBoxSpecSat`. -/
+theorem publicKeyEq_mem_placed_ok_of_bb_16_sat [LibsignalPlacement] {H : LibsignalHooks}
+    (h_bb : HookSat H lsBlackBoxU8Sym
+      LibsignalBinary.Proofs.ConsumeMessageKey.FindIndexProofs.CtEqSat.blackBoxSpecSat) :
+    subroutine_ok ((blkPC_212).rebase (blkPl_212).base H)
+      (lsmpl.base 212)
+      (withLsCodeLoaded lsmpl
+        (withVmPreserved
+          LibsignalBinary.Proofs.ConsumeMessageKey.FindIndexProofs.CtEqSat.publicKeyEqMemSpec16)) :=
+  LibsignalBinary.Proofs.ConsumeMessageKey.FindIndexProofs.CtEqSat.publicKey_eq_mem_placed_vm_ok_16_sat h_bb
+
+theorem idTrustPoll_placed_ok_of_deps_gen_16 [LibsignalPlacement] {M : AllocCostModel}
+    {A : RustCliAllocBudget M} {lim : BudgetLimits} {H : LibsignalHooks}
+    {GetEnv : FsFiles → DirGhost → List (BitVec 8) → List AllocEvent → Prop}
+    {TrustEnv : FsFiles → IdPollGhost → List AllocEvent → Prop}
+    {getProg decProg eqProg : Program} {getBlk decBlk eqBlk : Nat}
+    [IsLsBlockProg getProg getBlk H]
+    [IsLsBlockProg decProg decBlk H]
+    [IsLsBlockProg eqProg eqBlk H]
+    {rd : ReadRule} {pathOk : List (BitVec 8) → Prop} {getStk stk : Nat}
+    (hC : AllocContractsXCliPlaced A lim H)
+    (hGet : subroutine_ok getProg (lsmpl.base 589)
+      (dirGetSpecPlaced rd pathOk A lim GetEnv getStk))
+    (hDec : subroutine_ok decProg (lsmpl.base 18)
+      (identityKeyDecodePlacedBudgetSpec A))
+    (hEq : subroutine_ok eqProg (lsmpl.base 212)
+      (withLsCodeLoaded lsmpl
+        (withVmPreserved
+          LibsignalBinary.Proofs.ConsumeMessageKey.FindIndexProofs.CtEqSat.publicKeyEqMemSpec16)))
+    (hFitGet : ∀ F0 x st, FitsEnv M lim st (TrustEnv F0 x) →
+      FitsEnv M lim st (GetEnv F0 x.peers x.call.call.addr.name.bytes))
+    (hTrustGet : ∀ F0 x evs, GetEnv F0 x.peers x.call.call.addr.name.bytes evs →
+      TrustEnv F0 x evs)
+    (hTrustGetFree : ∀ F0 x evs₁ evs₂,
+      GetEnv F0 x.peers x.call.call.addr.name.bytes evs₁ → FreeOnlyEvs evs₂ →
+      TrustEnv F0 x (evs₁ ++ evs₂))
+    (hstk : 0xc0 + max (max getStk 0x60) (max 64 extHookStack) ≤ stk)
+    (hGetBlk : getBlk < 619 := by decide)
+    (hGetUnmut : (getBlk ∈ libsignalMutatedBlocks) = false := by decide)
+    (hDecBlk : decBlk < 619 := by decide)
+    (hDecUnmut : (decBlk ∈ libsignalMutatedBlocks) = false := by decide)
+    (hEqBlk : eqBlk < 619 := by decide)
+    (hEqUnmut : (eqBlk ∈ libsignalMutatedBlocks) = false := by decide) :
+    subroutine_ok (lsProg_566 H) (lsmpl.base 566)
+      (idTrustPollSpecPlaced rd pathOk A lim TrustEnv stk) := by
+  have hGet' := ls_transfer_lscro (callerProg := lsProg_566 H)
+    hGet (by decide) hGetBlk hGetUnmut
+  have hDec' := ls_transfer_cl_to_lscro (callerProg := lsProg_566 H)
+    hDec (by decide) hDecBlk hDecUnmut
+  have hEq' := ls_transfer_cl_to_lscro (callerProg := lsProg_566 H)
+    hEq (by decide) hEqBlk hEqUnmut
+  exact idTrustPoll_placed_of_inner
+    (fun hhi =>
+      LibsignalBinary.Proofs.SignalSession.Cli.Store.IdTrustPoll.SymPlacedBudget.idTrustPollInner_placed_ok_16
+        hC hGet' hDec' hEq' hFitGet hTrustGet hTrustGetFree hhi) hstk
+
+theorem idTrustPoll_placed_ok_of_deps_16 [LibsignalPlacement] {M : AllocCostModel}
+    {A : RustCliAllocBudget M} {lim : BudgetLimits} {H : LibsignalHooks}
+    {GetEnv : FsFiles → DirGhost → List (BitVec 8) → List AllocEvent → Prop}
+    {getProg decProg eqProg : Program} {getBlk decBlk eqBlk : Nat}
+    [IsLsBlockProg getProg getBlk H]
+    [IsLsBlockProg decProg decBlk H]
+    [IsLsBlockProg eqProg eqBlk H]
+    {rd : ReadRule} {pathOk : List (BitVec 8) → Prop} {getStk stk : Nat}
+    (hC : AllocContractsXCliPlaced A lim H)
+    (hGet : subroutine_ok getProg (lsmpl.base 589)
+      (dirGetSpecPlaced rd pathOk A lim GetEnv getStk))
+    (hDec : subroutine_ok decProg (lsmpl.base 18)
+      (identityKeyDecodePlacedBudgetSpec A))
+    (hEq : subroutine_ok eqProg (lsmpl.base 212)
+      (withLsCodeLoaded lsmpl
+        (withVmPreserved
+          LibsignalBinary.Proofs.ConsumeMessageKey.FindIndexProofs.CtEqSat.publicKeyEqMemSpec16)))
+    (hstk : 0xc0 + max (max getStk 0x60) (max 64 extHookStack) ≤ stk)
+    (hGetBlk : getBlk < 619 := by decide)
+    (hGetUnmut : (getBlk ∈ libsignalMutatedBlocks) = false := by decide)
+    (hDecBlk : decBlk < 619 := by decide)
+    (hDecUnmut : (decBlk ∈ libsignalMutatedBlocks) = false := by decide)
+    (hEqBlk : eqBlk < 619 := by decide)
+    (hEqUnmut : (eqBlk ∈ libsignalMutatedBlocks) = false := by decide) :
+    subroutine_ok (lsProg_566 H) (lsmpl.base 566)
+      (idTrustPollSpecPlaced rd pathOk A lim (CliIdTrustPollEnv GetEnv) stk) := by
+  have hGet' := ls_transfer_lscro (callerProg := lsProg_566 H)
+    hGet (by decide) hGetBlk hGetUnmut
+  have hDec' := ls_transfer_cl_to_lscro (callerProg := lsProg_566 H)
+    hDec (by decide) hDecBlk hDecUnmut
+  have hEq' := ls_transfer_cl_to_lscro (callerProg := lsProg_566 H)
+    hEq (by decide) hEqBlk hEqUnmut
+  exact idTrustPoll_placed_of_inner
+    (fun hhi =>
+      LibsignalBinary.Proofs.SignalSession.Cli.Store.IdTrustPoll.SymPlacedBudget.idTrustPollInner_env_placed_ok_16
+        hC hGet' hDec' hEq' hhi) hstk
+
+theorem idTrustPoll_placed_ok_of_get_bb_sat [LibsignalPlacement] {M : AllocCostModel}
+    {A : RustCliAllocBudget M} {lim : BudgetLimits} {H : LibsignalHooks}
+    {GetEnv : FsFiles → DirGhost → List (BitVec 8) → List AllocEvent → Prop}
+    {getProg : Program} {getBlk : Nat} [IsLsBlockProg getProg getBlk H]
+    {rd : ReadRule} {pathOk : List (BitVec 8) → Prop} {getStk stk : Nat}
+    (hC : AllocContractsXCliPlaced A lim H)
+    (hGet : subroutine_ok getProg (lsmpl.base 589)
+      (dirGetSpecPlaced rd pathOk A lim GetEnv getStk))
+    (h_bb : HookSat H lsBlackBoxU8Sym
+      LibsignalBinary.Proofs.ConsumeMessageKey.FindIndexProofs.CtEqSat.blackBoxSpecSat)
+    (hstk : 0xc0 + max (max getStk 0x60) (max 64 extHookStack) ≤ stk)
+    (hGetBlk : getBlk < 619 := by decide)
+    (hGetUnmut : (getBlk ∈ libsignalMutatedBlocks) = false := by decide) :
+    subroutine_ok (lsProg_566 H) (lsmpl.base 566)
+      (idTrustPollSpecPlaced rd pathOk A lim (CliIdTrustPollEnv GetEnv) stk) :=
+  idTrustPoll_placed_ok_of_deps_16 hC hGet
+    (identityKey_decode_placed_ok H)
+    (publicKeyEq_mem_placed_ok_of_bb_16_sat h_bb) hstk hGetBlk hGetUnmut
+
+theorem idTrustPoll_placed_caller_ok_of_deps_gen_16 [LibsignalPlacement] {M : AllocCostModel}
+    {A : RustCliAllocBudget M} {lim : BudgetLimits} {H : LibsignalHooks}
+    {GetEnv : FsFiles → DirGhost → List (BitVec 8) → List AllocEvent → Prop}
+    {TrustEnv : FsFiles → IdPollGhost → List AllocEvent → Prop}
+    {callerProg getProg decProg eqProg : Program}
+    {callerBlk getBlk decBlk eqBlk : Nat}
+    [IsLsBlockProg callerProg callerBlk H]
+    [IsLsBlockProg getProg getBlk H]
+    [IsLsBlockProg decProg decBlk H]
+    [IsLsBlockProg eqProg eqBlk H]
+    {rd : ReadRule} {pathOk : List (BitVec 8) → Prop} {getStk stk : Nat}
+    (hC : AllocContractsXCliPlaced A lim H)
+    (hGet : subroutine_ok getProg (lsmpl.base 589)
+      (dirGetSpecPlaced rd pathOk A lim GetEnv getStk))
+    (hDec : subroutine_ok decProg (lsmpl.base 18)
+      (identityKeyDecodePlacedBudgetSpec A))
+    (hEq : subroutine_ok eqProg (lsmpl.base 212)
+      (withLsCodeLoaded lsmpl
+        (withVmPreserved
+          LibsignalBinary.Proofs.ConsumeMessageKey.FindIndexProofs.CtEqSat.publicKeyEqMemSpec16)))
+    (hFitGet : ∀ F0 x st, FitsEnv M lim st (TrustEnv F0 x) →
+      FitsEnv M lim st (GetEnv F0 x.peers x.call.call.addr.name.bytes))
+    (hTrustGet : ∀ F0 x evs, GetEnv F0 x.peers x.call.call.addr.name.bytes evs →
+      TrustEnv F0 x evs)
+    (hTrustGetFree : ∀ F0 x evs₁ evs₂,
+      GetEnv F0 x.peers x.call.call.addr.name.bytes evs₁ → FreeOnlyEvs evs₂ →
+      TrustEnv F0 x (evs₁ ++ evs₂))
+    (hstk : 0xc0 + max (max getStk 0x60) (max 64 extHookStack) ≤ stk)
+    (hCallerBlk : callerBlk < 619 := by decide)
+    (hGetBlk : getBlk < 619 := by decide)
+    (hGetUnmut : (getBlk ∈ libsignalMutatedBlocks) = false := by decide)
+    (hDecBlk : decBlk < 619 := by decide)
+    (hDecUnmut : (decBlk ∈ libsignalMutatedBlocks) = false := by decide)
+    (hEqBlk : eqBlk < 619 := by decide)
+    (hEqUnmut : (eqBlk ∈ libsignalMutatedBlocks) = false := by decide) :
+    subroutine_ok callerProg (lsmpl.base 566)
+      (idTrustPollSpecPlaced rd pathOk A lim TrustEnv stk) :=
+  ls_transfer_lscro (callerProg := callerProg) (j := 566)
+    (idTrustPoll_placed_ok_of_deps_gen_16 hC hGet hDec hEq
+      hFitGet hTrustGet hTrustGetFree hstk
+      hGetBlk hGetUnmut hDecBlk hDecUnmut hEqBlk hEqUnmut) hCallerBlk
+
+theorem idTrustPoll_placed_caller_ok_of_deps_16 [LibsignalPlacement] {M : AllocCostModel}
+    {A : RustCliAllocBudget M} {lim : BudgetLimits} {H : LibsignalHooks}
+    {GetEnv : FsFiles → DirGhost → List (BitVec 8) → List AllocEvent → Prop}
+    {callerProg getProg decProg eqProg : Program}
+    {callerBlk getBlk decBlk eqBlk : Nat}
+    [IsLsBlockProg callerProg callerBlk H]
+    [IsLsBlockProg getProg getBlk H]
+    [IsLsBlockProg decProg decBlk H]
+    [IsLsBlockProg eqProg eqBlk H]
+    {rd : ReadRule} {pathOk : List (BitVec 8) → Prop} {getStk stk : Nat}
+    (hC : AllocContractsXCliPlaced A lim H)
+    (hGet : subroutine_ok getProg (lsmpl.base 589)
+      (dirGetSpecPlaced rd pathOk A lim GetEnv getStk))
+    (hDec : subroutine_ok decProg (lsmpl.base 18)
+      (identityKeyDecodePlacedBudgetSpec A))
+    (hEq : subroutine_ok eqProg (lsmpl.base 212)
+      (withLsCodeLoaded lsmpl
+        (withVmPreserved
+          LibsignalBinary.Proofs.ConsumeMessageKey.FindIndexProofs.CtEqSat.publicKeyEqMemSpec16)))
+    (hstk : 0xc0 + max (max getStk 0x60) (max 64 extHookStack) ≤ stk)
+    (hCallerBlk : callerBlk < 619 := by decide)
+    (hGetBlk : getBlk < 619 := by decide)
+    (hGetUnmut : (getBlk ∈ libsignalMutatedBlocks) = false := by decide)
+    (hDecBlk : decBlk < 619 := by decide)
+    (hDecUnmut : (decBlk ∈ libsignalMutatedBlocks) = false := by decide)
+    (hEqBlk : eqBlk < 619 := by decide)
+    (hEqUnmut : (eqBlk ∈ libsignalMutatedBlocks) = false := by decide) :
+    subroutine_ok callerProg (lsmpl.base 566)
+      (idTrustPollSpecPlaced rd pathOk A lim (CliIdTrustPollEnv GetEnv) stk) :=
+  ls_transfer_lscro (callerProg := callerProg) (j := 566)
+    (idTrustPoll_placed_ok_of_deps_16 hC hGet hDec hEq hstk
       hGetBlk hGetUnmut hDecBlk hDecUnmut hEqBlk hEqUnmut) hCallerBlk
 
 end Placed

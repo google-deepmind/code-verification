@@ -253,6 +253,12 @@ class ALinkReport:
     toolchain_sysroot_scan: dict[str, Any] = field(default_factory=dict)
     proved_closures: dict[str, dict[str, Any]] = field(default_factory=dict)
     inputs_lock_pin: dict[str, Any] | None = None
+    cli_hook_table_placed: list[str] = field(default_factory=list)
+    cli_dehooked_syms_placed: list[str] = field(default_factory=list)
+    cli_panic_symbols_placed: list[str] = field(default_factory=list)
+    cli_binary_pq_sha256: str | None = None
+    lib2_objects: list[dict[str, Any]] = field(default_factory=list)
+    retired_stub_slots: list[dict[str, Any]] = field(default_factory=list)
     violations: list[str] = field(default_factory=list)
 
     @property
@@ -321,6 +327,18 @@ class ALinkReport:
             out["proved_closures"] = self.proved_closures
         if self.inputs_lock_pin is not None:
             out["inputs_lock_pin"] = self.inputs_lock_pin
+        if self.cli_hook_table_placed:
+            out["cli_hook_table_placed"] = self.cli_hook_table_placed
+        if self.cli_dehooked_syms_placed or self.cli_hook_table_placed:
+            out["cli_dehooked_syms_placed"] = self.cli_dehooked_syms_placed
+        if self.cli_panic_symbols_placed:
+            out["cli_panic_symbols_placed"] = self.cli_panic_symbols_placed
+        if self.cli_binary_pq_sha256 is not None:
+            out["cli_binary_pq_sha256"] = self.cli_binary_pq_sha256
+        if self.lib2_objects:
+            out["lib2_objects"] = self.lib2_objects
+        if self.retired_stub_slots:
+            out["retired_stub_slots"] = self.retired_stub_slots
         return out
 
 
@@ -1196,9 +1214,18 @@ def verify_report_against_lock(
         ("weak_undefined_allowed", report.weak_undefined_allowed),
         ("displaced_weak", report.displaced_weak),
         ("displaced_weak_referrers", report.displaced_weak_referrers),
+        ("cli_hook_table_placed", report.cli_hook_table_placed),
+        ("cli_dehooked_syms_placed", report.cli_dehooked_syms_placed),
+        ("cli_panic_symbols_placed", report.cli_panic_symbols_placed),
     ):
         if list_key in lock:
             chk_eq(list_key, got_list, [str(x) for x in lock[list_key]])
+    if (
+        "cli_binary_pq_sha256" in lock
+        and str(lock["cli_binary_pq_sha256"])
+        and report.cli_binary_pq_sha256 is not None
+    ):
+        chk_eq("cli_binary_pq_sha256", report.cli_binary_pq_sha256, str(lock["cli_binary_pq_sha256"]))
 
     if "elf_sha256" in lock:
         chk_eq("elf_sha256", report.elf_sha256, str(lock["elf_sha256"]))
@@ -1470,6 +1497,67 @@ def verify_report_against_lock(
                         if fk in eu and eu[fk] is not None:
                             chk_eq(f"n_undef_map[{nobj!r}][{usym!r}].{fk}", gu.get(fk), eu[fk])
 
+    is_full_lock = any(k in lock for k in ("schema_version", "definers", "w3_pin"))
+
+    if "lib2_objects" in lock or (is_full_lock and report.lib2_objects):
+        exp_l2_raw = lock.get("lib2_objects")
+        if not isinstance(exp_l2_raw, Sequence) or isinstance(exp_l2_raw, (str, bytes, bytearray)):
+            errs.append("Lock diff `lib2_objects`: lock is missing required `lib2_objects` list")
+        else:
+            exp_l2_by_name: dict[str, Mapping[str, Any]] = {}
+            for row in exp_l2_raw:
+                if isinstance(row, Mapping) and row.get("name"):
+                    exp_l2_by_name[str(row["name"])] = row
+                else:
+                    errs.append(f"Lock `lib2_objects` entry is malformed: {row!r}")
+            got_l2_by_name = {str(r["name"]): r for r in report.lib2_objects}
+            chk_eq("lib2_objects.names", sorted(got_l2_by_name.keys()), sorted(exp_l2_by_name.keys()))
+            for oname in sorted(got_l2_by_name.keys() & exp_l2_by_name.keys()):
+                gl2 = got_l2_by_name[oname]
+                el2 = exp_l2_by_name[oname]
+                for fk in (
+                    "path",
+                    "sha256",
+                    "size",
+                    "config_index",
+                    "defined_symbols",
+                    "rlib",
+                    "rlib_sha256",
+                    "member",
+                    "member_sha256",
+                    "keep_set_sha256",
+                    "kept_sections",
+                    "roots",
+                ):
+                    if fk in el2 and el2[fk] is not None and el2[fk] != "":
+                        chk_eq(f"lib2_objects[{oname!r}].{fk}", gl2.get(fk), el2[fk])
+
+    if "retired_stub_slots" in lock or (is_full_lock and report.retired_stub_slots):
+        exp_rs_raw = lock.get("retired_stub_slots")
+        if not isinstance(exp_rs_raw, Sequence) or isinstance(exp_rs_raw, (str, bytes, bytearray)):
+            errs.append("Lock diff `retired_stub_slots`: lock is missing required `retired_stub_slots` list")
+        else:
+            exp_rs_by_sym: dict[str, Mapping[str, Any]] = {}
+            for row in exp_rs_raw:
+                if isinstance(row, Mapping) and row.get("symbol"):
+                    exp_rs_by_sym[str(row["symbol"])] = row
+                else:
+                    errs.append(f"Lock `retired_stub_slots` entry is malformed: {row!r}")
+            got_rs_by_sym = {str(r["symbol"]): r for r in report.retired_stub_slots}
+            chk_eq("retired_stub_slots.symbols", sorted(got_rs_by_sym.keys()), sorted(exp_rs_by_sym.keys()))
+            for rsym in sorted(got_rs_by_sym.keys() & exp_rs_by_sym.keys()):
+                grs = got_rs_by_sym[rsym]
+                ers = exp_rs_by_sym[rsym]
+                for fk in ("retired_symbol", "retired_section", "size"):
+                    if fk in ers and ers[fk] is not None:
+                        chk_eq(f"retired_stub_slots[{rsym!r}].{fk}", grs.get(fk), ers[fk])
+                if "orig_addr" in ers and ers["orig_addr"] is not None:
+                    chk_eq(
+                        f"retired_stub_slots[{rsym!r}].orig_addr",
+                        int(str(grs["orig_addr"]), 0),
+                        int(str(ers["orig_addr"]), 0),
+                    )
+
     return errs
 
 
@@ -1597,8 +1685,53 @@ def check_stock_link(
         raise FileNotFoundError(f"link.map not found under {base_dir} or {eff_work}; pass `--map`")
     map_path = map_path.resolve()
 
-    # Load trusted hook & panic symbol tables + muslStrlenWords
-    hook_table_keys, panic_table_keys = elf_inspect.load_cli_hook_and_panic_tables(eff_repo_root)
+    # Load trusted hook, dehooked, & panic symbol tables (D-C2d: never fall back to `DEFAULT_CLI_HOOK_TABLE_PLACED`)
+    pq_lean_file = (
+        eff_repo_root / "LibsignalBinary/Specifications/SignalSession/CliBinaryPq.lean"
+        if eff_repo_root is not None
+        else None
+    )
+    cli_pq_sha256: str | None = None
+    if pq_lean_file is not None and pq_lean_file.is_file():
+        pq_tables = elf_inspect.load_cli_binary_pq_tables(eff_repo_root)  # type: ignore[arg-type]
+        hook_table_keys = pq_tables.hook_set
+        dehooked_table_keys = pq_tables.dehooked_set
+        panic_table_keys = pq_tables.panic_set
+        cli_pq_sha256 = pq_tables.pq_lean_sha256
+    elif (
+        lock_data is not None
+        and isinstance(lock_data.get("cli_hook_table_placed"), Sequence)
+        and not isinstance(lock_data.get("cli_hook_table_placed"), (str, bytes, bytearray))
+        and isinstance(lock_data.get("cli_dehooked_syms_placed"), Sequence)
+        and not isinstance(lock_data.get("cli_dehooked_syms_placed"), (str, bytes, bytearray))
+        and isinstance(lock_data.get("cli_panic_symbols_placed"), Sequence)
+        and not isinstance(lock_data.get("cli_panic_symbols_placed"), (str, bytes, bytearray))
+    ):
+        hook_table_keys = frozenset(str(x) for x in lock_data["cli_hook_table_placed"])
+        dehooked_table_keys = frozenset(str(x) for x in lock_data["cli_dehooked_syms_placed"])
+        panic_table_keys = frozenset(str(x) for x in lock_data["cli_panic_symbols_placed"])
+        if lock_data.get("cli_binary_pq_sha256"):
+            cli_pq_sha256 = str(lock_data["cli_binary_pq_sha256"])
+        if not hook_table_keys or not panic_table_keys:
+            errors.append("D-C2d: lock `cli_hook_table_placed` and `cli_panic_symbols_placed` must be non-empty")
+        if (
+            (hook_table_keys & dehooked_table_keys)
+            or (hook_table_keys & panic_table_keys)
+            or (dehooked_table_keys & panic_table_keys)
+        ):
+            errors.append(
+                "D-C2d: lock `cli_hook_table_placed`, `cli_dehooked_syms_placed`, and "
+                "`cli_panic_symbols_placed` must be pairwise disjoint"
+            )
+    else:
+        hook_table_keys = frozenset()
+        dehooked_table_keys = frozenset()
+        panic_table_keys = frozenset()
+        errors.append(
+            "D-C2d: trusted hook/dehooked/panic tables require `CliBinaryPq.lean` under `--repo-root` "
+            "or `cli_hook_table_placed`/`cli_dehooked_syms_placed`/`cli_panic_symbols_placed` in `--lock` "
+            "(no `DEFAULT_CLI_HOOK_TABLE_PLACED` fallback)"
+        )
     musl_strlen_bytes = elf_inspect.load_musl_strlen_bytes(eff_repo_root)
 
     # Parse linked ET_EXEC ELF & ld.lld -Map
@@ -1696,14 +1829,65 @@ def check_stock_link(
     declared_exports_by_img: dict[int, set[str]] = {}
     image_shas_to_role: dict[str, tuple[str, int, str]] = {}
     sysroot_trims_report: list[dict[str, Any]] = []
+    lib2_img_indices: set[int] = set()
+    lib2_objects_report: list[dict[str, Any]] = []
 
     for img_idx, cfg_entry in enumerate(raw_configs):
         cfg_rel = str(cfg_entry["config"])
+        cfg_rel_norm = cfg_rel.replace("\\", "/")
         config_paths.append(cfg_rel)
+        cfg_role_raw = str(cfg_entry.get("role") or "").strip()
+        if cfg_role_raw and cfg_role_raw not in ("main", "io", "lib2"):
+            errors.append(f"C2 lib2: unknown config role {cfg_role_raw!r} for {cfg_rel!r}")
+        has_lib2_obj_name = any(
+            re.match(r"^lib2_\d+\.o$", pathlib.Path(str(om.get("path") or om.get("name") or "")).name)
+            for om in cfg_entry.get("objects", [])
+        )
+        is_lib2_cfg = (
+            cfg_role_raw == "lib2"
+            or cfg_rel_norm.endswith("cli/rt/translation.toml")
+            or has_lib2_obj_name
+        )
+        if is_lib2_cfg:
+            lib2_img_indices.add(img_idx)
+            if img_idx == 0:
+                errors.append("C2 lib2: main image 0 cannot be a `lib2` config")
+            if not cfg_rel_norm.endswith("cli/rt/translation.toml"):
+                errors.append(
+                    f"C2 lib2: expected `cli/rt/translation.toml` config path for `lib2`, got {cfg_rel!r}"
+                )
+            if not cfg_entry.get("objects"):
+                errors.append(
+                    f"C2 lib2: empty `lib2` config {cfg_rel!r} must be omitted when 0 rows are active"
+                )
+
+        disk_exps: set[str] = set()
         if eff_repo_root is not None and (eff_repo_root / cfg_rel).is_file():
-            declared_exports_by_img[img_idx] = set(elf_inspect.load_config_declared_exports(eff_repo_root, cfg_rel))
+            disk_exps = set(elf_inspect.load_config_declared_exports(eff_repo_root, cfg_rel))
+        meta_exps_raw = cfg_entry.get("exports")
+        meta_exps: set[str] | None = (
+            {str(x) for x in meta_exps_raw}
+            if isinstance(meta_exps_raw, Sequence) and not isinstance(meta_exps_raw, (str, bytes, bytearray))
+            else None
+        )
+        if is_lib2_cfg:
+            if meta_exps is not None:
+                declared_exports_by_img[img_idx] = set(meta_exps)
+                if disk_exps:
+                    disk_norm = disk_exps | {elf_inspect.demangle_rust(x) for x in disk_exps}
+                    bad_meta = sorted(
+                        x for x in meta_exps if x not in disk_norm and elf_inspect.demangle_rust(x) not in disk_norm
+                    )
+                    if bad_meta:
+                        errors.append(
+                            f"C2 lib2: config {cfg_rel!r} metadata `exports` {bad_meta} not in `[placed].exports`"
+                        )
+            else:
+                declared_exports_by_img[img_idx] = set(disk_exps)
+            if not declared_exports_by_img[img_idx]:
+                errors.append(f"C2 lib2: `lib2` config {cfg_rel!r} has empty declared `exports`")
         else:
-            declared_exports_by_img[img_idx] = set()
+            declared_exports_by_img[img_idx] = set(disk_exps) if disk_exps else (set(meta_exps) if meta_exps else set())
 
         objs_for_img: list[InputRecord] = []
         for obj_meta in cfg_entry.get("objects", []):
@@ -1714,6 +1898,9 @@ def check_stock_link(
             got_sha = elf_inspect.sha256_bytes(raw_bytes)
             if got_sha != exp_sha:
                 errors.append(f"Image {img_idx} object {rel_p} sha256 {got_sha} != {exp_sha}")
+            exp_sz = obj_meta.get("size")
+            if exp_sz is not None and int(exp_sz) > 0 and len(raw_bytes) != int(exp_sz):
+                errors.append(f"Image {img_idx} object {rel_p} size {len(raw_bytes)} != {int(exp_sz)}")
             parsed_o = elf_inspect.parse_reloc_obj(raw_bytes, disk_p.name)
             t_from = obj_meta.get("trimmedFrom")
             rec = InputRecord(
@@ -1730,7 +1917,8 @@ def check_stock_link(
             objs_for_img.append(rec)
             image_shas_to_role[got_sha] = (f"S:{img_idx}", img_idx, disk_p.name)
 
-            # P8-3: Verify trimmed sysroot object section keepSet
+            expected_kept_secs: set[str] = set()
+            # P8-3: Verify trimmed sysroot/dep object section keepSet
             if isinstance(t_from, Mapping):
                 keep_rows = [str(x) for x in t_from.get("keepSet", [])]
                 expected_kept_secs = {row.split("\t", 1)[-1] for row in keep_rows}
@@ -1753,6 +1941,39 @@ def check_stock_link(
                     "member_sha256": str(t_from.get("memberSha256", "")),
                     "keep_set_sha256": str(t_from.get("keepSetSha256", "")),
                     "kept_sections": sorted(expected_kept_secs),
+                })
+
+            if is_lib2_cfg:
+                if not re.match(r"^lib2_\d+\.o$", disk_p.name):
+                    errors.append(f"C2 lib2: unexpected object basename {disk_p.name!r} in `lib2` config")
+                if not isinstance(t_from, Mapping):
+                    errors.append(f"C2 lib2: object {disk_p.name!r} missing required `trimmedFrom` provenance")
+                else:
+                    for req_tf in ("rlib", "member", "memberSha256", "keepSetSha256", "keepSet"):
+                        if not t_from.get(req_tf):
+                            errors.append(
+                                f"C2 lib2: object {disk_p.name!r} `trimmedFrom` missing required `{req_tf}`"
+                            )
+                roots_raw = t_from.get("roots", []) if isinstance(t_from, Mapping) else []
+                roots_list = (
+                    [str(x) for x in roots_raw]
+                    if isinstance(roots_raw, Sequence) and not isinstance(roots_raw, (str, bytes, bytearray))
+                    else []
+                )
+                lib2_objects_report.append({
+                    "name": disk_p.name,
+                    "path": rel_p,
+                    "sha256": got_sha,
+                    "size": len(raw_bytes),
+                    "config_index": img_idx,
+                    "defined_symbols": sorted(parsed_o.defs_by_name.keys()),
+                    "rlib": str(t_from.get("rlib", "")) if isinstance(t_from, Mapping) else "",
+                    "rlib_sha256": str(t_from.get("rlibSha256", "")) if isinstance(t_from, Mapping) else "",
+                    "member": str(t_from.get("member", "")) if isinstance(t_from, Mapping) else "",
+                    "member_sha256": str(t_from.get("memberSha256", "")) if isinstance(t_from, Mapping) else "",
+                    "keep_set_sha256": str(t_from.get("keepSetSha256", "")) if isinstance(t_from, Mapping) else "",
+                    "kept_sections": sorted(expected_kept_secs),
+                    "roots": roots_list,
                 })
         image_records.append(objs_for_img)
 
@@ -1837,7 +2058,16 @@ def check_stock_link(
             and got_sha == img_rec.sha256
             and (not exp_sha or exp_sha == img_rec.sha256)
         ):
+            if str(inp_entry.get("kind") or "") == "lib2Object" and img_rec.image_idx not in lib2_img_indices:
+                errors.append(
+                    f"C2 lib2: input {rel_p!r} has kind='lib2Object' but image {img_rec.image_idx} is not a `lib2` config"
+                )
             standalone_by_path[rel_p] = img_rec
+            continue
+        if str(inp_entry.get("kind") or "") == "lib2Object" or re.match(r"^lib2_\d+\.o$", bname):
+            errors.append(
+                f"C2 lib2: unpinned `lib2` object {bname!r} ({rel_p}) passed as link input without matching `configs` `lib2` entry"
+            )
             continue
 
         is_ar_magic = raw_bytes.startswith((b"!<arch>\n", b"!<thin>\n"))
@@ -2992,6 +3222,668 @@ def check_stock_link(
     proved_closures, _ = _run_rule_vi_closure(proved_closure_roots, kind_label="real_proved")
 
     # ==========================================================================
+    # Step 12bb: C2 `lib2` Placement, `D-C2d` Hooked Set, `D-C2f` (2C) Libc Tail & Retired Stub Slots
+    # ==========================================================================
+    # 0 ld.lld range-extension thunks / synthetic executable sections
+    exec_out_secs = {
+        s.name for s in elf.sections if (s.sh_flags & elf_inspect.SHF_EXECINSTR) != 0
+    }
+    for es in elf.symbols:
+        if "Thunk" in es.name:
+            errors.append(
+                f"C2 placement (thunks): ld.lld range-extension thunk symbol {es.name!r} at {es.st_value:#x}"
+            )
+    for m_sec in lmap.input_sections:
+        if m_sec.out_sec in exec_out_secs and m_sec.input_raw == "<internal>" and m_sec.size > 0:
+            errors.append(
+                f"C2 placement (thunks): synthetic <internal> section {m_sec.sec_name!r} "
+                f"in executable output section {m_sec.out_sec!r} at {m_sec.vma:#x}"
+            )
+
+    # Hooked / panic ban in `lib2` + `D-C2d` `< e_entry` check when `.text.b_pre` is present
+    for img_idx in sorted(lib2_img_indices):
+        for r in image_records[img_idx]:
+            if r.obj is None:
+                continue
+            for sname in sorted(r.obj.defs_by_name.keys()):
+                if sname in hook_table_keys:
+                    errors.append(
+                        f"C2 lib2 / D-C2d: hooked symbol {sname!r} ({elf_inspect.demangle_rust(sname)}) "
+                        f"is defined in lib2 object {r.name!r} while still in `cliHookTablePlaced`"
+                    )
+                if elf_inspect.is_cli_panic_symbol_placed(sname, panic_table_keys):
+                    errors.append(
+                        f"C2 lib2 / D-C2d: panic symbol {sname!r} ({elf_inspect.demangle_rust(sname)}) "
+                        f"is defined in lib2 object {r.name!r}"
+                    )
+
+    for x_sym, (wnode, _wrsym, _wesym) in sorted(winning_node_by_x.items()):
+        if wnode.image_idx in lib2_img_indices:
+            if x_sym in hook_table_keys:
+                errors.append(
+                    f"C2 lib2 / D-C2d: `X` symbol {x_sym!r} resolved to lib2 ({wnode.node_id}) "
+                    f"while still in `cliHookTablePlaced`"
+                )
+            if dehooked_table_keys and x_sym not in dehooked_table_keys:
+                errors.append(
+                    f"C2 lib2 / D-C2d: `X` symbol {x_sym!r} resolved to lib2 ({wnode.node_id}) "
+                    f"is absent from `cliDehookedSymsPlaced`"
+                )
+
+    b_pre_secs = [s for s in elf.sections if s.name == ".text.b_pre"]
+    if len(b_pre_secs) > 1:
+        errors.append(f"C2 placement: multiple `.text.b_pre` sections ({len(b_pre_secs)})")
+    if b_pre_secs:
+        b_pre_sec = b_pre_secs[0]
+        if (b_pre_sec.sh_flags & elf_inspect.SHF_EXECINSTR) == 0 or (
+            b_pre_sec.sh_flags & elf_inspect.SHF_WRITE
+        ) != 0:
+            errors.append(
+                f"C2 placement: `.text.b_pre` has unexpected sh_flags={b_pre_sec.sh_flags:#x} (expected RX, non-writable)"
+            )
+        if b_pre_sec.sh_addr + b_pre_sec.sh_size > elf.entry:
+            errors.append(
+                f"C2 placement: `.text.b_pre` end {b_pre_sec.sh_addr + b_pre_sec.sh_size:#x} > e_entry {elf.entry:#x}"
+            )
+        for hsym in sorted(hook_table_keys):
+            if hsym in winning_node_by_x:
+                _hwn, _hrs, hes = winning_node_by_x[hsym]
+                if not (hes.st_value < elf.entry):
+                    errors.append(
+                        f"C2 D-C2d: hooked symbol {hsym!r} resolved at {hes.st_value:#x} >= e_entry {elf.entry:#x}"
+                    )
+
+    # D-C2f = 2C: de-hooked `libc.a` string rows (`memmove`, `memcmp`, `bcmp`, `strlen`) in `.text.b_pre` < e_entry
+    dehooked_libc_rows = [
+        s for s in ("memmove", "memcmp", "bcmp", "strlen") if s in dehooked_table_keys
+    ]
+    req_bpre_libc = list(dehooked_libc_rows)
+    if "bcmp" in dehooked_table_keys and "memcmp" not in req_bpre_libc:
+        req_bpre_libc.append("memcmp")
+    if req_bpre_libc:
+        if len(b_pre_secs) != 1:
+            errors.append(
+                f"D-C2f (2C): de-hooked libc row(s) {req_bpre_libc} require unique `.text.b_pre` section (< e_entry)"
+            )
+        else:
+            bp = b_pre_secs[0]
+            bp_lo = bp.sh_addr
+            bp_hi = bp.sh_addr + bp.sh_size
+            for lsym in req_bpre_libc:
+                if lsym in hook_table_keys:
+                    errors.append(
+                        f"D-C2f (2C) / D-C2d: {lsym!r} is still in `cliHookTablePlaced`"
+                    )
+                if lsym not in winning_node_by_x:
+                    errors.append(
+                        f"D-C2f (2C): expected de-hooked libc symbol {lsym!r} in `X`"
+                    )
+                    continue
+                lwn, _lrs, les = winning_node_by_x[lsym]
+                lsz = max(1, int(les.st_size))
+                if (
+                    lwn.role != "R"
+                    or lwn.source_file != "libc.a"
+                    or lwn.archive_member != f"{lsym}.lo"
+                ):
+                    errors.append(
+                        f"D-C2f (2C): `{lsym}` expected Class R `libc.a({lsym}.lo)`, "
+                        f"got role={lwn.role!r} source={lwn.source_file!r} member={lwn.archive_member!r}"
+                    )
+                if lwn.map_sec.out_sec != ".text.b_pre":
+                    errors.append(
+                        f"D-C2f (2C): de-hooked libc symbol `{lsym}` at {les.st_value:#x} placed in "
+                        f"{lwn.map_sec.out_sec!r} (expected '.text.b_pre' < e_entry {elf.entry:#x})"
+                    )
+                if not (bp_lo <= les.st_value and les.st_value + lsz <= bp_hi <= elf.entry):
+                    errors.append(
+                        f"D-C2f (2C): de-hooked libc symbol `{lsym}` range [{les.st_value:#x}, {les.st_value + lsz:#x}) "
+                        f"not inside `.text.b_pre` [{bp_lo:#x}, {bp_hi:#x}) <= e_entry {elf.entry:#x}"
+                    )
+
+    for lsym in ("memmove", "memcmp", "bcmp", "strlen"):
+        if lsym in winning_node_by_x:
+            lwn, _lrs, les = winning_node_by_x[lsym]
+            if lwn.map_sec.out_sec == ".text.b_pre":
+                lsz = max(1, int(les.st_size))
+                if lsym in hook_table_keys:
+                    errors.append(
+                        f"D-C2f (2C) / D-C2d: libc symbol `{lsym}` placed in `.text.b_pre` ({les.st_value:#x}) "
+                        f"while still in `cliHookTablePlaced`"
+                    )
+                if lsym != "memcmp" and dehooked_table_keys and lsym not in dehooked_table_keys:
+                    errors.append(
+                        f"D-C2f (2C) / D-C2d: libc symbol `{lsym}` placed in `.text.b_pre` ({les.st_value:#x}) "
+                        f"but absent from `cliDehookedSymsPlaced`"
+                    )
+                if not b_pre_secs or not (
+                    b_pre_secs[0].sh_addr <= les.st_value
+                    and les.st_value + lsz <= b_pre_secs[0].sh_addr + b_pre_secs[0].sh_size <= elf.entry
+                ):
+                    errors.append(
+                        f"D-C2f (2C): libc symbol `{lsym}` [{les.st_value:#x}, {les.st_value + lsz:#x}) "
+                        f"exceeds `.text.b_pre` / e_entry {elf.entry:#x}"
+                    )
+
+    # `lib2` section placement rules
+    if not lib2_img_indices:
+        for s in elf.sections:
+            if s.name in (".text.lib2", ".rodata.lib2"):
+                errors.append(
+                    f"C2 placement: unexpected {s.name!r} ELF section when 0 `lib2` configs are active"
+                )
+        for m_sec in lmap.input_sections:
+            if m_sec.out_sec in (".text.lib2", ".rodata.lib2"):
+                errors.append(
+                    f"C2 placement: unexpected {m_sec.out_sec!r} map section when 0 `lib2` configs are active"
+                )
+    else:
+        lib2_obj_names = {r.name for idx in lib2_img_indices for r in image_records[idx]}
+        lib2_nodes = [n for n in retained_nodes if n.image_idx in lib2_img_indices]
+        if not lib2_nodes:
+            errors.append("C2 placement: active `lib2` config retained 0 sections")
+
+        lib2_rx_nodes: list[RetainedSecNode] = []
+        lib2_ro_nodes: list[RetainedSecNode] = []
+        for lnode in lib2_nodes:
+            for rel in lnode.sec.relocs:
+                if rel.r_type in {309, 310, 311, 312, 313}:
+                    errors.append(
+                        f"C2 placement (lib2 GOT): GOT relocation r_type={rel.r_type} in {lnode.node_id}"
+                    )
+            if (lnode.sec.sh_flags & elf_inspect.SHF_EXECINSTR) != 0:
+                lib2_rx_nodes.append(lnode)
+                if (lnode.sec.sh_flags & elf_inspect.SHF_WRITE) != 0:
+                    errors.append(
+                        f"C2 placement (lib2 RWX): writable executable section {lnode.node_id}"
+                    )
+                if lnode.sec.sh_type != elf_inspect.SHT_PROGBITS:
+                    errors.append(
+                        f"C2 placement (lib2 text): non-PROGBITS executable section {lnode.node_id}"
+                    )
+                if lnode.map_sec.out_sec != ".text.lib2":
+                    errors.append(
+                        f"C2 placement (lib2 text): {lnode.node_id} placed in {lnode.map_sec.out_sec!r} "
+                        f"(expected '.text.lib2')"
+                    )
+            else:
+                lib2_ro_nodes.append(lnode)
+                if lnode.sec.sh_type != elf_inspect.SHT_PROGBITS:
+                    errors.append(
+                        f"C2 placement (lib2 RW): non-PROGBITS section {lnode.node_id} (sh_type={lnode.sec.sh_type:#x})"
+                    )
+                if (
+                    lnode.sec.sh_flags & elf_inspect.SHF_WRITE
+                ) != 0 and not lnode.sec.name.startswith(".data.rel.ro"):
+                    errors.append(
+                        f"C2 placement (lib2 RW): writable data section {lnode.node_id} not allowed in lib2"
+                    )
+                if lnode.map_sec.out_sec != ".rodata.lib2":
+                    errors.append(
+                        f"C2 placement (lib2 RO): {lnode.node_id} placed in {lnode.map_sec.out_sec!r} "
+                        f"(expected '.rodata.lib2')"
+                    )
+
+        alloc_out_secs = {
+            s.name for s in elf.sections if (s.sh_flags & elf_inspect.SHF_ALLOC) != 0
+        }
+        node_by_map_id = {id(n.map_sec): n for n in retained_nodes}
+        for m_sec in lmap.input_sections:
+            if m_sec.out_sec not in alloc_out_secs:
+                continue
+            if (
+                m_sec.input_raw != "<internal>"
+                and m_sec.archive_path is None
+                and pathlib.Path(m_sec.input_raw).name in lib2_obj_names
+            ):
+                if m_sec.out_sec not in (".text.lib2", ".rodata.lib2"):
+                    errors.append(
+                        f"C2 placement: lib2 map section {m_sec.input_raw}:({m_sec.sec_name}) placed in "
+                        f"{m_sec.out_sec!r} (expected '.text.lib2' or '.rodata.lib2')"
+                    )
+            if m_sec.out_sec == ".text.lib2":
+                mn = node_by_map_id.get(id(m_sec))
+                if mn is None or mn.image_idx not in lib2_img_indices:
+                    errors.append(
+                        f"C2 placement (lib2 text): non-lib2 input {m_sec.input_raw}:({m_sec.sec_name}) "
+                        f"inside '.text.lib2'"
+                    )
+            elif m_sec.out_sec == ".rodata.lib2":
+                if m_sec.input_raw == "<internal>":
+                    if not (
+                        m_sec.sec_name.startswith(".rodata.str")
+                        or m_sec.sec_name.startswith(".rodata.cst")
+                    ):
+                        errors.append(
+                            f"C2 placement (lib2 RO): unexpected <internal> section {m_sec.sec_name!r} "
+                            f"inside '.rodata.lib2'"
+                        )
+                else:
+                    mn = node_by_map_id.get(id(m_sec))
+                    if mn is None or mn.image_idx not in lib2_img_indices:
+                        errors.append(
+                            f"C2 placement (lib2 RO): non-lib2 input {m_sec.input_raw}:({m_sec.sec_name}) "
+                            f"inside '.rodata.lib2'"
+                        )
+
+        # Segment & section ordering checks for `.text.lib2` (tail of `:text_b` after `.fini`, `<= :data`)
+        # and `.rodata.lib2` (in `:ro` PF_R-only segment, 0 RW bytes)
+        text_b_segs = [
+            seg
+            for seg in elf.segments
+            if (seg.flags & 0x1) != 0
+            and (seg.flags & 0x2) == 0
+            and seg.vaddr <= elf.entry < seg.vaddr + seg.memsz
+        ]
+        if len(text_b_segs) != 1:
+            errors.append(
+                f"C2 placement: expected unique RX `:text_b` PT_LOAD containing e_entry {elf.entry:#x}, "
+                f"got {len(text_b_segs)}"
+            )
+        else:
+            tb_seg = text_b_segs[0]
+            tb_lo = tb_seg.vaddr
+            tb_hi = tb_seg.vaddr + tb_seg.memsz
+            data_segs = sorted(
+                [
+                    seg
+                    for seg in elf.segments
+                    if (seg.flags & 0x2) != 0 and seg.vaddr >= tb_hi
+                ],
+                key=lambda sg: sg.vaddr,
+            )
+            if not data_segs:
+                errors.append(
+                    f"C2 placement: missing RW `:data` PT_LOAD after `:text_b` end {tb_hi:#x}"
+                )
+            text_lib2_secs = [s for s in elf.sections if s.name == ".text.lib2"]
+            if len(text_lib2_secs) != 1:
+                errors.append(
+                    f"C2 placement: expected unique `.text.lib2` section, got {len(text_lib2_secs)}"
+                )
+            else:
+                tl2 = text_lib2_secs[0]
+                tl2_lo = tl2.sh_addr
+                tl2_hi = tl2.sh_addr + tl2.sh_size
+                if (tl2.sh_flags & elf_inspect.SHF_EXECINSTR) == 0 or (
+                    tl2.sh_flags & elf_inspect.SHF_WRITE
+                ) != 0 or tl2.sh_size == 0:
+                    errors.append(
+                        f"C2 placement: `.text.lib2` invalid flags={tl2.sh_flags:#x} size={tl2.sh_size}"
+                    )
+                if not (tb_lo <= tl2_lo < tl2_hi <= tb_hi):
+                    errors.append(
+                        f"C2 placement: `.text.lib2` [{tl2_lo:#x}, {tl2_hi:#x}) not inside `:text_b` [{tb_lo:#x}, {tb_hi:#x})"
+                    )
+                if data_segs and tl2_hi > data_segs[0].vaddr:
+                    errors.append(
+                        f"C2 placement: `.text.lib2` end {tl2_hi:#x} > `:data` start {data_segs[0].vaddr:#x}"
+                    )
+                tb_alloc_secs = sorted(
+                    [
+                        s
+                        for s in elf.sections
+                        if (s.sh_flags & elf_inspect.SHF_ALLOC) != 0
+                        and s.sh_size > 0
+                        and tb_lo <= s.sh_addr < tb_hi
+                    ],
+                    key=lambda s: (s.sh_addr, s.idx),
+                )
+                if not tb_alloc_secs or tb_alloc_secs[-1].name != ".text.lib2":
+                    errors.append(
+                        f"C2 placement: `.text.lib2` must be the last section of `:text_b`, "
+                        f"got {[s.name for s in tb_alloc_secs]}"
+                    )
+                fini_map_secs = [
+                    ms
+                    for ms in lmap.input_sections
+                    if ms.sec_name == ".fini" and tb_lo <= ms.vma < tb_hi and ms.size > 0
+                ]
+                if not fini_map_secs:
+                    errors.append("C2 placement: no `.fini` input section found in `:text_b`")
+                else:
+                    fini_end = max(ms.vma + ms.size for ms in fini_map_secs)
+                    if tl2_lo < fini_end:
+                        errors.append(
+                            f"C2 placement: `.text.lib2` start {tl2_lo:#x} is before `.fini` end {fini_end:#x}"
+                        )
+
+        ro_lib2_secs = [s for s in elf.sections if s.name == ".rodata.lib2"]
+        has_any_lib2_ro_in_objs = any(
+            (s.sh_flags & elf_inspect.SHF_ALLOC) != 0 and (s.sh_flags & elf_inspect.SHF_EXECINSTR) == 0 and s.sh_size > 0
+            for idx in lib2_img_indices
+            for r in image_records[idx]
+            if r.obj is not None
+            for s in r.obj.sections
+        )
+        if lib2_ro_nodes or ro_lib2_secs or has_any_lib2_ro_in_objs:
+            if len(ro_lib2_secs) != 1:
+                errors.append(
+                    f"C2 placement (lib2 RO): expected unique `.rodata.lib2` section, got {len(ro_lib2_secs)}"
+                )
+            else:
+                rl2 = ro_lib2_secs[0]
+                rl2_lo = rl2.sh_addr
+                rl2_hi = rl2.sh_addr + rl2.sh_size
+                if (rl2.sh_flags & elf_inspect.SHF_EXECINSTR) != 0 or rl2.sh_type != elf_inspect.SHT_PROGBITS:
+                    errors.append(
+                        f"C2 placement (lib2 RO): `.rodata.lib2` invalid flags={rl2.sh_flags:#x} type={rl2.sh_type:#x}"
+                    )
+                ro_segs = [
+                    seg
+                    for seg in elf.segments
+                    if seg.vaddr <= rl2_lo and rl2_hi <= seg.vaddr + seg.memsz
+                ]
+                if len(ro_segs) != 1 or ro_segs[0].flags != 0x4:
+                    errors.append(
+                        f"C2 placement (lib2 RO): `.rodata.lib2` [{rl2_lo:#x}, {rl2_hi:#x}) must lie in "
+                        f"PF_R-only (`0x4`) `:ro` PT_LOAD, got {[hex(sg.flags) for sg in ro_segs]}"
+                    )
+
+                # Verify resolved local RO pointers/ADRP+LO12 in `lib2` land inside `.rodata.lib2`
+                # (catches `SHF_MERGE` `.rodata.str1.1`/`.rodata.cst16` accidentally merged into `.rodata`)
+                for lnode in lib2_nodes:
+                    p_lo = lnode.map_sec.piece_offset if lnode.map_sec.piece_offset is not None else 0
+                    p_hi = (
+                        (p_lo + lnode.map_sec.size)
+                        if lnode.map_sec.piece_offset is not None
+                        else lnode.sec.sh_size
+                    )
+                    active_rels = [
+                        rel
+                        for rel in lnode.sec.relocs
+                        if rel.r_type not in elf_inspect.R_AARCH64_NONE_SET
+                        and (lnode.map_sec.piece_offset is None or (p_lo <= rel.r_offset < p_hi))
+                    ]
+                    for r_idx, rel in enumerate(active_rels):
+                        tsym = lnode.obj.symbols[rel.sym_idx]
+                        if not tsym.is_local or tsym.st_shndx in (
+                            elf_inspect.SHN_UNDEF,
+                            elf_inspect.SHN_ABS,
+                            elf_inspect.SHN_COMMON,
+                        ):
+                            continue
+                        tsec = lnode.obj.sections[tsym.st_shndx]
+                        if (tsec.sh_flags & elf_inspect.SHF_ALLOC) == 0 or (
+                            tsec.sh_flags & elf_inspect.SHF_EXECINSTR
+                        ) != 0:
+                            continue
+                        rel_vma = lnode.map_sec.vma + (rel.r_offset - p_lo)
+                        if rel.r_type == 257:  # R_AARCH64_ABS64
+                            (ptr_vma,) = struct.unpack("<Q", elf.read_vma(rel_vma, 8))
+                            if not (rl2_lo <= ptr_vma < rl2_hi):
+                                errors.append(
+                                    f"C2 placement (lib2 RO): {lnode.node_id} ABS64 reloc to {tsec.name!r} "
+                                    f"resolved to {ptr_vma:#x} outside `.rodata.lib2` [{rl2_lo:#x}, {rl2_hi:#x})"
+                                )
+                        elif rel.r_type == 275 and r_idx + 1 < len(active_rels):  # ADR_PREL_PG_HI21 + LO12
+                            nxt = active_rels[r_idx + 1]
+                            lo_scales = {277: 0, 278: 0, 284: 1, 285: 2, 286: 3, 299: 4}
+                            if (
+                                nxt.r_type in lo_scales
+                                and nxt.sym_idx == rel.sym_idx
+                                and nxt.r_addend == rel.r_addend
+                            ):
+                                (w_adrp,) = struct.unpack("<I", elf.read_vma(rel_vma, 4))
+                                nxt_vma = lnode.map_sec.vma + (nxt.r_offset - p_lo)
+                                (w_lo,) = struct.unpack("<I", elf.read_vma(nxt_vma, 4))
+                                if (w_adrp & 0x9F000000) == 0x90000000:
+                                    imm = (((w_adrp >> 5) & 0x7FFFF) << 2) | ((w_adrp >> 29) & 0x3)
+                                    if imm & (1 << 20):
+                                        imm -= 1 << 21
+                                    page = (rel_vma & ~0xFFF) + (imm << 12)
+                                    lo12 = ((w_lo >> 10) & 0xFFF) << lo_scales[nxt.r_type]
+                                    resolved_ro = page + lo12
+                                    if not (rl2_lo <= resolved_ro < rl2_hi):
+                                        errors.append(
+                                            f"C2 placement (lib2 RO): {lnode.node_id} ADRP+LO12 reloc to {tsec.name!r} "
+                                            f"resolved to {resolved_ro:#x} outside `.rodata.lib2` [{rl2_lo:#x}, {rl2_hi:#x})"
+                                        )
+
+        # 0 `lib2` bytes in any writable (`PF_W`) segment
+        for seg in elf.segments:
+            if (seg.flags & 0x2) == 0:
+                continue
+            seg_lo = seg.vaddr
+            seg_hi = seg.vaddr + seg.memsz
+            for lnode in lib2_nodes:
+                n_lo = lnode.map_sec.vma
+                n_hi = n_lo + lnode.map_sec.size
+                if max(seg_lo, n_lo) < min(seg_hi, n_hi):
+                    errors.append(
+                        f"C2 placement (lib2 RW): {lnode.node_id} [{n_lo:#x}, {n_hi:#x}) overlaps "
+                        f"writable PT_LOAD [{seg_lo:#x}, {seg_hi:#x})"
+                    )
+
+    # Retired stub slots check (applies ONLY to `lib2`-defined roots; 0 slots when 0 `lib2` rows)
+    raw_retired_slots: list[Any] = []
+    if eng_meta is not None and (
+        "retiredStubSlots" in eng_meta or "retired_stub_slots" in eng_meta
+    ):
+        raw_rs = (
+            eng_meta["retiredStubSlots"]
+            if "retiredStubSlots" in eng_meta
+            else eng_meta["retired_stub_slots"]
+        )
+        if not isinstance(raw_rs, list):
+            errors.append("C2 retired slots: `retiredStubSlots` in `stock-link.json` must be a list")
+        else:
+            raw_retired_slots = list(raw_rs)
+    elif cv_meta is not None and (
+        "retiredStubSlots" in cv_meta or "retired_stub_slots" in cv_meta
+    ):
+        raw_rs = (
+            cv_meta["retiredStubSlots"]
+            if "retiredStubSlots" in cv_meta
+            else cv_meta["retired_stub_slots"]
+        )
+        if not isinstance(raw_rs, list):
+            errors.append("C2 retired slots: `retired_stub_slots` in `cv-stock-link.json` must be a list")
+        else:
+            raw_retired_slots = list(raw_rs)
+
+    expected_retired_syms = {
+        x_sym
+        for x_sym, (wnode, _wrsym, _wesym) in winning_node_by_x.items()
+        if wnode.image_idx in lib2_img_indices
+    }
+    retired_slots_report: list[dict[str, Any]] = []
+    retired_vmas: dict[int, str] = {}
+    seen_retired_syms: set[str] = set()
+    seen_retired_names: set[str] = set()
+    seen_retired_secs: set[str] = set()
+
+    for idx_rs, rs_item in enumerate(raw_retired_slots):
+        if not isinstance(rs_item, Mapping):
+            errors.append(f"C2 retired slots: entry #{idx_rs} is not an object")
+            continue
+        rs_sym = str(rs_item.get("symbol") or "")
+        rs_ret_sym = str(
+            rs_item.get("retiredSymbol") or rs_item.get("retired_symbol") or ""
+        )
+        rs_ret_sec = str(
+            rs_item.get("retiredSection") or rs_item.get("retired_section") or ""
+        )
+        rs_orig_raw = rs_item.get("origAddr") if "origAddr" in rs_item else rs_item.get("orig_addr")
+        rs_sz_raw = rs_item.get("size", 4)
+        try:
+            rs_orig = int(str(rs_orig_raw), 0)
+            rs_sz = int(rs_sz_raw)
+        except (TypeError, ValueError):
+            errors.append(
+                f"C2 retired slots: invalid `origAddr`/`size` on entry #{idx_rs} ({rs_sym!r}): {rs_orig_raw!r}, {rs_sz_raw!r}"
+            )
+            continue
+
+        if not rs_sym or rs_sym in seen_retired_syms:
+            errors.append(f"C2 retired slots: missing/duplicate `symbol` {rs_sym!r}")
+            continue
+        seen_retired_syms.add(rs_sym)
+
+        if rs_sym in ("memmove", "memcmp", "bcmp", "strlen"):
+            errors.append(
+                f"C2 retired slots / D-C2f (2C): libc symbol {rs_sym!r} must NOT have a retired stub slot"
+            )
+        if not re.match(r"^__retired_\d+$", rs_ret_sym) or rs_ret_sym in seen_retired_names:
+            errors.append(
+                f"C2 retired slots: invalid/duplicate `retiredSymbol` {rs_ret_sym!r} for {rs_sym!r}"
+            )
+        seen_retired_names.add(rs_ret_sym)
+
+        expected_sec_for_ret = f".text.{rs_ret_sym}"
+        if rs_ret_sec != expected_sec_for_ret or rs_ret_sec in seen_retired_secs:
+            errors.append(
+                f"C2 retired slots: `retiredSection` {rs_ret_sec!r} != {expected_sec_for_ret!r} (or duplicate)"
+            )
+        seen_retired_secs.add(rs_ret_sec)
+
+        if rs_sz != 4 or rs_orig % 4 != 0:
+            errors.append(
+                f"C2 retired slots: `{rs_sym}` slot size={rs_sz} origAddr={rs_orig:#x} (expected 4-byte aligned 4 B)"
+            )
+        if rs_sym in elf_inspect.BASELINE_2F20C836_STUB_ADDRS:
+            base_vma = elf_inspect.BASELINE_2F20C836_STUB_ADDRS[rs_sym]
+            if rs_orig != base_vma:
+                errors.append(
+                    f"C2 retired slots: `{rs_sym}` origAddr {rs_orig:#x} != baseline 2f20c836 stub VMA {base_vma:#x}"
+                )
+        if rs_orig in retired_vmas:
+            errors.append(
+                f"C2 retired slots: duplicate origAddr {rs_orig:#x} for {rs_sym!r} and {retired_vmas[rs_orig]!r}"
+            )
+        retired_vmas[rs_orig] = rs_sym
+
+        # Check stub_record `.o`: original symbol absent, `.text.__retired_<i>` 4 zero bytes, STB_LOCAL only
+        assert stub_record.obj is not None
+        if rs_sym in stub_record.obj.defs_by_name:
+            errors.append(
+                f"C2 retired slots: original symbol {rs_sym!r} still defined in {stub_record.name}"
+            )
+        stub_rsecs = [s for s in stub_record.obj.sections if s.name == rs_ret_sec]
+        if len(stub_rsecs) != 1:
+            errors.append(
+                f"C2 retired slots: {stub_record.name} missing unique section {rs_ret_sec!r} (got {len(stub_rsecs)})"
+            )
+        else:
+            srsec = stub_rsecs[0]
+            if srsec.sh_size != 4 or srsec.data != b"\x00\x00\x00\x00":
+                errors.append(
+                    f"C2 retired slots: {stub_record.name}:{rs_ret_sec} expected 4 zero bytes (`udf #0`), "
+                    f"got size={srsec.sh_size} data={srsec.data.hex()}"
+                )
+            active_sr_rels = [
+                rel for rel in srsec.relocs if rel.r_type not in elf_inspect.R_AARCH64_NONE_SET
+            ]
+            if active_sr_rels:
+                errors.append(
+                    f"C2 retired slots: {stub_record.name}:{rs_ret_sec} has {len(active_sr_rels)} relocations (expected 0)"
+                )
+            sec_syms = [sym for sym in stub_record.obj.symbols if sym.st_shndx == srsec.idx]
+            for ssym in sec_syms:
+                if not ssym.is_local:
+                    errors.append(
+                        f"C2 retired slots: {stub_record.name}:{rs_ret_sec} carries non-local symbol "
+                        f"{ssym.name!r} (bind={ssym.bind})"
+                    )
+                if ssym.name and not ssym.name.startswith("$") and ssym.name != rs_ret_sym:
+                    errors.append(
+                        f"C2 retired slots: {stub_record.name}:{rs_ret_sec} carries unexpected symbol {ssym.name!r}"
+                    )
+            rnodes = nodes_by_obj_sec.get((stub_record.name, "", srsec.idx), [])
+            if len(rnodes) != 1:
+                errors.append(
+                    f"C2 retired slots: {stub_record.name}:{rs_ret_sec} expected 1 retained map node, got {len(rnodes)}"
+                )
+            else:
+                rn = rnodes[0]
+                if rn.map_sec.vma != rs_orig or rn.map_sec.size != 4:
+                    errors.append(
+                        f"C2 retired slots: {rn.node_id} placed at {rn.map_sec.vma:#x} (size={rn.map_sec.size}) "
+                        f"!= origAddr {rs_orig:#x} (size=4)"
+                    )
+                if b_pre_secs and rn.map_sec.out_sec != ".text.crate":
+                    errors.append(
+                        f"C2 retired slots: {rn.node_id} placed in {rn.map_sec.out_sec!r} (expected '.text.crate')"
+                    )
+                incoming_reloc_nodes = sorted(
+                    src_id for src_id, tgts in section_graph.items() if rn.node_id in tgts
+                )
+                if incoming_reloc_nodes:
+                    errors.append(
+                        f"C2 retired slots: {rn.node_id} ({rs_sym!r}) has incoming relocation edge(s) from {incoming_reloc_nodes}"
+                    )
+
+        # Check final ELF at `[rs_orig, rs_orig + 4)`: `udf #0` (`0x00000000`) and 0 non-local symbols
+        try:
+            slot_elf_bytes = elf.read_vma(rs_orig, 4)
+        except Exception as exc:  # noqa: BLE001
+            slot_elf_bytes = b""
+            errors.append(f"C2 retired slots: failed reading ELF VMA {rs_orig:#x} for {rs_sym!r}: {exc}")
+        if slot_elf_bytes and slot_elf_bytes != b"\x00\x00\x00\x00":
+            errors.append(
+                f"C2 retired slots: ELF bytes at {rs_orig:#x} ({rs_sym!r}) are {slot_elf_bytes.hex()} != 00000000 (`udf #0`)"
+            )
+        for es in elf.symbols:
+            if es.st_shndx in (elf_inspect.SHN_UNDEF, elf_inspect.SHN_ABS, elf_inspect.SHN_COMMON):
+                continue
+            if es.is_local:
+                continue
+            es_lo = es.st_value
+            es_hi = es_lo + max(1, es.st_size)
+            if max(es_lo, rs_orig) < min(es_hi, rs_orig + 4):
+                errors.append(
+                    f"C2 retired slots: retired slot {rs_orig:#x} ({rs_sym!r}) carries non-local ELF symbol "
+                    f"{es.name!r} (bind={es.bind}, st_value={es.st_value:#x})"
+                )
+
+        retired_slots_report.append({
+            "symbol": rs_sym,
+            "retired_symbol": rs_ret_sym,
+            "retired_section": rs_ret_sec,
+            "orig_addr": hex(rs_orig),
+            "size": rs_sz,
+        })
+
+    retired_slots_report.sort(key=lambda d: int(str(d["orig_addr"]), 16))
+    if seen_retired_syms != expected_retired_syms:
+        errors.append(
+            f"C2 retired slots: declared retired slot symbols {sorted(seen_retired_syms)} != "
+            f"active lib2 roots {sorted(expected_retired_syms)}"
+        )
+
+    # Verify stub_record `.o` has NO undeclared `.text.__retired_*` sections
+    assert stub_record.obj is not None
+    undeclared_ret_secs = sorted(
+        s.name
+        for s in stub_record.obj.sections
+        if s.name.startswith(".text.__retired_") and s.name not in seen_retired_secs
+    )
+    if undeclared_ret_secs:
+        errors.append(
+            f"C2 retired slots: undeclared `.text.__retired_*` section(s) in {stub_record.name}: {undeclared_ret_secs}"
+        )
+
+    # Full RX instruction scan: NO branch instruction anywhere in PF_X segments may target a retired slot VMA
+    if retired_vmas:
+        for seg in elf.segments:
+            if (seg.flags & 0x1) == 0 or seg.filesz < 4:
+                continue
+            seg_bytes = elf.read_vma(seg.vaddr, seg.filesz)
+            n_words = len(seg_bytes) // 4
+            for w_idx, (insn_w,) in enumerate(struct.iter_unpack("<I", seg_bytes[: n_words * 4])):
+                # Fast pre-filter: all AArch64 immediate branches (`B`/`BL`, `B.cond`, `CBZ`/`CBNZ`, `TBZ`/`TBNZ`)
+                # have bits `[28:26] == 0b101` (`0x14000000`)
+                if (insn_w & 0x1C000000) != 0x14000000:
+                    continue
+                pc_vma = seg.vaddr + w_idx * 4
+                br_tgt = elf_inspect.decode_aarch64_branch_target(insn_w, pc_vma)
+                if br_tgt is not None and br_tgt in retired_vmas:
+                    errors.append(
+                        f"C2 retired slots: instruction {insn_w:#010x} at {pc_vma:#x} branches to "
+                        f"retired stub slot {br_tgt:#x} ({retired_vmas[br_tgt]!r})"
+                    )
+
+    # ==========================================================================
     # Step 12c: SC-1 (`rust_extracted`, §0f(vi) Recipe Re-Derive & Disjoint Sections, §0f(vii) SR-35 NB1)
     # ==========================================================================
     lock_rustc_ver = str(lock_data.get("rustc_version") or "").strip() if lock_data is not None else ""
@@ -3008,20 +3900,25 @@ def check_stock_link(
     rust_extracted_report: dict[str, dict[str, Any]] = {}
     toolchain_sysroot_scan_report: dict[str, Any] = {}
 
-    # §0f(vi): Check that NO section is kept by two objects across `sysroot_trims` and `rust_extracted` kind (a)
-    kept_section_owners: dict[str, list[str]] = {}
+    # §0f(vi): Check that NO section of the SAME `.rlib` member is kept by two objects across
+    # `sysroot_trims` and `rust_extracted` kind (a)
+    kept_section_owners: dict[tuple[str, str], list[str]] = {}
     for st_row in sysroot_trims_report:
         st_owner = f"sysroot_trim:{st_row['object']}"
+        st_msha = str(st_row.get("member_sha256") or "")
         for ksec in st_row.get("kept_sections", []):
-            kept_section_owners.setdefault(str(ksec), []).append(st_owner)
+            kept_section_owners.setdefault((st_msha, str(ksec)), []).append(st_owner)
     for re_name, re_cfg in sorted(lock_rust_extracted.items()):
         if re_cfg.get("kind") == "rlib_member":
             re_owner = f"rust_extracted:{re_name}"
+            re_msha = str(re_cfg.get("member_sha256") or "")
             for ksec in re_cfg.get("keep_sections") or []:
-                kept_section_owners.setdefault(str(ksec), []).append(re_owner)
-    for ksec, kowners in sorted(kept_section_owners.items()):
+                kept_section_owners.setdefault((re_msha, str(ksec)), []).append(re_owner)
+    for (msha_key, ksec), kowners in sorted(kept_section_owners.items()):
         if len(kowners) > 1:
-            errors.append(f"0f(vi): section {ksec!r} is kept by multiple objects: {kowners}")
+            errors.append(
+                f"0f(vi): section {ksec!r} (member {msha_key[:16] or 'unknown'}) is kept by multiple objects: {kowners}"
+            )
 
     # Exact-name definitions in all non-`rust_extracted` pinned inputs (`R`, non-`rust_extracted` `N`, `S:<i>`)
     exact_defs_non_re: dict[str, list[str]] = {}
@@ -3653,6 +4550,40 @@ def check_stock_link(
                             "member_text_relocs": len(ref_relocs),
                         })
                         definers_table[s2_key]["byte_equal"] = eq_ok
+            if s2_key == "memmove":
+                # D-C2f (2C) / GK row 375: verify every relocated branch word in `memmove` decodes
+                # word-exact to its resolved target symbol's final ELF VMA (`B memcpy`).
+                sym_hi = srsym.st_value + int(sesym.st_size)
+                for mrel in snode.sec.relocs:
+                    if mrel.r_type in elf_inspect.R_AARCH64_NONE_SET:
+                        continue
+                    if not (srsym.st_value <= mrel.r_offset < sym_hi):
+                        continue
+                    msym = snode.obj.symbols[mrel.sym_idx]
+                    if mrel.r_type not in (282, 283) or mrel.r_addend != 0 or msym.is_local:
+                        errors.append(
+                            f"GK row 375 / D-C2f: `memmove` unexpected relocation r_type={mrel.r_type} "
+                            f"sym={msym.name!r} addend={mrel.r_addend}"
+                        )
+                        continue
+                    if msym.name not in winning_node_by_x:
+                        errors.append(
+                            f"GK row 375 / D-C2f: `memmove` branch target {msym.name!r} missing from `winning_node_by_x`"
+                        )
+                        continue
+                    mm_vma = sesym.st_value + (mrel.r_offset - srsym.st_value)
+                    (mm_word,) = struct.unpack("<I", elf.read_vma(mm_vma, 4))
+                    mm_tgt = (
+                        elf_inspect.decode_aarch64_b_target(mm_word, mm_vma)
+                        if mrel.r_type == 282
+                        else elf_inspect.decode_aarch64_branch_target(mm_word, mm_vma)
+                    )
+                    exp_mm_vma = winning_node_by_x[msym.name][2].st_value
+                    if mm_tgt is None or mm_tgt != exp_mm_vma:
+                        errors.append(
+                            f"GK row 375 / D-C2f: `memmove` word {mm_word:#010x} at {mm_vma:#x} decodes to "
+                            f"{hex(mm_tgt) if mm_tgt is not None else None} != `{msym.name}` VMA {exp_mm_vma:#x}"
+                        )
             if s2_key == "bcmp":
                 # GK row 375: single word decodes as unconditional `B` targeting `memcmp`'s final ELF VMA
                 if sesym.st_size != 4 or len(elf_body) != 4:
@@ -3790,6 +4721,12 @@ def check_stock_link(
         toolchain_sysroot_scan=toolchain_sysroot_scan_report,
         proved_closures=proved_closures,
         inputs_lock_pin=inputs_lock_pin_summary,
+        cli_hook_table_placed=sorted(hook_table_keys),
+        cli_dehooked_syms_placed=sorted(dehooked_table_keys),
+        cli_panic_symbols_placed=sorted(panic_table_keys),
+        cli_binary_pq_sha256=cli_pq_sha256,
+        lib2_objects=lib2_objects_report,
+        retired_stub_slots=retired_slots_report,
         violations=errors,
     )
 

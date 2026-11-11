@@ -72,9 +72,9 @@ When C11 Commit 2B wires the `lsFromUtf8Sym` row into `CliGhostHooks.extra`:
   `InvMem := F3CodeInv mpl mmpl` (preserved across real hooks via `linkedCallHookG_fs`), `hRoInv`
   from C2 §3 `f3CodeInv_roDataAt_*` for `corePlacedData1`, and `hLiftVis` from
   `h2sl_steps_realW_of_visitedIn_keepSub`.
-- **C1 Activation Follow-Up (before flip 2):** Switch `#1328`'s raw
-  `cliGhostExterns_fromUtf8_eq` call sites (`ElfSlicesPqOomH2KD3MainLiftGlueSat.lean`,
-  `ElfSlicesPqOomH2KMainEntryFitsSat.lean`) to `hookSat_withExtra_of_base … hG.extraOk`.
+- **C1 Activation Follow-Up (before flip 2):** Switch `#1328`'s former raw-eq
+  `from_utf8` call sites (`ElfSlicesPqOomH2KD3MainLiftGlueSat.lean`,
+  `ElfSlicesPqOomH2KMainEntryFitsSat.lean`) to `CliHookSatPlacedBudget.cliGhostExterns_fromUtf8{,RO}_budget_sat … hG.extraOk`.
 -/
 
 set_option autoImplicit false

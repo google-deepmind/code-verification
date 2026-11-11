@@ -127,9 +127,9 @@ open LibsignalBinary.Proofs.PublicApi.StoreKit.SessionStoreKitBudget (SessionSto
 open LibsignalBinary.Proofs.SessionRecordAt.Hooks2.SerDefsXBudget
   (SerContractsXPlaced serializeCanonSpecX)
 open LibsignalBinary.Proofs.SignalSession.Cli.AllocGhostLinkTransfer
-  (CliGhostHooks cliGhostExterns cliGhostExterns_other)
+  (CliGhostHooks cliGhostExterns)
 open LibsignalBinary.Proofs.SignalSession.Cli.KitInst.IdentityKitOkPlacedBudget
-  (cliIdKitOkIE_placed cliIdentityKitDefaultBudgetEnv)
+  (cliIdKitOkIE_placed_sat cliIdentityKitDefaultBudgetEnv)
 open LibsignalBinary.Proofs.SignalSession.Cli.KitInst.SessionKitOkCliPlacedBudget
   (cliSessKitOkSE_placed cliSessionKitDefaultBudgetEnv)
 open LibsignalBinary.Proofs.SignalSession.Cli.Run.Proofs.DecryptPrekey.Over.PollOverP4SpatialPlacedBudget
@@ -137,8 +137,7 @@ open LibsignalBinary.Proofs.SignalSession.Cli.Run.Proofs.DecryptPrekey.Over.Poll
 open LibsignalBinary.Proofs.SignalSession.Cli.Run.Proofs.DecryptPrekey.Poll.ClosureStageDefsPlacedBudget
   (StageP1UntrustedEnv)
 open LibsignalBinary.Proofs.SignalSession.Cli.Run.Slots.CliHookSatPlacedBudget
-  (cliExternsPlaced_sessionMemcpy_budget_sat cliExternsPlaced_sessionMemcpyRegion_budget_sat
-   cliExternsPlaced_sessionMemmove_budget_sat)
+  (cliExternsPlaced_sessionMemcpy_budget_sat cliExternsPlaced_sessionMemcpyRegion_budget_sat)
 open LibsignalBinary.Proofs.SignalSession.Cli.Run.Slots.DecryptPrekeySlotPlacedBudget
   (DpPollGhostStateBudget dpPollSpecStateBudget dpSlotPollKStatePlaced)
 open LibsignalBinary.Proofs.SignalSession.Cli.SpecsPlacedBudget
@@ -172,6 +171,7 @@ theorem runHooks_to_stages [LibsignalPlacement] {M : AllocCostModel}
   allocZeroed := hh.allocZeroed
   stringClone := hh.stringClone
   formatInner := hh.formatInner
+  blackBox := hh.blackBox
 
 /-- Convert `ClosureStagesStmtPlacedBudget.RunHooksPlaced` to
 `SkeletonPlacedBudget.RunHooksPlaced` (`PollStmtPlacedBudget.RunHooksPlaced`). -/
@@ -192,6 +192,7 @@ theorem runHooks_of_stages [LibsignalPlacement] {M : AllocCostModel}
   allocZeroed := hh.allocZeroed
   stringClone := hh.stringClone
   formatInner := hh.formatInner
+  blackBox := hh.blackBox
 
 /-! ## 2. Budget-Threaded Trace, `FsAt`, & Exit Postcondition Packagers -/
 
@@ -398,12 +399,6 @@ abbrev cliPollIdBudgetEnv [LibsignalPlacement] (A : RustAlloc)
       (cliKitStk B).idSaveShim (cliKitStk B).idSavePoll
       cliIdentityVtSym ReadEnv)
 
-private theorem cliGhostExterns_blackBox_local (mmpl : Obj.MultiPlacement)
-    (g : CliGhostHooks) (W : CliHooks) :
-    cliGhostExterns g (cliExternsPlaced mmpl W) lsBlackBoxU8Sym =
-      some CryptoVerification.LibsignalSession.blackBoxHook :=
-  CryptoVerification.SignalSession.Cli.KitInst.IdKit.cliGhostExterns_blackBox mmpl g W
-
 private theorem hookSat_sessionMemcpyRegionBudget_of_codec {H : LibsignalHooks}
     (h : HookSat H CryptoVerification.lsMemcpySym (withVmPreserved framelessMemcpySpec)) :
     HookSat H CryptoVerification.lsMemcpySym sessionMemcpyRegionBudgetSpec :=
@@ -434,9 +429,6 @@ theorem serContractsX_of_runHooks [LibsignalPlacement] (mmpl : Obj.MultiPlacemen
     hh.codecHooks.dealloc
     hh.codecHooks.realloc
     ((show withVmPreserved noAllocShimSpec = sessionShimBudgetSpec from rfl) ▸ hh.codecHooks.shim)
-    (let ⟨f, hf, hok⟩ := cliExternsPlaced_sessionMemmove_budget_sat mmpl W extHookStack
-     ⟨f, (cliGhostExterns_other g (cliExternsPlaced mmpl W)
-       (by decide) (by decide) (by decide) (by decide) (by decide) (by decide)).trans hf, hok⟩)
     (hookSat_sessionMemcpyBudget_of_codec extHookStack hh.codecHooks.memcpy)
 
 /-- Full `SessionOnlyKitPlacedOkSE` instance for `cliPollSessKitPlaced` extracted directly from
@@ -488,13 +480,13 @@ theorem cliPollId_kitPlacedOkI [LibsignalPlacement] (mmpl : Obj.MultiPlacement)
       (cliPollIdBudgetEnv A.repAlloc F0 peer B ReadEnv)
       (cliGhostExterns g (cliExternsPlaced mmpl W)) :=
   cliIdKitPlacedOkI_full
-    (cliIdKitOkIE_placed
+    (cliIdKitOkIE_placed_sat
       (readProg := dpPollProgPlaced (cliGhostExterns g (cliExternsPlaced mmpl W))) (jRead := 518)
       hDropNz
       (fun _ hp => hp.2)
       hh
       (subroutine_ok_withLsCodeRoLoaded_of_plain hRead)
-      (cliGhostExterns_blackBox_local mmpl g W)
+      hh.blackBox
       (Nat.le_refl _) (Nat.le_refl _) (Nat.le_refl _) (Nat.le_refl _)
       (by decide) (by decide))
 

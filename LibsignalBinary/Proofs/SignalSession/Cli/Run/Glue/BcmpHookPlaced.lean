@@ -48,7 +48,7 @@ open CryptoVerification
 open CryptoVerification.SignalSession
 open CryptoVerification.SignalSession.Cli
 
-/-- The `37` mangled symbol names of `cliHookTablePlaced mmpl W` (independent of `mmpl` and `W`). -/
+/-- The `27` mangled symbol names of `cliHookTablePlaced mmpl W` (independent of `mmpl` and `W`). -/
 def cliHookNamesPlaced : List String :=
   ["_RNvNtCsbvWyylYiyxg_4sha26sha51211compress512",
    "_RNvMs5_NtCs2wR8L9wiBdT_16curve25519_dalek10montgomeryNtB5_15MontgomeryPoint10to_edwards",
@@ -68,25 +68,15 @@ def cliHookNamesPlaced : List String :=
    "_RNvNtNtCs1mK0QScfTrZ_14libcrux_ml_kem8mlkem76811incremental26decapsulate_compressed_key",
    "_RNvNtNtCs1mK0QScfTrZ_14libcrux_ml_kem8mlkem76811incremental17validate_pk_bytes",
    "_RNvCs65XVORQObL2_12libcrux_hmac4hmac",
-   "memmove",
-   "bcmp",
-   "strlen",
    lsWriteFileSym,
    lsWriteStdoutSym,
-   lsMemrchrSym,
-   lsFromUtf8Sym,
    lsFmtWriteSym,
    lsFormatInnerSym,
-   lsDurationSinceSym,
-   lsTimeAddSym,
-   lsBlackBoxSym,
    lsCompress256Sym,
    lsAesEncSym,
    lsAesDecSym,
    lsPubFromSecretSym,
-   lsDiffieHellmanSym,
-   lsStaticSecretDropSym,
-   lsSharedSecretDropSym]
+   lsDiffieHellmanSym]
 
 theorem cliHookNamesPlaced_eq (mmpl : Obj.MultiPlacement) (W : CliHooks) :
     (cliHookTablePlaced mmpl W).map Prod.fst = cliHookNamesPlaced := rfl
@@ -100,15 +90,12 @@ theorem cliHookNamesPlaced_notPanic :
   rw [List.all_eq_true]
   intro n hn
   simp only [cliHookNamesPlaced, lsWriteFileSym, lsWriteStdoutSym,
-    lsMemrchrSym, lsFromUtf8Sym, lsFmtWriteSym, lsFormatInnerSym,
-    lsDurationSinceSym, lsTimeAddSym, lsBlackBoxSym, lsCompress256Sym,
+    lsFmtWriteSym, lsFormatInnerSym, lsCompress256Sym,
     lsAesEncSym, lsAesDecSym, lsPubFromSecretSym, lsDiffieHellmanSym,
-    lsStaticSecretDropSym, lsSharedSecretDropSym,
     List.mem_cons, List.not_mem_nil, or_false] at hn
   rcases hn with rfl | rfl | rfl | rfl | rfl | rfl | rfl | rfl | rfl | rfl | rfl | rfl |
     rfl | rfl | rfl | rfl | rfl | rfl | rfl | rfl | rfl | rfl | rfl | rfl |
-    rfl | rfl | rfl | rfl | rfl | rfl | rfl | rfl | rfl | rfl | rfl | rfl |
-    rfl <;>
+    rfl | rfl | rfl <;>
   simp [isCliPanicSymbolPlaced, cliPanicSymbolsPlaced, Rust.isPanicSymbol]
 
 private theorem lookup_of_mem_nodup_placed {α : Type} :
@@ -174,35 +161,72 @@ theorem withPanics_cliExternsPlaced (mmpl : Obj.MultiPlacement) (W : CliHooks) :
     simp [hp]
   · simp [Rust.withPanics, hp]
 
-/-- The `"bcmp"` row of `cliHookTablePlaced mmpl W` (index 1 of its right rows). -/
-theorem bcmp_row_placed (mmpl : Obj.MultiPlacement) (W : CliHooks) :
-    ("bcmp", cliBcmpHook W.bcmp) ∈ cliHookTablePlaced mmpl W :=
-  List.mem_append_right _ (List.mem_of_getElem? (i := 1) rfl)
-
-/-- `cliExternsPlaced mmpl W` maps `"bcmp"` (`cliBcmpName`) to `cliBcmpHook W.bcmp`. -/
-theorem cliExternsPlaced_bcmp (mmpl : Obj.MultiPlacement) (W : CliHooks) :
-    cliExternsPlaced mmpl W "bcmp" = some (cliBcmpHook W.bcmp) :=
-  cliExternsPlaced_row mmpl W (bcmp_row_placed mmpl W)
-
-/-- `HookSat (cliExternsPlaced mmpl W) "bcmp" cliBcmpSpec`. -/
-theorem cli_hookSat_bcmp_placed (mmpl : Obj.MultiPlacement) (W : CliHooks) :
-    HookSat (cliExternsPlaced mmpl W) "bcmp" cliBcmpSpec :=
-  ⟨cliBcmpHook W.bcmp, cliExternsPlaced_bcmp mmpl W, cliBcmpHook_ok W⟩
-
-/-- Block-level `subroutine_ok` form of `cli_hookSat_bcmp_placed` on any unmutated block `i < 619`. -/
-theorem cliBcmpPlaced_ok [LibsignalPlacement] (mmpl : Obj.MultiPlacement) (W : CliHooks)
-    {prog : Program} {i : Nat} [IsLsBlockProg prog i (cliExternsPlaced mmpl W)]
-    (hi : i < 619 := by decide)
-    (hunmut : (i ∈ libsignalMutatedBlocks) = false := by decide) :
-    subroutine_ok prog (lsρ "bcmp") cliBcmpSpec :=
-  ls_hook_ok_ultra_of_mem (cli_hookSat_bcmp_placed mmpl W) (by decide) hi hunmut
-
 /-! ## Ghost-Hook Overlay (`CliGhostHooks` & `cliGhostExterns`) -/
 
-/-- Ghost-hook functions for the five allocator symbols (`lsRustNoAllocShimSymCli`,
-`lsRustAllocSymCli`, `lsRustDeallocSymCli`, `lsRustReallocSymCli`, `lsRustAllocZeroedSymCli`), plus
-optional ghost hooks for `lsStringCloneSym`, `lsReadFileSym`, and `lsReadStdinSym`, plus optional
-ghost-hook slots `memset` and `memcpy` (default `none`, wired into `cliGhostExterns` dispatch in `#1255` Stage A / WP6c). -/
+/-- Type alias for the generic Cutover-2 ghost hook association list. -/
+abbrev ExtraGhostTable : Type := List (String × (State → State))
+
+/-- The 10 named `CliGhostHooks` dispatch symbols (5 F3 alloc + 3 F3 optional + Stage A
+    `lsMemsetSym` / `lsMemcpySym`). -/
+def cliNamedGhostSyms : List String :=
+  [lsRustAllocSymCli, lsRustDeallocSymCli, lsRustReallocSymCli,
+   lsRustAllocZeroedSymCli, lsRustNoAllocShimSymCli,
+   lsStringCloneSym, lsReadFileSym, lsReadStdinSym,
+   lsMemsetSym, lsMemcpySym]
+
+/-- The 10 Cutover-2 symbols eligible for `CliGhostHooks.extra` dispatch. -/
+def cliExtraGhostSyms : List String :=
+  ["memmove", "bcmp", "strlen",
+   lsMemrchrSym, lsFromUtf8Sym, lsDurationSinceSym, lsTimeAddSym,
+   lsBlackBoxSym, lsStaticSecretDropSym, lsSharedSecretDropSym]
+
+theorem cliExtraGhostSyms_disjoint_named :
+    (cliExtraGhostSyms.all fun s => !(cliNamedGhostSyms.contains s)) = true := by
+  decide
+
+theorem cliExtraGhostSyms_not_named {sym : String}
+    (h : cliExtraGhostSyms.contains sym = true) :
+    cliNamedGhostSyms.contains sym = false := by
+  have hmem : sym ∈ cliExtraGhostSyms := List.contains_iff_mem.mp h
+  have hall := List.all_eq_true.mp cliExtraGhostSyms_disjoint_named sym hmem
+  cases hc : cliNamedGhostSyms.contains sym
+  · rfl
+  · rw [hc] at hall; cases hall
+
+theorem named_eq_false_of_extra_contains {sym : String}
+    (h : cliExtraGhostSyms.contains sym = true) :
+    (sym == lsRustAllocSymCli) = false ∧
+    (sym == lsRustDeallocSymCli) = false ∧
+    (sym == lsRustReallocSymCli) = false ∧
+    (sym == lsRustAllocZeroedSymCli) = false ∧
+    (sym == lsRustNoAllocShimSymCli) = false ∧
+    (sym == lsStringCloneSym) = false ∧
+    (sym == lsReadFileSym) = false ∧
+    (sym == lsReadStdinSym) = false ∧
+    (sym == lsMemsetSym) = false ∧
+    (sym == lsMemcpySym) = false := by
+  have hnn := cliExtraGhostSyms_not_named h
+  have hnot_mem : sym ∉ cliNamedGhostSyms := by
+    intro hm
+    have hc : cliNamedGhostSyms.contains sym = true := List.contains_iff_mem.mpr hm
+    rw [hc] at hnn; cases hnn
+  dsimp only [cliNamedGhostSyms] at hnot_mem
+  simp only [List.mem_cons, List.not_mem_nil, or_false, not_or] at hnot_mem
+  obtain ⟨h1, h2, h3, h4, h5, h6, h7, h8, h9, h10⟩ := hnot_mem
+  exact ⟨beq_eq_false_iff_ne.mpr h1, beq_eq_false_iff_ne.mpr h2,
+    beq_eq_false_iff_ne.mpr h3, beq_eq_false_iff_ne.mpr h4,
+    beq_eq_false_iff_ne.mpr h5, beq_eq_false_iff_ne.mpr h6,
+    beq_eq_false_iff_ne.mpr h7, beq_eq_false_iff_ne.mpr h8,
+    beq_eq_false_iff_ne.mpr h9, beq_eq_false_iff_ne.mpr h10⟩
+
+/-- Ghost-hook functions for the 5 bump-allocator symbols removed in F3 (`lsRustNoAllocShimSymCli`,
+    `lsRustAllocSymCli`, `lsRustDeallocSymCli`, `lsRustReallocSymCli`, `lsRustAllocZeroedSymCli`),
+    plus an optional ghost hook for `lsStringCloneSym` (when replaying Block `623` or
+    `stringCloneHookMallocng` via `HookSat`) and optional `HookFsTraced IsFsC`-bundled ghost hooks
+    for `lsReadFileSym` and `lsReadStdinSym` (replaying Blocks `618` / `620` via `GhostExternReplays`),
+    plus optional ghost-hook slots `memset` and `memcpy` (default `none`; wired into
+    `cliGhostExterns` dispatch in `#1255` Stage A / WP6c), and a generic `extra` association-list
+    slot (default `[]`; `#1255` Cutover-2 extra ghost hooks). -/
 structure CliGhostHooks where
   alloc : State → State
   dealloc : State → State
@@ -214,53 +238,120 @@ structure CliGhostHooks where
   readStdin : Option { f : State → State // HookFsTraced IsFsC f } := none
   memset : Option (State → State) := none
   memcpy : Option (State → State) := none
+  extra : List (String × (State → State)) := []
 
-/-- Overlays `g : CliGhostHooks` onto a base extern map `baseExt : LibsignalHooks`. -/
+/-- Pre-2B 10-way named-slot dispatch of `cliGhostExterns` (without `extra`). -/
+def cliGhostExternsNamed (g : CliGhostHooks)
+    (baseExt : String → Option (State → State)) (sym : String) :
+    Option (State → State) :=
+  if sym == lsRustAllocSymCli then some g.alloc
+  else if sym == lsRustDeallocSymCli then some g.dealloc
+  else if sym == lsRustReallocSymCli then some g.realloc
+  else if sym == lsRustAllocZeroedSymCli then some g.allocZeroed
+  else if sym == lsRustNoAllocShimSymCli then some g.shim
+  else if sym == lsStringCloneSym then
+    match g.stringClone with | some f => some f | none => baseExt sym
+  else if sym == lsReadFileSym then
+    match g.readFile with | some ⟨f, _⟩ => some f | none => baseExt sym
+  else if sym == lsReadStdinSym then
+    match g.readStdin with | some ⟨f, _⟩ => some f | none => baseExt sym
+  else if sym == lsMemsetSym then
+    match g.memset with | some f => some f | none => baseExt sym
+  else if sym == lsMemcpySym then
+    match g.memcpy with | some f => some f | none => baseExt sym
+  else baseExt sym
+
+/-- Full 10-named + domain-guarded `extra` extern dispatcher. -/
+def cliGhostExternsWithExtra (g : CliGhostHooks) (extra : ExtraGhostTable)
+    (baseExt : String → Option (State → State)) (sym : String) :
+    Option (State → State) :=
+  if sym == lsRustAllocSymCli then some g.alloc
+  else if sym == lsRustDeallocSymCli then some g.dealloc
+  else if sym == lsRustReallocSymCli then some g.realloc
+  else if sym == lsRustAllocZeroedSymCli then some g.allocZeroed
+  else if sym == lsRustNoAllocShimSymCli then some g.shim
+  else if sym == lsStringCloneSym then
+    match g.stringClone with | some f => some f | none => baseExt sym
+  else if sym == lsReadFileSym then
+    match g.readFile with | some ⟨f, _⟩ => some f | none => baseExt sym
+  else if sym == lsReadStdinSym then
+    match g.readStdin with | some ⟨f, _⟩ => some f | none => baseExt sym
+  else if sym == lsMemsetSym then
+    match g.memset with | some f => some f | none => baseExt sym
+  else if sym == lsMemcpySym then
+    match g.memcpy with | some f => some f | none => baseExt sym
+  else if cliExtraGhostSyms.contains sym then
+    match extra.lookup sym with | some f => some f | none => baseExt sym
+  else baseExt sym
+
+@[simp] theorem cliGhostExternsWithExtra_extra_some (g : CliGhostHooks) (extra : ExtraGhostTable)
+    (baseExt : String → Option (State → State)) {sym : String} {f : State → State}
+    (hLook : extra.lookup sym = some f)
+    (hDom : cliExtraGhostSyms.contains sym = true := by decide) :
+    cliGhostExternsWithExtra g extra baseExt sym = some f := by
+  obtain ⟨h1, h2, h3, h4, h5, h6, h7, h8, h9, h10⟩ := named_eq_false_of_extra_contains hDom
+  unfold cliGhostExternsWithExtra
+  simp only [h1, h2, h3, h4, h5, h6, h7, h8, h9, h10, hDom, hLook, Bool.false_eq_true, ↓reduceIte]
+
+theorem cliGhostExternsWithExtra_other (g : CliGhostHooks) (extra : ExtraGhostTable)
+    (baseExt : String → Option (State → State)) {sym : String}
+    (h1 : sym ≠ lsRustAllocSymCli)
+    (h2 : sym ≠ lsRustDeallocSymCli)
+    (h3 : sym ≠ lsRustReallocSymCli)
+    (h4 : sym ≠ lsRustAllocZeroedSymCli)
+    (h5 : sym ≠ lsRustNoAllocShimSymCli)
+    (h6 : sym ≠ lsStringCloneSym)
+    (h7 : sym ≠ lsReadFileSym := by decide)
+    (h8 : sym ≠ lsReadStdinSym := by decide)
+    (h9 : sym ≠ lsMemsetSym := by decide)
+    (h10 : sym ≠ lsMemcpySym := by decide)
+    (hExtra : cliExtraGhostSyms.contains sym = false ∨ extra.lookup sym = none := by
+      left; decide) :
+    cliGhostExternsWithExtra g extra baseExt sym = baseExt sym := by
+  unfold cliGhostExternsWithExtra
+  simp only [beq_eq_false_iff_ne.mpr h1, beq_eq_false_iff_ne.mpr h2,
+    beq_eq_false_iff_ne.mpr h3, beq_eq_false_iff_ne.mpr h4,
+    beq_eq_false_iff_ne.mpr h5, beq_eq_false_iff_ne.mpr h6,
+    beq_eq_false_iff_ne.mpr h7, beq_eq_false_iff_ne.mpr h8,
+    beq_eq_false_iff_ne.mpr h9, beq_eq_false_iff_ne.mpr h10, Bool.false_eq_true, ↓reduceIte]
+  rcases hExtra with hDomF | hLookN
+  · simp only [hDomF, Bool.false_eq_true, ↓reduceIte]
+  · cases hDom : cliExtraGhostSyms.contains sym
+    · simp only [Bool.false_eq_true, ↓reduceIte]
+    · simp only [↓reduceIte, hLookN]
+
+/-- Overlays `g : CliGhostHooks` onto a base extern map `baseExt : LibsignalHooks`
+    (10 named ghost slots + domain-guarded Cutover-2 `g.extra` table). -/
 def cliGhostExterns (g : CliGhostHooks) (baseExt : LibsignalHooks) : LibsignalHooks :=
-  fun sym =>
-    if sym == lsRustAllocSymCli then some g.alloc
-    else if sym == lsRustDeallocSymCli then some g.dealloc
-    else if sym == lsRustReallocSymCli then some g.realloc
-    else if sym == lsRustAllocZeroedSymCli then some g.allocZeroed
-    else if sym == lsRustNoAllocShimSymCli then some g.shim
-    else if sym == lsStringCloneSym then
-      match g.stringClone with
-      | some f => some f
-      | none => baseExt sym
-    else if sym == lsReadFileSym then
-      match g.readFile with
-      | some ⟨f, _⟩ => some f
-      | none => baseExt sym
-    else if sym == lsReadStdinSym then
-      match g.readStdin with
-      | some ⟨f, _⟩ => some f
-      | none => baseExt sym
-    else if sym == lsMemsetSym then
-      match g.memset with
-      | some f => some f
-      | none => baseExt sym
-    else if sym == lsMemcpySym then
-      match g.memcpy with
-      | some f => some f
-      | none => baseExt sym
-    else baseExt sym
+  cliGhostExternsWithExtra g g.extra baseExt
+
+/-- Definitional bridge `cliGhostExterns g = cliGhostExternsWithExtra g g.extra`. -/
+theorem cliGhostExterns_eq_withExtra (g : CliGhostHooks) :
+    cliGhostExterns g = cliGhostExternsWithExtra g g.extra := rfl
+
+@[simp] theorem cliGhostExterns_extra_some (g : CliGhostHooks) (baseExt : LibsignalHooks)
+    {sym : String} {f : State → State}
+    (hLook : g.extra.lookup sym = some f)
+    (hDom : cliExtraGhostSyms.contains sym = true := by decide) :
+    cliGhostExterns g baseExt sym = some f :=
+  cliGhostExternsWithExtra_extra_some g g.extra baseExt hLook hDom
 
 @[simp] theorem cliGhostExterns_alloc (g : CliGhostHooks) (baseExt : LibsignalHooks) :
     cliGhostExterns g baseExt lsRustAllocSymCli = some g.alloc := by
-  unfold cliGhostExterns
+  unfold cliGhostExterns cliGhostExternsWithExtra
   have h1 : (lsRustAllocSymCli == lsRustAllocSymCli) = true := by decide
   simp only [h1, ↓reduceIte]
 
 @[simp] theorem cliGhostExterns_dealloc (g : CliGhostHooks) (baseExt : LibsignalHooks) :
     cliGhostExterns g baseExt lsRustDeallocSymCli = some g.dealloc := by
-  unfold cliGhostExterns
+  unfold cliGhostExterns cliGhostExternsWithExtra
   have h1 : (lsRustDeallocSymCli == lsRustAllocSymCli) = false := by decide
   have h2 : (lsRustDeallocSymCli == lsRustDeallocSymCli) = true := by decide
   simp only [h1, h2, Bool.false_eq_true, ↓reduceIte]
 
 @[simp] theorem cliGhostExterns_realloc (g : CliGhostHooks) (baseExt : LibsignalHooks) :
     cliGhostExterns g baseExt lsRustReallocSymCli = some g.realloc := by
-  unfold cliGhostExterns
+  unfold cliGhostExterns cliGhostExternsWithExtra
   have h1 : (lsRustReallocSymCli == lsRustAllocSymCli) = false := by decide
   have h2 : (lsRustReallocSymCli == lsRustDeallocSymCli) = false := by decide
   have h3 : (lsRustReallocSymCli == lsRustReallocSymCli) = true := by decide
@@ -268,7 +359,7 @@ def cliGhostExterns (g : CliGhostHooks) (baseExt : LibsignalHooks) : LibsignalHo
 
 @[simp] theorem cliGhostExterns_allocZeroed (g : CliGhostHooks) (baseExt : LibsignalHooks) :
     cliGhostExterns g baseExt lsRustAllocZeroedSymCli = some g.allocZeroed := by
-  unfold cliGhostExterns
+  unfold cliGhostExterns cliGhostExternsWithExtra
   have h1 : (lsRustAllocZeroedSymCli == lsRustAllocSymCli) = false := by decide
   have h2 : (lsRustAllocZeroedSymCli == lsRustDeallocSymCli) = false := by decide
   have h3 : (lsRustAllocZeroedSymCli == lsRustReallocSymCli) = false := by decide
@@ -277,7 +368,7 @@ def cliGhostExterns (g : CliGhostHooks) (baseExt : LibsignalHooks) : LibsignalHo
 
 @[simp] theorem cliGhostExterns_shim (g : CliGhostHooks) (baseExt : LibsignalHooks) :
     cliGhostExterns g baseExt lsRustNoAllocShimSymCli = some g.shim := by
-  unfold cliGhostExterns
+  unfold cliGhostExterns cliGhostExternsWithExtra
   have h1 : (lsRustNoAllocShimSymCli == lsRustAllocSymCli) = false := by decide
   have h2 : (lsRustNoAllocShimSymCli == lsRustDeallocSymCli) = false := by decide
   have h3 : (lsRustNoAllocShimSymCli == lsRustReallocSymCli) = false := by decide
@@ -288,7 +379,7 @@ def cliGhostExterns (g : CliGhostHooks) (baseExt : LibsignalHooks) : LibsignalHo
 theorem cliGhostExterns_stringClone_some (g : CliGhostHooks) (baseExt : LibsignalHooks)
     {f : State → State} (hf : g.stringClone = some f) :
     cliGhostExterns g baseExt lsStringCloneSym = some f := by
-  unfold cliGhostExterns
+  unfold cliGhostExterns cliGhostExternsWithExtra
   have h1 : (lsStringCloneSym == lsRustAllocSymCli) = false := by decide
   have h2 : (lsStringCloneSym == lsRustDeallocSymCli) = false := by decide
   have h3 : (lsStringCloneSym == lsRustReallocSymCli) = false := by decide
@@ -300,7 +391,7 @@ theorem cliGhostExterns_stringClone_some (g : CliGhostHooks) (baseExt : Libsigna
 theorem cliGhostExterns_stringClone_none (g : CliGhostHooks) (baseExt : LibsignalHooks)
     (hf : g.stringClone = none) :
     cliGhostExterns g baseExt lsStringCloneSym = baseExt lsStringCloneSym := by
-  unfold cliGhostExterns
+  unfold cliGhostExterns cliGhostExternsWithExtra
   have h1 : (lsStringCloneSym == lsRustAllocSymCli) = false := by decide
   have h2 : (lsStringCloneSym == lsRustDeallocSymCli) = false := by decide
   have h3 : (lsStringCloneSym == lsRustReallocSymCli) = false := by decide
@@ -312,7 +403,7 @@ theorem cliGhostExterns_stringClone_none (g : CliGhostHooks) (baseExt : Libsigna
 theorem cliGhostExterns_readFile_some (g : CliGhostHooks) (baseExt : LibsignalHooks)
     {f : State → State} {hfsT : HookFsTraced IsFsC f} (hf : g.readFile = some ⟨f, hfsT⟩) :
     cliGhostExterns g baseExt lsReadFileSym = some f := by
-  unfold cliGhostExterns
+  unfold cliGhostExterns cliGhostExternsWithExtra
   have h1 : (lsReadFileSym == lsRustAllocSymCli) = false := by decide
   have h2 : (lsReadFileSym == lsRustDeallocSymCli) = false := by decide
   have h3 : (lsReadFileSym == lsRustReallocSymCli) = false := by decide
@@ -325,7 +416,7 @@ theorem cliGhostExterns_readFile_some (g : CliGhostHooks) (baseExt : LibsignalHo
 theorem cliGhostExterns_readFile_none (g : CliGhostHooks) (baseExt : LibsignalHooks)
     (hf : g.readFile = none) :
     cliGhostExterns g baseExt lsReadFileSym = baseExt lsReadFileSym := by
-  unfold cliGhostExterns
+  unfold cliGhostExterns cliGhostExternsWithExtra
   have h1 : (lsReadFileSym == lsRustAllocSymCli) = false := by decide
   have h2 : (lsReadFileSym == lsRustDeallocSymCli) = false := by decide
   have h3 : (lsReadFileSym == lsRustReallocSymCli) = false := by decide
@@ -338,7 +429,7 @@ theorem cliGhostExterns_readFile_none (g : CliGhostHooks) (baseExt : LibsignalHo
 theorem cliGhostExterns_readStdin_some (g : CliGhostHooks) (baseExt : LibsignalHooks)
     {f : State → State} {hfsT : HookFsTraced IsFsC f} (hf : g.readStdin = some ⟨f, hfsT⟩) :
     cliGhostExterns g baseExt lsReadStdinSym = some f := by
-  unfold cliGhostExterns
+  unfold cliGhostExterns cliGhostExternsWithExtra
   have h1 : (lsReadStdinSym == lsRustAllocSymCli) = false := by decide
   have h2 : (lsReadStdinSym == lsRustDeallocSymCli) = false := by decide
   have h3 : (lsReadStdinSym == lsRustReallocSymCli) = false := by decide
@@ -352,7 +443,7 @@ theorem cliGhostExterns_readStdin_some (g : CliGhostHooks) (baseExt : LibsignalH
 theorem cliGhostExterns_readStdin_none (g : CliGhostHooks) (baseExt : LibsignalHooks)
     (hf : g.readStdin = none) :
     cliGhostExterns g baseExt lsReadStdinSym = baseExt lsReadStdinSym := by
-  unfold cliGhostExterns
+  unfold cliGhostExterns cliGhostExternsWithExtra
   have h1 : (lsReadStdinSym == lsRustAllocSymCli) = false := by decide
   have h2 : (lsReadStdinSym == lsRustDeallocSymCli) = false := by decide
   have h3 : (lsReadStdinSym == lsRustReallocSymCli) = false := by decide
@@ -366,7 +457,7 @@ theorem cliGhostExterns_readStdin_none (g : CliGhostHooks) (baseExt : LibsignalH
 theorem cliGhostExterns_memset_some (g : CliGhostHooks) (baseExt : LibsignalHooks)
     {f : State → State} (hf : g.memset = some f) :
     cliGhostExterns g baseExt lsMemsetSym = some f := by
-  unfold cliGhostExterns
+  unfold cliGhostExterns cliGhostExternsWithExtra
   have h1 : (lsMemsetSym == lsRustAllocSymCli) = false := by decide
   have h2 : (lsMemsetSym == lsRustDeallocSymCli) = false := by decide
   have h3 : (lsMemsetSym == lsRustReallocSymCli) = false := by decide
@@ -381,7 +472,7 @@ theorem cliGhostExterns_memset_some (g : CliGhostHooks) (baseExt : LibsignalHook
 theorem cliGhostExterns_memset_none (g : CliGhostHooks) (baseExt : LibsignalHooks)
     (hf : g.memset = none) :
     cliGhostExterns g baseExt lsMemsetSym = baseExt lsMemsetSym := by
-  unfold cliGhostExterns
+  unfold cliGhostExterns cliGhostExternsWithExtra
   have h1 : (lsMemsetSym == lsRustAllocSymCli) = false := by decide
   have h2 : (lsMemsetSym == lsRustDeallocSymCli) = false := by decide
   have h3 : (lsMemsetSym == lsRustReallocSymCli) = false := by decide
@@ -396,7 +487,7 @@ theorem cliGhostExterns_memset_none (g : CliGhostHooks) (baseExt : LibsignalHook
 theorem cliGhostExterns_memcpy_some (g : CliGhostHooks) (baseExt : LibsignalHooks)
     {f : State → State} (hf : g.memcpy = some f) :
     cliGhostExterns g baseExt lsMemcpySym = some f := by
-  unfold cliGhostExterns
+  unfold cliGhostExterns cliGhostExternsWithExtra
   have h1 : (lsMemcpySym == lsRustAllocSymCli) = false := by decide
   have h2 : (lsMemcpySym == lsRustDeallocSymCli) = false := by decide
   have h3 : (lsMemcpySym == lsRustReallocSymCli) = false := by decide
@@ -412,7 +503,7 @@ theorem cliGhostExterns_memcpy_some (g : CliGhostHooks) (baseExt : LibsignalHook
 theorem cliGhostExterns_memcpy_none (g : CliGhostHooks) (baseExt : LibsignalHooks)
     (hf : g.memcpy = none) :
     cliGhostExterns g baseExt lsMemcpySym = baseExt lsMemcpySym := by
-  unfold cliGhostExterns
+  unfold cliGhostExterns cliGhostExternsWithExtra
   have h1 : (lsMemcpySym == lsRustAllocSymCli) = false := by decide
   have h2 : (lsMemcpySym == lsRustDeallocSymCli) = false := by decide
   have h3 : (lsMemcpySym == lsRustReallocSymCli) = false := by decide
@@ -435,15 +526,11 @@ theorem cliGhostExterns_other (g : CliGhostHooks) (baseExt : LibsignalHooks) {sy
     (h7 : sym ≠ lsReadFileSym := by decide)
     (h8 : sym ≠ lsReadStdinSym := by decide)
     (h9 : sym ≠ lsMemsetSym := by decide)
-    (h10 : sym ≠ lsMemcpySym := by decide) :
-    cliGhostExterns g baseExt sym = baseExt sym := by
-  unfold cliGhostExterns
-  simp only [beq_eq_false_iff_ne.mpr h1, beq_eq_false_iff_ne.mpr h2,
-    beq_eq_false_iff_ne.mpr h3, beq_eq_false_iff_ne.mpr h4,
-    beq_eq_false_iff_ne.mpr h5, beq_eq_false_iff_ne.mpr h6,
-    beq_eq_false_iff_ne.mpr h7, beq_eq_false_iff_ne.mpr h8,
-    beq_eq_false_iff_ne.mpr h9, beq_eq_false_iff_ne.mpr h10,
-    Bool.false_eq_true, ↓reduceIte]
+    (h10 : sym ≠ lsMemcpySym := by decide)
+    (hExtra : cliExtraGhostSyms.contains sym = false ∨ g.extra.lookup sym = none := by
+      left; decide) :
+    cliGhostExterns g baseExt sym = baseExt sym :=
+  cliGhostExternsWithExtra_other g g.extra baseExt h1 h2 h3 h4 h5 h6 h7 h8 h9 h10 hExtra
 
 /-- `ext`-parametric `lsReadFileSym` hook overlay (`rfl`-equal to
     `ReadFileBudgetPlaced.withReadFileHook`). -/
@@ -466,7 +553,7 @@ theorem withReadFileHook_cliGhostExterns (g : CliGhostHooks) (baseExt : Libsigna
     exact (cliGhostExterns_readFile_some _ baseExt rfl).symm
   · have hrf_b : (sym == lsReadFileSym) = false := beq_eq_false_iff_ne.mpr hrf
     simp only [withReadFileHook, hrf_b, Bool.false_eq_true, ↓reduceIte]
-    unfold cliGhostExterns
+    unfold cliGhostExterns cliGhostExternsWithExtra
     simp only [hrf_b, Bool.false_eq_true, ↓reduceIte]
 
 theorem withReadStdinHook_cliGhostExterns (g : CliGhostHooks) (baseExt : LibsignalHooks)
@@ -481,7 +568,7 @@ theorem withReadStdinHook_cliGhostExterns (g : CliGhostHooks) (baseExt : Libsign
     exact (cliGhostExterns_readStdin_some _ baseExt rfl).symm
   · have hrs_b : (sym == lsReadStdinSym) = false := beq_eq_false_iff_ne.mpr hrs
     simp only [withReadStdinHook, hrs_b, Bool.false_eq_true, ↓reduceIte]
-    unfold cliGhostExterns
+    unfold cliGhostExterns cliGhostExternsWithExtra
     simp only [hrs_b, Bool.false_eq_true, ↓reduceIte]
 
 theorem withReadStdinHook_withReadFileHook_cliGhostExterns (g : CliGhostHooks)
@@ -499,6 +586,16 @@ theorem hookSat_of_eq {α : Type} {H₁ H₂ : String → Option (State → Stat
   rcases h with ⟨f, hf, hok⟩
   exact ⟨f, heq.trans hf, hok⟩
 
+private theorem extra_isPanicSymbol_false :
+    (cliExtraGhostSyms.all fun s => !(Rust.isPanicSymbol s)) = true := by
+  rw [List.all_eq_true]
+  intro s hs
+  simp only [cliExtraGhostSyms, lsMemrchrSym, lsFromUtf8Sym, lsDurationSinceSym, lsTimeAddSym,
+    lsBlackBoxSym, lsStaticSecretDropSym, lsSharedSecretDropSym,
+    List.mem_cons, List.not_mem_nil, or_false] at hs
+  rcases hs with rfl | rfl | rfl | rfl | rfl | rfl | rfl | rfl | rfl | rfl <;>
+    simp [Rust.isPanicSymbol]
+
 theorem cliGhostExterns_panic_of_mem (mmpl : Obj.MultiPlacement) (g : CliGhostHooks) (W : CliHooks)
     {n : String} (hn : n ∈ cliPanicSymbolsPlaced) :
     cliGhostExterns g (cliExternsPlaced mmpl W) n = some Rust.panicked := by
@@ -512,7 +609,15 @@ theorem cliGhostExterns_panic_of_mem (mmpl : Obj.MultiPlacement) (g : CliGhostHo
   have h8 : n ≠ lsReadStdinSym := by intro he; subst he; exact nomatch hn
   have h9 : n ≠ lsMemsetSym := by intro he; subst he; exact nomatch hn
   have h10 : n ≠ lsMemcpySym := by intro he; subst he; exact nomatch hn
-  rw [cliGhostExterns_other g _ h1 h2 h3 h4 h5 h6 h7 h8 h9 h10]
+  have hExtra : cliExtraGhostSyms.contains n = false := by
+    cases hc : cliExtraGhostSyms.contains n
+    · rfl
+    · have hm := List.contains_iff_mem.mp hc
+      dsimp only [cliExtraGhostSyms] at hm
+      simp only [List.mem_cons, List.not_mem_nil, or_false] at hm
+      rcases hm with rfl | rfl | rfl | rfl | rfl | rfl | rfl | rfl | rfl | rfl <;>
+        exact nomatch hn
+  rw [cliGhostExterns_other g _ h1 h2 h3 h4 h5 h6 h7 h8 h9 h10 (Or.inl hExtra)]
   exact cliExternsPlaced_panic_of_mem mmpl W hn
 
 @[simp]
@@ -561,30 +666,17 @@ theorem withPanics_cliGhostExterns (mmpl : Obj.MultiPlacement) (g : CliGhostHook
       intro he; subst he
       have hf : Rust.isPanicSymbol lsMemcpySym = false := by simp [lsMemcpySym, Rust.isPanicSymbol]
       exact Bool.false_ne_true (hf.symm.trans hp)
+    have hExtra : cliExtraGhostSyms.contains n = false := by
+      cases hc : cliExtraGhostSyms.contains n
+      · rfl
+      · have hall := List.all_eq_true.mp extra_isPanicSymbol_false n (List.contains_iff_mem.mp hc)
+        rw [hp] at hall; cases hall
     unfold Rust.withPanics
     simp only [hp, ↓reduceIte]
-    rw [cliGhostExterns_other g _ h1 h2 h3 h4 h5 h6 h7 h8 h9 h10]
+    rw [cliGhostExterns_other g _ h1 h2 h3 h4 h5 h6 h7 h8 h9 h10 (Or.inl hExtra)]
     unfold cliExternsPlaced isCliPanicSymbolPlaced
     simp [hp]
   · simp [Rust.withPanics, hp]
-
-theorem cliGhostExterns_bcmp (mmpl : Obj.MultiPlacement) (g : CliGhostHooks) (W : CliHooks) :
-    cliGhostExterns g (cliExternsPlaced mmpl W) "bcmp" = some (cliBcmpHook W.bcmp) := by
-  rw [cliGhostExterns_other g _ (by decide) (by decide) (by decide)
-    (by decide) (by decide) (by decide)]
-  exact cliExternsPlaced_bcmp mmpl W
-
-theorem cli_hookSat_bcmp_ghost (mmpl : Obj.MultiPlacement) (g : CliGhostHooks) (W : CliHooks) :
-    HookSat (cliGhostExterns g (cliExternsPlaced mmpl W)) "bcmp" cliBcmpSpec :=
-  ⟨cliBcmpHook W.bcmp, cliGhostExterns_bcmp mmpl g W, cliBcmpHook_ok W⟩
-
-theorem cliBcmpGhost_ok [LibsignalPlacement] (mmpl : Obj.MultiPlacement) (g : CliGhostHooks)
-    (W : CliHooks) {prog : Program} {i : Nat}
-    [IsLsBlockProg prog i (cliGhostExterns g (cliExternsPlaced mmpl W))]
-    (hi : i < 619 := by decide)
-    (hunmut : (i ∈ libsignalMutatedBlocks) = false := by decide) :
-    subroutine_ok prog (lsρ "bcmp") cliBcmpSpec :=
-  ls_hook_ok_ultra_of_mem (cli_hookSat_bcmp_ghost mmpl g W) (by decide) hi hunmut
 
 end CryptoVerification.SignalSession.Cli.RunGlue
 

@@ -43,7 +43,7 @@ open CryptoVerification.LibsignalTripleRatchet (extHookStack)
 open CryptoVerification.LibsignalTripleRatchetRepr (uuidTryParse)
 open CryptoVerification.SignalSession
   (CliHooks CliPqxdhElfCorrectPlaced CliPqxdhInputs Inputs cliProcessInputs
-   libsignalSessionLib lsFromUtf8Sym lsMemrchrSym stdinCapBytes strlenHook)
+   libsignalSessionLib lsFromUtf8Sym lsMemrchrSym stdinCapBytes)
 open CryptoVerification.SignalSession.Cli.MainHops
   (LsCodeInv RunCall cliIo cliMainStk cliResStack cliWrOk fromUtf8AsciiSpec
    inputOf lsHandleErrorSymMain mProgPlaced mainFrameSize memrchrSpec parseArgs)
@@ -120,7 +120,6 @@ theorem mainOkCliExtPqB2NeedLocksPlacedAt_of_kitEnvFits_and_runTight_sat
       @MainIoBoundedPlaced (libsignalPlacementOf mpl hblk hext_nodup) _
         (fineHookRustCliAllocBudget γ mmpl tp brkStart) lim (ext W) cliIo hookStack
         ReadStdinBoundedEnv)
-    (hstrlen : ∀ W : CliHooks, ext W "strlen" = some strlenHook)
     (hstrlenRO : ∀ W : CliHooks, HookSat (ext W) "strlen" (strlenSpecROSat hookStack))
     (hutf8 : ∀ W : CliHooks,
       HookSat (ext W) lsFromUtf8Sym (withVmPreserved (fromUtf8AsciiSpec hookStack)))
@@ -165,7 +164,7 @@ theorem mainOkCliExtPqB2NeedLocksPlacedAt_of_kitEnvFits_and_runTight_sat
       libcAddr brkStart cliMainStk lim :=
   mainOkCliExtPqB2NeedLocksPlacedAt_of_runTight_and_budgetFitsCap_sat
     hblk hext_nodup hCI RunEnv hlibc hFs hio hioBounded
-    hstrlen hstrlenRO hutf8 hutf8RO hmemrchr hmemrchrRO hpan hstk
+    hstrlenRO hutf8 hutf8RO hmemrchr hmemrchrRO hpan hstk
     (fun h547 X W γ tp =>
       mainEntryBudgetFitsCap_of_fitsEnv hEarly (hMain h547 X W) (hRunSub h547 X W γ tp))
     hrun
@@ -195,7 +194,6 @@ theorem mainOkCliExtOverB2NeedLocksPlacedAt_of_kitEnvFits_and_runTight_sat
       @MainIoBoundedPlaced (libsignalPlacementOf mpl hblk hext_nodup) _
         (fineHookRustCliAllocBudget γ mmpl tp brkStart) lim (ext W) cliIo hookStack
         ReadStdinBoundedEnv)
-    (hstrlen : ∀ W : CliHooks, ext W "strlen" = some strlenHook)
     (hstrlenRO : ∀ W : CliHooks, HookSat (ext W) "strlen" (strlenSpecROSat hookStack))
     (hutf8 : ∀ W : CliHooks,
       HookSat (ext W) lsFromUtf8Sym (withVmPreserved (fromUtf8AsciiSpec hookStack)))
@@ -240,7 +238,7 @@ theorem mainOkCliExtOverB2NeedLocksPlacedAt_of_kitEnvFits_and_runTight_sat
       libcAddr brkStart cliMainStk lim :=
   mainOkCliExtOverB2NeedLocksPlacedAt_of_runTight_and_budgetFitsCap_sat
     hblk hext_nodup hCI RunEnv hlibc hFs hio hioBounded
-    hstrlen hstrlenRO hutf8 hutf8RO hmemrchr hmemrchrRO hpan hstk
+    hstrlenRO hutf8 hutf8RO hmemrchr hmemrchrRO hpan hstk
     (fun h547 X W γ tp =>
       mainEntryBudgetFitsCap_of_fitsEnv hEarly (hMain h547 X W) (hRunSub h547 X W γ tp))
     hrun
@@ -272,7 +270,6 @@ theorem mainOkCliExtPq_of_realMainEnvFits_90pct_sat
       @MainIoBoundedPlaced (libsignalPlacementOf mpl hblk hext_nodup) _
         (fineHookRustCliAllocBudget γ mmpl tp brkStart) lim (ext W) cliIo hookStack
         ReadStdinBoundedEnv)
-    (hstrlen : ∀ W : CliHooks, ext W "strlen" = some strlenHook)
     (hstrlenRO : ∀ W : CliHooks, HookSat (ext W) "strlen" (strlenSpecROSat hookStack))
     (hutf8 : ∀ W : CliHooks,
       HookSat (ext W) lsFromUtf8Sym (withVmPreserved (fromUtf8AsciiSpec hookStack)))
@@ -302,7 +299,7 @@ theorem mainOkCliExtPq_of_realMainEnvFits_90pct_sat
       libcAddr brkStart cliMainStk lim :=
   mainOkCliExtPqB2NeedLocksPlacedAt_of_runTight_and_budgetFitsCap_sat
     hblk hext_nodup hCI (fun X W _ _ => realCliRunBinaryEnvOf hblk hext_nodup img X W)
-    hlibc hFs hio hioBounded hstrlen hstrlenRO hutf8 hutf8RO hmemrchr hmemrchrRO hpan hstk
+    hlibc hFs hio hioBounded hstrlenRO hutf8 hutf8RO hmemrchr hmemrchrRO hpan hstk
     (fun _ X W _ _ =>
       @mainEntryBudgetFitsCap_of_realMainEnvFits_90pct
         (libsignalPlacementOf mpl hblk hext_nodup) lim henf hsb hsc hcap90 img X W)
@@ -335,7 +332,6 @@ theorem mainOkCliExtOver_of_realMainEnvFits_90pct_sat
       @MainIoBoundedPlaced (libsignalPlacementOf mpl hblk hext_nodup) _
         (fineHookRustCliAllocBudget γ mmpl tp brkStart) lim (ext W) cliIo hookStack
         ReadStdinBoundedEnv)
-    (hstrlen : ∀ W : CliHooks, ext W "strlen" = some strlenHook)
     (hstrlenRO : ∀ W : CliHooks, HookSat (ext W) "strlen" (strlenSpecROSat hookStack))
     (hutf8 : ∀ W : CliHooks,
       HookSat (ext W) lsFromUtf8Sym (withVmPreserved (fromUtf8AsciiSpec hookStack)))
@@ -365,7 +361,7 @@ theorem mainOkCliExtOver_of_realMainEnvFits_90pct_sat
       libcAddr brkStart cliMainStk lim :=
   mainOkCliExtOverB2NeedLocksPlacedAt_of_runTight_and_budgetFitsCap_sat
     hblk hext_nodup hCI (fun X W _ _ => realCliRunBinaryEnvOf hblk hext_nodup img X W)
-    hlibc hFs hio hioBounded hstrlen hstrlenRO hutf8 hutf8RO hmemrchr hmemrchrRO hpan hstk
+    hlibc hFs hio hioBounded hstrlenRO hutf8 hutf8RO hmemrchr hmemrchrRO hpan hstk
     (fun _ X W _ _ =>
       @mainEntryBudgetFitsCap_of_realMainEnvFits_90pct
         (libsignalPlacementOf mpl hblk hext_nodup) lim henf hsb hsc hcap90 img X W)
@@ -398,7 +394,6 @@ theorem mainOkCliExtPq_of_realMainEnvFits_1GiB_sat
       @MainIoBoundedPlaced (libsignalPlacementOf mpl hblk hext_nodup) _
         (fineHookRustCliAllocBudget γ mmpl tp brkStart) lim (ext W) cliIo hookStack
         ReadStdinBoundedEnv)
-    (hstrlen : ∀ W : CliHooks, ext W "strlen" = some strlenHook)
     (hstrlenRO : ∀ W : CliHooks, HookSat (ext W) "strlen" (strlenSpecROSat hookStack))
     (hutf8 : ∀ W : CliHooks,
       HookSat (ext W) lsFromUtf8Sym (withVmPreserved (fromUtf8AsciiSpec hookStack)))
@@ -428,7 +423,7 @@ theorem mainOkCliExtPq_of_realMainEnvFits_1GiB_sat
       libcAddr brkStart cliMainStk lim :=
   mainOkCliExtPqB2NeedLocksPlacedAt_of_runTight_and_budgetFitsCap_sat
     hblk hext_nodup hCI (fun X W _ _ => realCliRunBinaryEnvOf hblk hext_nodup img X W)
-    hlibc hFs hio hioBounded hstrlen hstrlenRO hutf8 hutf8RO hmemrchr hmemrchrRO hpan hstk
+    hlibc hFs hio hioBounded hstrlenRO hutf8 hutf8RO hmemrchr hmemrchrRO hpan hstk
     (fun _ X W _ _ =>
       @mainEntryBudgetFitsCap_of_realMainEnvFits_1GiB
         (libsignalPlacementOf mpl hblk hext_nodup) lim henf hsb hsc hcap1G img X W)
@@ -461,7 +456,6 @@ theorem mainOkCliExtOver_of_realMainEnvFits_1GiB_sat
       @MainIoBoundedPlaced (libsignalPlacementOf mpl hblk hext_nodup) _
         (fineHookRustCliAllocBudget γ mmpl tp brkStart) lim (ext W) cliIo hookStack
         ReadStdinBoundedEnv)
-    (hstrlen : ∀ W : CliHooks, ext W "strlen" = some strlenHook)
     (hstrlenRO : ∀ W : CliHooks, HookSat (ext W) "strlen" (strlenSpecROSat hookStack))
     (hutf8 : ∀ W : CliHooks,
       HookSat (ext W) lsFromUtf8Sym (withVmPreserved (fromUtf8AsciiSpec hookStack)))
@@ -491,7 +485,7 @@ theorem mainOkCliExtOver_of_realMainEnvFits_1GiB_sat
       libcAddr brkStart cliMainStk lim :=
   mainOkCliExtOverB2NeedLocksPlacedAt_of_runTight_and_budgetFitsCap_sat
     hblk hext_nodup hCI (fun X W _ _ => realCliRunBinaryEnvOf hblk hext_nodup img X W)
-    hlibc hFs hio hioBounded hstrlen hstrlenRO hutf8 hutf8RO hmemrchr hmemrchrRO hpan hstk
+    hlibc hFs hio hioBounded hstrlenRO hutf8 hutf8RO hmemrchr hmemrchrRO hpan hstk
     (fun _ X W _ _ =>
       @mainEntryBudgetFitsCap_of_realMainEnvFits_1GiB
         (libsignalPlacementOf mpl hblk hext_nodup) lim henf hsb hsc hcap1G img X W)
@@ -520,7 +514,6 @@ theorem mainOkCliExtPq_of_realMainEnvFits_sat
       @MainIoBoundedPlaced (libsignalPlacementOf mpl hblk hext_nodup) _
         (fineHookRustCliAllocBudget γ mmpl tp brkStart) cliBudgetLimits (ext W) cliIo hookStack
         ReadStdinBoundedEnv)
-    (hstrlen : ∀ W : CliHooks, ext W "strlen" = some strlenHook)
     (hstrlenRO : ∀ W : CliHooks, HookSat (ext W) "strlen" (strlenSpecROSat hookStack))
     (hutf8 : ∀ W : CliHooks,
       HookSat (ext W) lsFromUtf8Sym (withVmPreserved (fromUtf8AsciiSpec hookStack)))
@@ -550,7 +543,7 @@ theorem mainOkCliExtPq_of_realMainEnvFits_sat
       libcAddr brkStart cliMainStk cliBudgetLimits :=
   mainOkCliExtPqB2NeedLocksPlacedAt_of_runTight_and_budgetFitsCap_sat
     hblk hext_nodup hCI (fun X W _ _ => realCliRunBinaryEnvOf hblk hext_nodup img X W)
-    hlibc hFs hio hioBounded hstrlen hstrlenRO hutf8 hutf8RO hmemrchr hmemrchrRO hpan hstk
+    hlibc hFs hio hioBounded hstrlenRO hutf8 hutf8RO hmemrchr hmemrchrRO hpan hstk
     (fun _ X W _ _ =>
       @mainEntryBudgetFitsCap_of_realMainEnvFits_cliBudgetLimits
         (libsignalPlacementOf mpl hblk hext_nodup) img X W)
@@ -579,7 +572,6 @@ theorem mainOkCliExtOver_of_realMainEnvFits_sat
       @MainIoBoundedPlaced (libsignalPlacementOf mpl hblk hext_nodup) _
         (fineHookRustCliAllocBudget γ mmpl tp brkStart) cliBudgetLimits (ext W) cliIo hookStack
         ReadStdinBoundedEnv)
-    (hstrlen : ∀ W : CliHooks, ext W "strlen" = some strlenHook)
     (hstrlenRO : ∀ W : CliHooks, HookSat (ext W) "strlen" (strlenSpecROSat hookStack))
     (hutf8 : ∀ W : CliHooks,
       HookSat (ext W) lsFromUtf8Sym (withVmPreserved (fromUtf8AsciiSpec hookStack)))
@@ -609,7 +601,7 @@ theorem mainOkCliExtOver_of_realMainEnvFits_sat
       libcAddr brkStart cliMainStk cliBudgetLimits :=
   mainOkCliExtOverB2NeedLocksPlacedAt_of_runTight_and_budgetFitsCap_sat
     hblk hext_nodup hCI (fun X W _ _ => realCliRunBinaryEnvOf hblk hext_nodup img X W)
-    hlibc hFs hio hioBounded hstrlen hstrlenRO hutf8 hutf8RO hmemrchr hmemrchrRO hpan hstk
+    hlibc hFs hio hioBounded hstrlenRO hutf8 hutf8RO hmemrchr hmemrchrRO hpan hstk
     (fun _ X W _ _ =>
       @mainEntryBudgetFitsCap_of_realMainEnvFits_cliBudgetLimits
         (libsignalPlacementOf mpl hblk hext_nodup) img X W)
@@ -642,7 +634,6 @@ theorem cliPqxdhExtElfCorrectStrictPlacedAt_of_realMainEnvFits_sat
       @MainIoBoundedPlaced (libsignalPlacementOf mpl hblk hext_nodup) _
         (fineHookRustCliAllocBudget γ mmpl tp elf.brkStart) cliBudgetLimits (ext W) cliIo hookStack
         ReadStdinBoundedEnv)
-    (hstrlen : ∀ W : CliHooks, ext W "strlen" = some strlenHook)
     (hstrlenRO : ∀ W : CliHooks, HookSat (ext W) "strlen" (strlenSpecROSat hookStack))
     (hutf8 : ∀ W : CliHooks,
       HookSat (ext W) lsFromUtf8Sym (withVmPreserved (fromUtf8AsciiSpec hookStack)))
@@ -671,9 +662,9 @@ theorem cliPqxdhExtElfCorrectStrictPlacedAt_of_realMainEnvFits_sat
     CliPqxdhExtElfCorrectStrictPlacedAt mpl mmpl ext 617 elf :=
   cliPqxdhExtOnInputsElfCorrectStrictPlacedAt_of_b2NeedLocksPadAssumptions hext H
     (mainOkCliExtPq_of_realMainEnvFits_sat hblk hext_nodup hCI img hlibc hFs hio hioBounded
-      hstrlen hstrlenRO hutf8 hutf8RO hmemrchr hmemrchrRO hpan hstk hrun)
+      hstrlenRO hutf8 hutf8RO hmemrchr hmemrchrRO hpan hstk hrun)
     (mainOkCliExtOver_of_realMainEnvFits_sat hblk hext_nodup hCI img hlibc hFs hio hioBounded
-      hstrlen hstrlenRO hutf8 hutf8RO hmemrchr hmemrchrRO hpan hstk hrun)
+      hstrlenRO hutf8 hutf8RO hmemrchr hmemrchrRO hpan hstk hrun)
 
 /-- `HookSat` sibling of `not_cliReachesOOMExtPlacedAt_of_realMainEnvFits`
     (`CliNoOomOfFitsEnv.lean:1513`), dropping `utf8Err` and concluding token-identical
@@ -702,7 +693,6 @@ theorem not_cliReachesOOMExtPlacedAt_of_realMainEnvFits_sat
       @MainIoBoundedPlaced (libsignalPlacementOf mpl hblk hext_nodup) _
         (fineHookRustCliAllocBudget γ mmpl tp elf.brkStart) cliBudgetLimits (ext W) cliIo hookStack
         ReadStdinBoundedEnv)
-    (hstrlen : ∀ W : CliHooks, ext W "strlen" = some strlenHook)
     (hstrlenRO : ∀ W : CliHooks, HookSat (ext W) "strlen" (strlenSpecROSat hookStack))
     (hutf8 : ∀ W : CliHooks,
       HookSat (ext W) lsFromUtf8Sym (withVmPreserved (fromUtf8AsciiSpec hookStack)))
@@ -732,7 +722,7 @@ theorem not_cliReachesOOMExtPlacedAt_of_realMainEnvFits_sat
     ¬ CliReachesOOMExtPlacedAt mpl ext 617 elf W i :=
   not_cliReachesOOMExtPlacedAt_of_strict
     (cliPqxdhExtElfCorrectStrictPlacedAt_of_realMainEnvFits_sat hblk hext_nodup hCI img
-      hext H hlibc hFs hio hioBounded hstrlen hstrlenRO hutf8 hutf8RO hmemrchr hmemrchrRO
+      hext H hlibc hFs hio hioBounded hstrlenRO hutf8 hutf8RO hmemrchr hmemrchrRO
       hpan hstk hrun)
     W hi
 
@@ -764,7 +754,6 @@ theorem cliPqxdhElfCorrectStrictPlaced_of_realMainEnvFits_sat
       @MainIoBoundedPlaced (libsignalPlacementOf mpl hblk hext_nodup) _
         (fineHookRustCliAllocBudget γ mmpl tp elf.brkStart) cliBudgetLimits (ext W) cliIo hookStack
         ReadStdinBoundedEnv)
-    (hstrlen : ∀ W : CliHooks, ext W "strlen" = some strlenHook)
     (hstrlenRO : ∀ W : CliHooks, HookSat (ext W) "strlen" (strlenSpecROSat hookStack))
     (hutf8 : ∀ W : CliHooks,
       HookSat (ext W) lsFromUtf8Sym (withVmPreserved (fromUtf8AsciiSpec hookStack)))
@@ -793,7 +782,7 @@ theorem cliPqxdhElfCorrectStrictPlaced_of_realMainEnvFits_sat
     CliPqxdhElfCorrectStrictPlaced mpl mmpl elf :=
   cliPqxdhElfCorrectStrictPlaced_of_extProgEq hprog
     (cliPqxdhExtElfCorrectStrictPlacedAt_of_realMainEnvFits_sat hblk hext_nodup hCI img
-      hext H hlibc hFs hio hioBounded hstrlen hstrlenRO hutf8 hutf8RO hmemrchr hmemrchrRO
+      hext H hlibc hFs hio hioBounded hstrlenRO hutf8 hutf8RO hmemrchr hmemrchrRO
       hpan hstk hrun)
 
 /-- `HookSat` sibling of `cliPqxdhElfCorrectPlaced_of_realMainEnvFits`
@@ -824,7 +813,6 @@ theorem cliPqxdhElfCorrectPlaced_of_realMainEnvFits_sat
       @MainIoBoundedPlaced (libsignalPlacementOf mpl hblk hext_nodup) _
         (fineHookRustCliAllocBudget γ mmpl tp elf.brkStart) cliBudgetLimits (ext W) cliIo hookStack
         ReadStdinBoundedEnv)
-    (hstrlen : ∀ W : CliHooks, ext W "strlen" = some strlenHook)
     (hstrlenRO : ∀ W : CliHooks, HookSat (ext W) "strlen" (strlenSpecROSat hookStack))
     (hutf8 : ∀ W : CliHooks,
       HookSat (ext W) lsFromUtf8Sym (withVmPreserved (fromUtf8AsciiSpec hookStack)))
@@ -853,7 +841,7 @@ theorem cliPqxdhElfCorrectPlaced_of_realMainEnvFits_sat
     CliPqxdhElfCorrectPlaced mpl mmpl elf :=
   cliPqxdhElfCorrectPlaced_of_extProgEq hprog
     (cliPqxdhExtElfCorrectStrictPlacedAt_of_realMainEnvFits_sat hblk hext_nodup hCI img
-      hext H hlibc hFs hio hioBounded hstrlen hstrlenRO hutf8 hutf8RO hmemrchr hmemrchrRO
+      hext H hlibc hFs hio hioBounded hstrlenRO hutf8 hutf8RO hmemrchr hmemrchrRO
       hpan hstk hrun)
 
 end LibsignalBinary.Proofs.PeakBudget.CliNoOomOfFitsEnvSat

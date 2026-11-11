@@ -110,7 +110,7 @@ private theorem toSkeletonRunHooks [LibsignalPlacement] {M : AllocCostModel}
   { alloc := hh.alloc, allocFs := hh.allocFs, panics := hh.panics, memcpyRO := hh.memcpyRO,
     bcmp := hh.bcmp, fs := hh.fs, utf8 := hh.utf8, memrchr := hh.memrchr,
     codecHooks := hh.codecHooks, allocZeroed := hh.allocZeroed, stringClone := hh.stringClone,
-    formatInner := hh.formatInner }
+    formatInner := hh.formatInner, blackBox := hh.blackBox }
 
 private theorem cliPollKpk_markShim_rocl_of_hooks [LibsignalPlacement] {M : AllocCostModel}
     {A : RustCliAllocBudget M} {lim : BudgetLimits}
@@ -163,7 +163,7 @@ private theorem cliPollKpk_markPoll_rocl_of_dirGet [LibsignalPlacement] {M : All
     (getProg := lsProg_589 (cliGhostExterns gh (cliExternsPlaced mmpl W))) (getBlk := 589)
     (putProg := lsProg_570 (cliGhostExterns gh (cliExternsPlaced mmpl W))) (putBlk := 570)
     (stk := (cliKitStk B).kpkMarkPoll)
-    hh.alloc hh.panics hh.bcmp hDecimal hGet hPut
+    hh.alloc hh.panics hh.bcmp.of_keepsFs hDecimal hGet hPut
     (hh.fs (lsProg_578 (cliGhostExterns gh (cliExternsPlaced mmpl W))) 578)
     (Nat.le_refl _) hblk
   let baseKit := cliKpkStoreSpecPlaced A.repAlloc cliIo.rd F0 cliWrOk kpkId spkId kbk

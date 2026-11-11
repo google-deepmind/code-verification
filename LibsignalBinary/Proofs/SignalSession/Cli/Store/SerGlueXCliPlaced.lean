@@ -38,8 +38,7 @@ open CryptoVerification.SignalSession.Cli.RunGlue (CliGhostHooks cliGhostExterns
 open CryptoVerification.SignalSession.Cli.Slots
   (CliGhostA0Hooks a0Ghost cliGhostA0Hooks_a0Ghost
    cliExternsPlaced_alloc_sat cliExternsPlaced_dealloc_sat cliExternsPlaced_realloc_sat
-   cliExternsPlaced_shim_sat cliExternsPlaced_sessionMemmove_sat cliExternsPlaced_sessionMemcpy_sat
-   cliGhostExterns_sat_of_cliExternsPlaced
+   cliExternsPlaced_shim_sat cliExternsPlaced_sessionMemcpy_sat
    cliGhostExterns_panic_handle_error cliGhostExterns_panic_handle_alloc_error)
 
 section Placed
@@ -56,8 +55,6 @@ theorem serContractsX_placed_of_cliHooks [LibsignalPlacement] (mmpl : Obj.MultiP
     (cliExternsPlaced_dealloc_sat mmpl g W hG)
     (cliExternsPlaced_realloc_sat mmpl g W hG)
     (cliExternsPlaced_shim_sat mmpl g W hG.shim_eq)
-    (cliGhostExterns_sat_of_cliExternsPlaced mmpl g W
-      (cliExternsPlaced_sessionMemmove_sat mmpl W _))
     (cliExternsPlaced_sessionMemcpy_sat mmpl g W hG _)
     (cliGhostExterns_panic_handle_error mmpl g W)
     (cliGhostExterns_panic_handle_alloc_error mmpl g W)

@@ -12,6 +12,7 @@ module
 public import ProofLib.SepLogic.Stack
 public import ProofLib.StdStartup.Layout
 public import LibsignalBinary.Proofs.Common.SharedHelpers
+public import LibsignalBinary.Proofs.HookDischarge.Libc.Strlen
 public import LibsignalBinary.Proofs.SignalSession.Cli.F3.L4B.F3ExternNoAllocFail
 public import LibsignalBinary.Proofs.SignalSession.Cli.F3.L4B.F3HarnessPlaced
 public import LibsignalBinary.Proofs.SignalSession.Cli.F3.L4B.PlacedOomRecovery2
@@ -27,9 +28,13 @@ import LibsignalBinary.Proofs.SpecLemmas.SignalSession.RunProofDefs
 /-!
 # Two-Placement `NeedLocks` Strict Composer and Equality Bridges
 
-Lifts the `NeedLocks` + `argvAtRO` + `inputsOf` strict (`0`-excused-abort) whole-process composer
-to two placements `(mpl, mmpl : Obj.MultiPlacement)` over `Placed.CliElfCodeMatchesPlaced mpl mmpl elf`
-and `Placed.cliRunPlacedSig mpl mmpl elf W`, with concrete `lim := cliBudgetLimits` specializations.
+Lifts the `NeedLocks` + SWAR-padded `argvAtRO` + `inputsOf` strict (`0`-excused-abort)
+whole-process composer to two placements `(mpl, mmpl : Obj.MultiPlacement)` over
+`Placed.CliElfCodeMatchesPlaced mpl mmpl elf` and `Placed.cliRunPlacedSig mpl mmpl elf W`, with
+concrete `lim := cliBudgetLimits` specializations.
+Note: `F3.L4B.CliStrictPlaced2.cStrAtRO` / `argvAtRO` are SWAR-padded (`StrlenSwarPadBound`),
+matching `M24.ArgvPad.cStrAtROPad` / `argvAtROPad`, whereas `M24.CliStrictPlaced.argvAtRO` and
+`F3Relink.Startup.argvAtRO` remain unpadded.
 -/
 
 @[expose] public section
@@ -69,6 +74,7 @@ open CryptoVerification.SignalSession.Cli.MainHops (CallV cmdTag parseArgs parse
 open LibsignalBinary.Heap (AllocCostModel BudgetLimits RustCliAllocBudget)
 open LibsignalBinary.Heap.Fine
   (CliElfMallocngLayout FineBudget StartupVmPreserved fineCostModel fineHookRustCliAllocBudget)
+open LibsignalBinary.Proofs.HookDischarge.Libc.Strlen (StrlenSwarPadBound)
 open LibsignalBinary.Proofs.SignalSession.Cli.F3.L4B.F3HarnessPlaced
   (CliElfTokenCellsPlacedAt CliRunsToExtOnInputsAt CliStackShape b2FineHookPool_of_needLocks
    cliProgExtPlacedAt cliProgExtPlacedSigAt cliProgExtPlacedSigAt_cliExternsPlaced_eq
@@ -302,17 +308,22 @@ private theorem not_isStdinOverCap_pqInitInputs (W : PEParams) (st : PqParty) (b
     ¬ IsStdinOverCap (pqInitInputs W st b t) :=
   not_isStdinOverCap_of_stdin_le (by simp [pqInitInputs, pqInputs])
 
-/-! ## `NeedLocks` + `argvAtRO` + `inputsOf` Per-Input Harness and Strict Outcome -/
+/-! ## `NeedLocks` + SWAR-padded `argvAtRO` + `inputsOf` Per-Input Harness and Strict Outcome -/
 
 /-- Default enforced `1 GiB` `BudgetLimits`. -/
 abbrev cliBudgetLimits : BudgetLimits :=
   { staticCount := 64, staticBytes := 16 * 1024 * 1024, physCap := 2 ^ 30, enforced := true }
 
-/-- Read-only NUL-terminated bytes of `s` at `p`. -/
+/-- SWAR-padded read-only NUL-terminated bytes of `s` at `p`, carrying trailing padding `pad`
+satisfying `StrlenSwarPadBound p s pad` (`p ↦ᵣ (s ++ [0#8] ++ pad)`).
+Note: `M24.CliStrictPlaced.cStrAtRO` and `F3Relink.Startup.cStrAtRO` stay unpadded; this `F3.L4B`
+definition matches `M24.ArgvPad.cStrAtROPad`. -/
 def cStrAtRO (p : BitVec 64) (s : List (BitVec 8)) : SepProp :=
-  p ↦ᵣ (s ++ [0#8])
+  ∃∗ pad : List (BitVec 8), ⌜StrlenSwarPadBound p s pad⌝ ∗ (p ↦ᵣ (s ++ [0#8] ++ pad))
 
-/-- Read-only C `argv` pointer table at `a`. -/
+/-- SWAR-padded read-only C `argv` pointer table at `a`.
+Note: `M24.CliStrictPlaced.argvAtRO` and `F3Relink.Startup.argvAtRO` stay unpadded; this `F3.L4B`
+definition matches `M24.ArgvPad.argvAtROPad`. -/
 def argvAtRO : BitVec 64 → List (List (BitVec 8)) → SepProp
   | a, [] => a ↦₆₄ᵣ 0#64
   | a, s :: ss => ∃∗ p, (a ↦₆₄ᵣ p) ∗ cStrAtRO p s ∗ argvAtRO (a + 8#64) ss
@@ -321,7 +332,8 @@ def B2MainEntryFacts (inputsOf : Inputs → ProcessInputs) (i : Inputs) (s : Sta
   (s.readReg64 .x0).setWidth 32 = BitVec.ofNat 32 (i.argv.length + 1) ∧
     s.fs = initFsState (inputsOf i) ∧ s.trace = []
 
-/-- Read-only-`argv` counterpart of `TopBudget.mainFrame`. -/
+/-- SWAR-padded read-only-`argv` counterpart of `TopBudget.mainFrame` (matching
+`M24.ArgvPad.b2MainFrameFinePad`; `M24.CliStrictPlaced.b2MainFrameFine` stays unpadded). -/
 def b2MainFrameFine {M : AllocCostModel} (A : RustCliAllocBudget M) (lim : BudgetLimits)
     (st : M.σ) (stk : Nat) (Statics : SepProp) (i : Inputs) (s : State) : SepProp :=
   argvAtRO (s.readReg64 .x1) (("libsignal-cli" :: i.argv).map bytesOfString) ∗
@@ -365,7 +377,7 @@ theorem exit_frame_needLocks_n {m : Memory} {nl sp : BitVec 64} {n stk : Nat} {F
   exact sepConj_mono_right (sepConj_mono_right (sepConj_mono_right (entails_anyHeap _)))
 
 /-- Per-input `∃ (γ : GhostName)` whole-process harness parameterized by `exitStk`, `inputsOf`,
-`argvAtRO`, and `__libc.need_locks`. -/
+SWAR-padded `argvAtRO`, and `__libc.need_locks`. -/
 def MuslHarnessFineNeedLocksPerInput (exitStk : Nat) (libcAddr : BitVec 64)
     (elf : ElfImage) (P : Program) (mainPc : BitVec 64)
     (inputsOf : Inputs → ProcessInputs)
@@ -871,7 +883,7 @@ theorem cliRunExtOnInputsSigAt_of_strict_b2_needLocks_call_pred
 
 /-! ## Uniform-`∀ γ tp` `MainOkCliExt*B2NeedLocks` Predicates -/
 
-/-- `NeedLocks` + `argvAtRO` 5-clause PQXDH `main` specification. -/
+/-- `NeedLocks` + SWAR-padded `argvAtRO` 5-clause PQXDH `main` specification. -/
 def MainOkCliExtPqB2NeedLocksPlacedAt
     (mpl mmpl : Obj.MultiPlacement)
     (ext : CliHooks → String → Option (State → State))
@@ -918,7 +930,7 @@ def MainOkCliExtPqB2NeedLocksPlacedAt
               .exited 1 [] (filesOf (pqRecvInputs WP p c rc).files) ∧
             CommitOk (pqRecvInputs WP p c rc) (MainResult.ofAnswer a))
 
-/-- `NeedLocks` + `argvAtRO` `NoMatch` `main` specification. -/
+/-- `NeedLocks` + SWAR-padded `argvAtRO` `NoMatch` `main` specification. -/
 def MainOkCliExtOverB2NeedLocksPlacedAt
     (mpl mmpl : Obj.MultiPlacement)
     (ext : CliHooks → String → Option (State → State))

@@ -388,7 +388,7 @@ theorem h2k520pb_w4PathBSlot520OkAt_of_seams
       memcpyRO := hhP.memcpyRO, bcmp := hhP.bcmp, fs := hhP.fs,
       utf8 := hhP.utf8, memrchr := hhP.memrchr, codecHooks := hhP.codecHooks,
       allocZeroed := hhP.allocZeroed, stringClone := hhP.stringClone,
-      formatInner := hhP.formatInner }
+      formatInner := hhP.formatInner, blackBox := hhP.blackBox }
   have hGetPool :
       subroutine_ok (lsProg_589 H) (lsmpl.base 589)
         (dirGetSpecPlaced cliIo.rd cliWrOk (withFds A) cliBudgetLimits

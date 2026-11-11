@@ -87,7 +87,7 @@ open LibsignalBinary.Proofs.E2E.Pqxdh.Initiator.SmallCalleesBudget
 open LibsignalBinary.Proofs.PublicApi.StoreKit.PreKeyStoreKitBudget (BoxAllocEnv futDropBudgetSpec)
 open LibsignalBinary.Proofs.SignalSession.Cli.Run.Slots.SetUnackEpochPlacedBudget
   (SetUnackPreKeyMsgEpochEnv setUnackPreKeyMsgEpochEvents setUnackPreKeyMsgEpochInnerSpec
-   cliExternsPlaced_durationSinceEpochAlloc_budget_sat
+   hookSat_withLsRet_drop_keepsFs
    setUnackPreKeyMsg_exact_stack_epoch_placed_at_block setUnackPreKeyMsg_exact_stack_epoch_placed_ok_cli)
 open LibsignalBinary.Proofs.SignalSession.Cli.SpecsPlacedBudget
   (AllocContractsXCliPlaced idOwnShimSpecPlaced idRegIdPollSpecPlaced
@@ -165,8 +165,7 @@ theorem s5_setUnackMsg_ok_at_placed [LibsignalPlacement] {M : AllocCostModel}
   setUnackPreKeyMsg_exact_stack_epoch_placed_at_block
     (callerProg := initProgPlaced mmpl gh W) (i := 521)
     hh.sessionShim hh.rawAlloc hh.rawDealloc hh.sessionMemcpyRegion
-    (cliGhostExterns_sat_of_cliExternsPlaced mmpl gh W
-      (cliExternsPlaced_durationSinceEpochAlloc_budget_sat mmpl W)) (by decide)
+    (hookSat_withLsRet_drop_keepsFs hh.durationSince) (by decide)
 
 theorem s5_setUnackMsg_ok_of_cliAllocHooks [LibsignalPlacement] {M : AllocCostModel}
     {A : RustCliAllocBudget M} {lim : BudgetLimits}

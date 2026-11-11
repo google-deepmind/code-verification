@@ -14,8 +14,10 @@ public import LibsignalBinary.Proofs.SignalSession.Cli.Run.Glue.BcmpHook
 public import LibsignalBinary.Proofs.SignalSession.Cli.Run.Glue.BcmpHookPlaced
 public import LibsignalBinary.Proofs.SignalSession.Cli.Run.Glue.FsTraced
 public import LibsignalBinary.Proofs.SignalSession.Cli.Run.Glue.FsTracedPlaced
+public import LibsignalBinary.Proofs.SignalSession.Cli.HooksDehook.WithLsRet
 public import LibsignalBinary.Proofs.SignalSession.Cli.Run.Slots.CliHookSat
 public import LibsignalBinary.Proofs.SignalSession.Cli.Run.Slots.CliHookSatPlaced
+public import LibsignalBinary.Proofs.ConsumeMessageKey.FindIndexProofs.CtEqSat
 public import LibsignalBinary.Proofs.RecordCodecs.Assembly
 public import LibsignalBinary.Proofs.SessionRecordAt.Hooks2.Ser.HSerX
 public import LibsignalBinary.Proofs.TripleRatchet.Hkdf.Extract
@@ -58,6 +60,8 @@ open CryptoVerification.SignalSession.Cli.RunGlue
 open CryptoVerification.SignalSession.Cli.RunSkeleton
 open CryptoVerification.SignalSession.Cli.RunCompose
 open CryptoVerification.SignalSession.Cli.RunProofs
+open CryptoVerification.SignalSession.Cli.Slots (durationSinceEpochAllocSpec)
+open LibsignalBinary.Proofs.SignalSession.Cli.HooksDehook.WithLsRet (withLsRet)
 
 /-! ## `SepWPp` / `SepWP` `LibsignalCodeRoLoaded` combinator -/
 
@@ -106,14 +110,6 @@ theorem traceFsSound_cliGhostPlaced [LibsignalPlacement] (mmpl : MultiPlacement)
     TraceFsSound prog :=
   RunGlue.traceFsSound_lsProg_cli_ghost mmpl g W hFs
 
-theorem bcmp_row_placed (mmpl : MultiPlacement) (W : CliHooks) :
-    (cliBcmpName, cliBcmpHook W.bcmp) ∈ cliHookTablePlaced mmpl W :=
-  RunGlue.bcmp_row_placed mmpl W
-
-theorem cli_hookSat_bcmp_placed (mmpl : MultiPlacement) (W : CliHooks) :
-    HookSat (cliExternsPlaced mmpl W) cliBcmpName cliBcmpSpec :=
-  RunGlue.cli_hookSat_bcmp_placed mmpl W
-
 /-! ## KEM encapsulate symbol and `RunHooksPlaced` bundle -/
 
 /-- Mangled symbol name of `libcrux_ml_kem::mlkem1024::kyber::encapsulate`. -/
@@ -143,10 +139,12 @@ structure RunHooksPlaced [LibsignalPlacement] (W : CliHooks) (A : RustAlloc)
   dh : HookSat H lsDiffieHellmanSym (diffieHellmanSpec W.C.X)
   sharedDrop : HookSat H lsSharedSecretDropSym zeroizeSecretSpec
   staticDrop : HookSat H lsStaticSecretDropSym zeroizeSecretSpec
-  blackBox : H lsBlackBoxSym = some CryptoVerification.LibsignalSession.blackBoxHook
+  blackBox :
+    HookSat H lsBlackBoxSym
+      LibsignalBinary.Proofs.ConsumeMessageKey.FindIndexProofs.CtEqSat.blackBoxSpecSat
   hkdf : HkdfPlacedHooks W.C.F H
   kemEncaps : H lsKemEncapsSym = some (E2E.kemEncapsHook W.Q.encaps)
-  durationSince : H lsDurationSinceSym = some durationSinceExactHook
+  durationSince : HookSat H lsDurationSinceSym (withLsRet durationSinceEpochAllocSpec)
   panic_alloc : H "_RNvNtCs69KKACWg7bl_5alloc5alloc18handle_alloc_error" = some Rust.panicked
   panic_raw : H "_RNvNtCs69KKACWg7bl_5alloc7raw_vec12handle_error" = some Rust.panicked
   panic_sym : ∀ s, s ∈ cliPanicSymbolsPlaced → H s = some Rust.panicked

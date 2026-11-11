@@ -10,6 +10,7 @@ limitations under the License.
 module
 
 public import LibsignalBinary.Proofs.Cli.E2E.Pqxdh.ResponderClosure.Matched.M2TopPlacedBudget
+public import LibsignalBinary.Proofs.Cli.E2E.Pqxdh.ResponderClosure.Matched.M2TopPlacedBudgetSat
 public import LibsignalBinary.Proofs.SignalSession.Cli.Run.Proofs.DecryptPrekey.Poll.ClosureCalleesPlacedBudget
 public import LibsignalBinary.Proofs.SignalSession.Cli.Run.Proofs.DecryptPrekey.Poll.ClosurePathBMainPlacedBudget
 public import LibsignalBinary.Proofs.SignalSession.Cli.Run.Proofs.DecryptPrekey.Poll.StagesInst.MatchedMatchFoldPlacedBudget
@@ -48,20 +49,17 @@ open CryptoVerification.CliHandshake.Placed (lsProg_530)
 open scoped CryptoVerification.CliHandshake.Placed
 open CryptoVerification.CliHandshake.RespClosurePlaced (lsProg_518)
 open scoped CryptoVerification.CliHandshake.RespClosurePlaced
-open CryptoVerification.LibsignalSession (blackBoxHook)
 open CryptoVerification.LibsignalTripleRatchet (noAllocShimSpec)
 open CryptoVerification.LibsignalTripleRatchet.FromRecordCallees (lsLogOff)
 open CryptoVerification.SignalSession (CliHooks cliExternsPlaced)
 open CryptoVerification.SignalSession.Cli
   (CliGhostHooks cliGhostExterns cliIdentityVtSym cliKyberPreKeyVtSym cliPreKeyVtSym
    cliSignedPreKeyVtSym)
-open CryptoVerification.SignalSession.Cli.RunGlue
-  (cliExternsPlaced_row cliGhostExterns_other withPanics_cliGhostExterns)
+open CryptoVerification.SignalSession.Cli.RunGlue (withPanics_cliGhostExterns)
 open CryptoVerification.SignalSession.Cli.RunProofs.Poll
   (dpPollProgPlaced preKeyMsgAt_eq_base_idKey_sep preKeyMsgRemBaseIdKeyAt
    sepWPp_conseq_pre sepWPp_entails_post sepWPp_lift_entails_post
    x29_eq_sp0_sub_60 x29_eq_sp_add_c70)
-open CryptoVerification.SignalSession.Cli.Slots (blackBox_row_placed)
 open LibsignalBinary.Heap
   (AllocCostModel BudgetLimits RustCliAllocBudget rustCliDeallocBudgetSpec)
 open LibsignalBinary.Heap.SpecBudget (withVmPreserved)
@@ -71,8 +69,8 @@ open LibsignalBinary.Proofs.Cli.E2E.Pqxdh.ResponderClosure.Matched.M2StepsBBudge
   (strToOwnedLocal2Spec)
 open LibsignalBinary.Proofs.Cli.E2E.Pqxdh.ResponderClosure.Matched.M2TailPlacedBudget
   (str_to_owned_local2_placed_ok_at)
-open LibsignalBinary.Proofs.Cli.E2E.Pqxdh.ResponderClosure.Matched.M2TopPlacedBudget
-  (stageP2_matched_ok_framed_placed)
+open LibsignalBinary.Proofs.Cli.E2E.Pqxdh.ResponderClosure.Matched.M2TopPlacedBudgetSat
+  (stageP2_matched_ok_framed_placed_sat)
 open LibsignalBinary.Proofs.SignalSession.Cli.Run.Proofs.DecryptPrekey.Poll.ClosurePathBMainPlacedBudget
   (StageP2MatchedFramedCliPlacedStmt)
 open LibsignalBinary.Proofs.SignalSession.Cli.Run.Proofs.DecryptPrekey.Poll.ClosureStagesStmtPlacedBudget
@@ -125,15 +123,6 @@ private theorem hookSat_noAllocShimBudget_of_withVmPreserved {H : String → Opt
     rw [satisfies_pure_sepConj]
     exact ⟨⟨hpost.2.1, hpost.1⟩, hpost.2.2⟩
   · exact Or.inr hrest
-
-private theorem cliExternsPlaced_blackBox_withPanics (mmpl : Obj.MultiPlacement)
-    (gh : CliGhostHooks) (W : CliHooks) :
-    Rust.withPanics (cliGhostExterns gh (cliExternsPlaced mmpl W)) lsBlackBoxU8Sym =
-      some blackBoxHook := by
-  rw [withPanics_cliGhostExterns mmpl gh W,
-    cliGhostExterns_other gh _ (by decide) (by decide) (by decide)
-      (by decide) (by decide) (by decide)]
-  exact cliExternsPlaced_row mmpl W (blackBox_row_placed mmpl W)
 
 private theorem cliPublicKeySerialize_placed_ok [LibsignalPlacement]
     {M : AllocCostModel} {A : RustCliAllocBudget M} {lim : BudgetLimits}
@@ -236,11 +225,11 @@ theorem stageP2Matched_framed_cli_placed_ok [LibsignalPlacement] :
     sep_ac_rfl
   rw [hpre_assoc]
   refine sepWPp_entails_post ?_
-  exact stageP2_matched_ok_framed_placed
+  exact stageP2_matched_ok_framed_placed_sat
     (cliPublicKeySerialize_placed_ok mmpl gh W hh)
     (cliStrToOwnedLocal2_placed_ok mmpl gh W hh)
     (cliDealloc_placed_ok mmpl gh W hh)
-    (cliExternsPlaced_blackBox_withPanics mmpl gh W)
+    (hookSat_withPanics_placed mmpl gh W hh.blackBox)
     (cliDropSessionStructureLocal2_placed_ok mmpl gh W hh)
     st_b s0 s1
     sp y.fut y.out y.g.msgA y.g.peerA y.g.meA

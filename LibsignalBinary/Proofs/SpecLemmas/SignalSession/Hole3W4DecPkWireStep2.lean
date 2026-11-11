@@ -59,6 +59,7 @@ public import LibsignalBinary.Proofs.SpqrV1.Top.Recv.DefsPlacedBudget
 public import LibsignalBinary.Proofs.SpqrV1.Top.Recv.FinalPlacedBudget
 public meta import LibsignalBinary.Proofs.Common.SharedHelpers -- shake: keep
 import LibsignalBinary.Proofs.Common.SharedHelpers
+import LibsignalBinary.Proofs.HookDischarge.Libc.Memmove
 import LibsignalBinary.Proofs.SpqrV1.States.Recv.TopPlacedBudgetSat
 import LibsignalBinary.Proofs.SpqrV1Sync.Codec.PbState
 import LibsignalBinary.Proofs.SpqrV1Sync.SendTotal.BraidCodec
@@ -131,6 +132,7 @@ open LibsignalBinary.Heap
 open LibsignalBinary.Heap.Fine (fineCostModel fineHookRustCliAllocBudget)
 open LibsignalBinary.Heap.SpecBudget (FmtWriteEnv FormatInnerEnv)
 open LibsignalBinary.Proofs.Cli.SpqrV1.M4.TryDecryptPV1TrapPlacedBudget (TryDecryptCliEnvOf)
+open LibsignalBinary.Proofs.HookDischarge.Libc.Memmove (sessionMemmoveBoundedSpec)
 open LibsignalBinary.Proofs.PeakBudget.CliFitsTraceArith (cliBudgetLimits)
 open LibsignalBinary.Proofs.PeakBudget.DecPkD2cSlotOkLinked
   (TryDecryptCliEnvOfPure tryDecryptCmkSeg4Env tryDecryptEnvArgsToGhost)
@@ -549,14 +551,16 @@ private theorem w4s2_spqrRecv_topStateGuarded_seam_of_contracts [LibsignalPlacem
 
 private theorem w4s2_hookSat_withAllocVmPreserved_memmove_of_zero
     {H : String → Option (State → State)} {sym : String} (hookStack : Nat)
-    (h : HookSat H sym (withAllocVmPreserved (sessionMemmoveSpec 0))) :
-    HookSat H sym (withAllocVmPreserved (sessionMemmoveSpec hookStack)) := by
+    (h : HookSat H sym (withAllocVmPreserved (sessionMemmoveBoundedSpec 0))) :
+    HookSat H sym (withAllocVmPreserved (sessionMemmoveBoundedSpec hookStack)) := by
   refine ProofLib.HookSat.mono h fun ⟨base, buf, dst, src, len⟩ R s0 hpre =>
     ⟨(base, buf, dst, src, len), stackAt s0.sp hookStack ∗ R, ?_, fun sf hpost => ?_⟩
-  · dsimp only [withAllocVmPreserved, sessionMemmoveSpec, libcMemmoveSpec, stackAt] at hpre ⊢
+  · dsimp only [withAllocVmPreserved, sessionMemmoveBoundedSpec,
+      sessionMemmoveSpec, libcMemmoveSpec, stackAt] at hpre ⊢
     simp only [ProofLib.memRegion_zero, sepConj_emp]
     ac_nf at hpre ⊢
-  · dsimp only [withAllocVmPreserved, sessionMemmoveSpec, stackAt] at hpost ⊢
+  · dsimp only [withAllocVmPreserved, sessionMemmoveBoundedSpec,
+      sessionMemmoveSpec, stackAt] at hpost ⊢
     simp only [ProofLib.memRegion_zero, sepConj_emp] at hpost
     ac_nf at hpost ⊢
 
@@ -587,7 +591,7 @@ private theorem w4s2_statesRecv_recv_exactTight_ok [LibsignalPlacement]
     (cliRecvCt2PlacedAllocExt mmpl gh W hA hExt)
     (w4s2_hookSat_withAllocVmPreserved_memmove_of_zero growOneStack
       (hookSat_of_eq (hExt_wp _ (by decide))
-        (cliExternsPlaced_sessionMemmove_allocVm_sat mmpl gh W)))
+        (cliExternsPlaced_sessionMemmove_allocVm_sat mmpl gh W hA.extraOk)))
     hmemset_wp
     (hookSat_of_eq (hExt_wp _ (by decide))
       (hookSat_of_eq (cliGhostExterns_other gh _

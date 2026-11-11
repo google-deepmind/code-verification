@@ -34,6 +34,7 @@ public import LibsignalBinary.Proofs.SignalSession.Cli.Run.Proofs.Ratchet.Encryp
 public import LibsignalBinary.Proofs.SignalSession.Cli.Run.Slots.KemDeserializeSlotPlacedBudget
 import Arm64.Trusted.Spec.Hoare
 import Arm64.Trusted.Spec.SepLogic
+import LibsignalBinary.Proofs.SignalSession.Cli.M24.MainEntryBudgetFitsInstSat
 import LibsignalBinary.Proofs.SignalSession.Cli.Run.Proofs.DecryptPrekey.CommitOk
 import LibsignalBinary.Proofs.SignalSession.Cli.Run.Refine
 
@@ -92,8 +93,7 @@ open CryptoVerification.SignalSession.Cli.RunProofs.Pksm (pksmParse)
 open CryptoVerification.SignalSession.Cli.RunProofs.Poll (dpPollProgPlaced)
 open CryptoVerification.SignalSession.Cli.RunRefine (runBounds_pqRecv)
 open CryptoVerification.SignalSession.Cli.Slots (
-  cliGhostExterns_fromUtf8_eq cliGhostExterns_memrchr_eq encodeInjOn_deserializeScopeP_Q
-  filesOk₀ runEncOk_pqRecv scopeIn scopeKit
+  encodeInjOn_deserializeScopeP_Q filesOk₀ runEncOk_pqRecv scopeIn scopeKit
 )
 open LibsignalBinary.Heap (AllocCostModel AllocEvent BudgetLimits RustCliAllocBudget)
 open LibsignalBinary.Heap.Fine (fineCostModel fineHookRustCliAllocBudget)
@@ -126,8 +126,10 @@ open LibsignalBinary.Proofs.SignalSession.Cli.F3.L4B.M24L4BEquiv (
 )
 open LibsignalBinary.Proofs.SignalSession.Cli.M24.B2MainFrameComposeBudget (libsignalPlacementOf)
 open LibsignalBinary.Proofs.SignalSession.Cli.M24.MainEntryBudgetFitsInst (
-  MainEntryBudgetFitsCapOf b2MainSpecTightNeedLocksFineAt_of_domScopedRunSem_and_budgetFitsCapOf_placed
-  cliGhostExterns_handleErrorMain cliGhostExterns_strlen domScopedRun
+  MainEntryBudgetFitsCapOf cliGhostExterns_handleErrorMain domScopedRun
+)
+open LibsignalBinary.Proofs.SignalSession.Cli.M24.MainEntryBudgetFitsInstSat (
+  b2MainSpecTightNeedLocksFineAt_of_domScopedRunSem_and_budgetFitsCapOf_placed_sat
 )
 open LibsignalBinary.Proofs.SignalSession.Cli.M24.MainIoBoundedPlaced (
   MainIoOfPlaced ReadStdinBoundedEnv
@@ -193,6 +195,9 @@ open LibsignalBinary.Proofs.SignalSession.Cli.Run.SkeletonPlacedBudget (
 )
 open LibsignalBinary.Proofs.SignalSession.Cli.Run.Slots.CliHookSatPlacedBudget (
   CliGhostAllocHooks allocContractsFsPlaced_of_hooks
+  cliGhostExterns_fromUtf8RO_budget_sat cliGhostExterns_fromUtf8_budget_sat
+  cliGhostExterns_memrchrRO_budget_sat cliGhostExterns_memrchr_budget_sat
+  cliGhostExterns_strlenRO_budget_sat
 )
 open LibsignalBinary.Proofs.SignalSession.Cli.Run.Slots.KemDeserializeSlotPlacedBudget (
   hc_kemDeserialize_placed
@@ -457,16 +462,23 @@ theorem mainSubroutineD3F3_of_domScopedRunTight
   refine hTr W (domScopedRun Dom (runRel S)) fun γ tp => ?_
   letI : LibsignalPlacement := libsignalPlacementOf mpl hblk hext_nodup
   have hM24 :=
-    b2MainSpecTightNeedLocksFineAt_of_domScopedRunSem_and_budgetFitsCapOf_placed
+    b2MainSpecTightNeedLocksFineAt_of_domScopedRunSem_and_budgetFitsCapOf_placed_sat
       (ext := fun W' => cliGhostExterns ghFixed (cliExternsPlaced mmpl W'))
       (W := W) (lim := cliBudgetLimits)
       hblk hext_nodup hCI Dom S
       hlibc initFsState_cliProcessInputs_eq
       (allocContractsFsPlaced_of_hooks mmpl ghFixed W (hG γ tp))
       (hioOf γ tp)
-      (cliGhostExterns_strlen mmpl ghFixed W)
-      (cliGhostExterns_fromUtf8_eq mmpl ghFixed W)
-      (cliGhostExterns_memrchr_eq mmpl ghFixed W)
+      (cliGhostExterns_strlenRO_budget_sat ghFixed (cliExternsPlaced mmpl W)
+        (hG γ tp).extraOk hookStack)
+      (cliGhostExterns_fromUtf8_budget_sat ghFixed (cliExternsPlaced mmpl W)
+        (hG γ tp).extraOk hookStack)
+      (cliGhostExterns_fromUtf8RO_budget_sat ghFixed (cliExternsPlaced mmpl W)
+        (hG γ tp).extraOk hookStack)
+      (cliGhostExterns_memrchr_budget_sat ghFixed (cliExternsPlaced mmpl W)
+        (hG γ tp).extraOk (Nat.le_refl extHookStack) (by decide))
+      (cliGhostExterns_memrchrRO_budget_sat ghFixed (cliExternsPlaced mmpl W)
+        (hG γ tp).extraOk (Nat.le_refl extHookStack) (by decide))
       (cliGhostExterns_handleErrorMain mmpl ghFixed W)
       hstk (hfitCap γ tp) (hrun γ tp)
   exact
@@ -571,7 +583,7 @@ private theorem toClosureRunHooksPlaced [LibsignalPlacement] {M : AllocCostModel
   { alloc := hh.alloc, allocFs := hh.allocFs, panics := hh.panics, memcpyRO := hh.memcpyRO,
     bcmp := hh.bcmp, fs := hh.fs, utf8 := hh.utf8, memrchr := hh.memrchr,
     codecHooks := hh.codecHooks, allocZeroed := hh.allocZeroed, stringClone := hh.stringClone,
-    formatInner := hh.formatInner }
+    formatInner := hh.formatInner, blackBox := hh.blackBox }
 
 /-- Establishes `MainOkPathBD3F3`, discharging slot `520` via
 `decPkPathBSlotOk_full_of_readEnv_placedBudget`. -/

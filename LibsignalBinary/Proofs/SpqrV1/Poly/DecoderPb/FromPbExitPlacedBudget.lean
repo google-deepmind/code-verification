@@ -84,7 +84,9 @@ open LibsignalBinary.Proofs.SpqrV1.Drop.SortedSetPtBudget (dropGlueSortedSetPt16
 open LibsignalBinary.Proofs.SpqrV1.Poly.DecoderPb.FromPbDefsBudget (
   fromPbDecLoopAllocEvents fromPbDecSlotEvents
 )
-open LibsignalBinary.Proofs.SpqrV1.Poly.DecoderPb.FromPbInnerPlacedBudget (sessionMemmoveVmAcpSpec)
+open LibsignalBinary.Proofs.SpqrV1.Poly.DecoderPb.FromPbInnerPlacedBudget (
+  sessionMemmoveBoundedVmAcpSpec
+)
 open LibsignalBinary.Proofs.SpqrV1.Poly.DecoderPb.FromPbOuterPlacedBudget (
   fromPb_outer_alloc_and_push_placed_wpp_of_hookSat fromPb_outer_invalid_mod4_placed_wpp
 )
@@ -173,7 +175,7 @@ theorem fromPb_outer_loop_placed_wpp [LibsignalPlacement]
     {ext : String → Option (State → State)}
     (hshim_sat : HookSat (Rust.withPanics ext) spqrRustNoAllocShimSym rustAllocShimVmSpec)
     (halloc_sat : HookSat (Rust.withPanics ext) spqrRustAllocSym (rustCliAllocBudgetSpec M A lim false))
-    (hmemmove_sat : HookSat (Rust.withPanics ext) spqrMemmoveSym (sessionMemmoveVmAcpSpec 0))
+    (hmemmove_sat : HookSat (Rust.withPanics ext) spqrMemmoveSym (sessionMemmoveBoundedVmAcpSpec 0))
     {Q Qp : State → SepProp → Prop}
     (s0 : State) (fsp ptsPtr : BitVec 64)
     (hfsp_align : (fsp &&& 15#64 == 0#64) = true) :

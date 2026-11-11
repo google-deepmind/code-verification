@@ -632,9 +632,6 @@ def compHooks0 : CliHooks where
             rw [List.length_drop, compKyberEncaps_length]⟩)
       decaps := fun _ ct => ⟨compKyberDecaps ct.toList, compKyberDecaps_length ct.toList⟩
       K := compMlKem0 }
-  bcmp := compBcmp0
-  bcmp_ok := compBcmp0_ok
-  utf8Err := fun _ => (0#64, 0#16)
 theorem compI0_hooksMatch : HooksMatchInterpretation compI0 compHooks0 := by
   refine ⟨rfl, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_⟩
   · intro p k iv _ _; rfl

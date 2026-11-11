@@ -9,6 +9,7 @@ limitations under the License.
 
 module
 
+public import LibsignalBinary.Proofs.HookDischarge.Libc.Memmove -- proof-setup: allow-public-import
 public import LibsignalBinary.Proofs.SpqrV1.States.Leaves.LeavesTopPlacedBudget -- proof-setup: allow-public-import
 public import LibsignalBinary.Proofs.SpqrV1.States.RecvCt2Chunk.ProofPlacedBudgetSat -- proof-setup: allow-public-import
 public import LibsignalBinary.Proofs.TripleRatchet.Hkdf.CommonBudgetSat -- proof-setup: allow-public-import
@@ -33,7 +34,8 @@ open Arm64 ProofLib
 open CryptoGames.LibsignalSession (ShaCompress)
 open CryptoVerification (LibsignalPlacement)
 open CryptoVerification.LibsignalSpqrV1 (MlKem mlkemDecapsSpec)
-open CryptoVerification.LibsignalTripleRatchet (memsetName sessionMemmoveSpec)
+open CryptoVerification.LibsignalTripleRatchet (memsetName)
+open LibsignalBinary.Proofs.HookDischarge.Libc.Memmove (sessionMemmoveBoundedSpec)
 open CryptoVerification.SpqrV1.Alloc (
   growOneStack spqrHandleErrorSym spqrMemcpySym spqrMemmoveSym
   spqrPanicConstAddOverflowSym spqrRustAllocSym spqrRustNoAllocShimSym spqrRustReallocSym
@@ -90,7 +92,7 @@ theorem ek_sent_ct1_received_recv_ct2_chunk_placed_ok_x_ofPrePostEnv_sat [Libsig
     (hA : RecvCt2PlacedAlloc M A lim ext)
     (hmemcpy : HookSat (Rust.withPanics ext) spqrMemcpySym sessionMemcpyRegionBudgetSpec)
     (hmemmove : HookSat (Rust.withPanics ext) spqrMemmoveSym
-      (withAllocVmPreserved (sessionMemmoveSpec growOneStack)))
+      (withAllocVmPreserved (sessionMemmoveBoundedSpec growOneStack)))
     (hmemset : HookSat (Rust.withPanics ext) memsetName sessionMemsetRegionBudgetSpec)
     (hdecaps : HookSat (Rust.withPanics ext) spqrMlkemDecapsSym (withVmPreserved (mlkemDecapsSpec K)))
     (hhmac : HookSat (Rust.withPanics ext) spqrLibcruxHmacSym' (libcruxHmacBudgetSpec F M A lim)) :
@@ -110,7 +112,7 @@ theorem ek_sent_ct1_received_recv_ct2_chunk_placed_ok_x_ofEnv_sat [LibsignalPlac
     (hA : RecvCt2PlacedAlloc M A lim ext)
     (hmemcpy : HookSat (Rust.withPanics ext) spqrMemcpySym sessionMemcpyRegionBudgetSpec)
     (hmemmove : HookSat (Rust.withPanics ext) spqrMemmoveSym
-      (withAllocVmPreserved (sessionMemmoveSpec growOneStack)))
+      (withAllocVmPreserved (sessionMemmoveBoundedSpec growOneStack)))
     (hmemset : HookSat (Rust.withPanics ext) memsetName sessionMemsetRegionBudgetSpec)
     (hdecaps : HookSat (Rust.withPanics ext) spqrMlkemDecapsSym (withVmPreserved (mlkemDecapsSpec K)))
     (hhmac : HookSat (Rust.withPanics ext) spqrLibcruxHmacSym' (libcruxHmacBudgetSpec F M A lim)) :
@@ -128,7 +130,7 @@ theorem ek_sent_ct1_received_recv_ct2_chunk_placed_ok_x_sat [LibsignalPlacement]
     (hA : RecvCt2PlacedAlloc M A lim ext)
     (hmemcpy : HookSat (Rust.withPanics ext) spqrMemcpySym sessionMemcpyRegionBudgetSpec)
     (hmemmove : HookSat (Rust.withPanics ext) spqrMemmoveSym
-      (withAllocVmPreserved (sessionMemmoveSpec growOneStack)))
+      (withAllocVmPreserved (sessionMemmoveBoundedSpec growOneStack)))
     (hmemset : HookSat (Rust.withPanics ext) memsetName sessionMemsetRegionBudgetSpec)
     (hdecaps : HookSat (Rust.withPanics ext) spqrMlkemDecapsSym (withVmPreserved (mlkemDecapsSpec K)))
     (hhmac : HookSat (Rust.withPanics ext) spqrLibcruxHmacSym' (libcruxHmacBudgetSpec F M A lim)) :
@@ -145,7 +147,7 @@ theorem ek_sent_ct1_received_recv_ct2_chunk_placed_ok_x_of_alloc_sat [LibsignalP
     {ext : String → Option (State → State)} [HkdfPlacedHooksExactBudgetSat F (Rust.withPanics ext)]
     (hA : RecvCt2PlacedAlloc M A lim ext)
     (hmemmove : HookSat (Rust.withPanics ext) spqrMemmoveSym
-      (withAllocVmPreserved (sessionMemmoveSpec growOneStack)))
+      (withAllocVmPreserved (sessionMemmoveBoundedSpec growOneStack)))
     (hmemset : HookSat (Rust.withPanics ext) memsetName sessionMemsetRegionBudgetSpec)
     (hdecaps : HookSat (Rust.withPanics ext) spqrMlkemDecapsSym (withVmPreserved (mlkemDecapsSpec K)))
     (hhmac : HookSat (Rust.withPanics ext) spqrLibcruxHmacSym' (libcruxHmacBudgetSpec F M A lim)) :
@@ -165,7 +167,7 @@ theorem ek_sent_ct1_received_recv_ct2_chunk_placed_ok_x_of_hooks_sat [LibsignalP
     (hmemcpy : HookSat (Rust.withPanics ext) spqrMemcpySym sessionMemcpyRegionBudgetSpec)
     (hRO : HookSat (Rust.withPanics ext) spqrMemcpySym sessionMemcpyRegionROSpec)
     (hmemmove : HookSat (Rust.withPanics ext) spqrMemmoveSym
-      (withAllocVmPreserved (sessionMemmoveSpec growOneStack)))
+      (withAllocVmPreserved (sessionMemmoveBoundedSpec growOneStack)))
     (hmemset : HookSat (Rust.withPanics ext) memsetName sessionMemsetRegionBudgetSpec)
     (hdecaps : HookSat (Rust.withPanics ext) spqrMlkemDecapsSym (withVmPreserved (mlkemDecapsSpec K)))
     (hhmac : HookSat (Rust.withPanics ext) spqrLibcruxHmacSym' (libcruxHmacBudgetSpec F M A lim))
@@ -194,7 +196,7 @@ theorem ek_sent_ct1_received_recv_ct2_chunk_placed_ok_ext_ofPrePostEnv_sat [Libs
     (hA : RecvCt2PlacedAlloc M A lim ext)
     (hmemcpy : HookSat (Rust.withPanics ext) spqrMemcpySym sessionMemcpyRegionBudgetSpec)
     (hmemmove : HookSat (Rust.withPanics ext) spqrMemmoveSym
-      (withAllocVmPreserved (sessionMemmoveSpec growOneStack)))
+      (withAllocVmPreserved (sessionMemmoveBoundedSpec growOneStack)))
     (hmemset : HookSat (Rust.withPanics ext) memsetName sessionMemsetRegionBudgetSpec)
     (hdecaps : HookSat (Rust.withPanics ext) spqrMlkemDecapsSym (withVmPreserved (mlkemDecapsSpec K)))
     (hhmac : HookSat (Rust.withPanics ext) spqrLibcruxHmacSym' (libcruxHmacBudgetSpec F M A lim)) :
@@ -214,7 +216,7 @@ theorem ek_sent_ct1_received_recv_ct2_chunk_placed_ok_ext_ofEnv_sat [LibsignalPl
     (hA : RecvCt2PlacedAlloc M A lim ext)
     (hmemcpy : HookSat (Rust.withPanics ext) spqrMemcpySym sessionMemcpyRegionBudgetSpec)
     (hmemmove : HookSat (Rust.withPanics ext) spqrMemmoveSym
-      (withAllocVmPreserved (sessionMemmoveSpec growOneStack)))
+      (withAllocVmPreserved (sessionMemmoveBoundedSpec growOneStack)))
     (hmemset : HookSat (Rust.withPanics ext) memsetName sessionMemsetRegionBudgetSpec)
     (hdecaps : HookSat (Rust.withPanics ext) spqrMlkemDecapsSym (withVmPreserved (mlkemDecapsSpec K)))
     (hhmac : HookSat (Rust.withPanics ext) spqrLibcruxHmacSym' (libcruxHmacBudgetSpec F M A lim)) :
@@ -232,7 +234,7 @@ theorem ek_sent_ct1_received_recv_ct2_chunk_placed_ok_ext_sat [LibsignalPlacemen
     (hA : RecvCt2PlacedAlloc M A lim ext)
     (hmemcpy : HookSat (Rust.withPanics ext) spqrMemcpySym sessionMemcpyRegionBudgetSpec)
     (hmemmove : HookSat (Rust.withPanics ext) spqrMemmoveSym
-      (withAllocVmPreserved (sessionMemmoveSpec growOneStack)))
+      (withAllocVmPreserved (sessionMemmoveBoundedSpec growOneStack)))
     (hmemset : HookSat (Rust.withPanics ext) memsetName sessionMemsetRegionBudgetSpec)
     (hdecaps : HookSat (Rust.withPanics ext) spqrMlkemDecapsSym (withVmPreserved (mlkemDecapsSpec K)))
     (hhmac : HookSat (Rust.withPanics ext) spqrLibcruxHmacSym' (libcruxHmacBudgetSpec F M A lim)) :
@@ -249,7 +251,7 @@ theorem ek_sent_ct1_received_recv_ct2_chunk_placed_ok_ext_of_alloc_sat [Libsigna
     {ext : String → Option (State → State)} [HkdfPlacedHooksExactBudgetSat F (Rust.withPanics ext)]
     (hA : RecvCt2PlacedAlloc M A lim ext)
     (hmemmove : HookSat (Rust.withPanics ext) spqrMemmoveSym
-      (withAllocVmPreserved (sessionMemmoveSpec growOneStack)))
+      (withAllocVmPreserved (sessionMemmoveBoundedSpec growOneStack)))
     (hmemset : HookSat (Rust.withPanics ext) memsetName sessionMemsetRegionBudgetSpec)
     (hdecaps : HookSat (Rust.withPanics ext) spqrMlkemDecapsSym (withVmPreserved (mlkemDecapsSpec K)))
     (hhmac : HookSat (Rust.withPanics ext) spqrLibcruxHmacSym' (libcruxHmacBudgetSpec F M A lim)) :
@@ -269,7 +271,7 @@ theorem ek_sent_ct1_received_recv_ct2_chunk_placed_ok_ext_of_hooks_sat [Libsigna
     (hmemcpy : HookSat (Rust.withPanics ext) spqrMemcpySym sessionMemcpyRegionBudgetSpec)
     (hRO : HookSat (Rust.withPanics ext) spqrMemcpySym sessionMemcpyRegionROSpec)
     (hmemmove : HookSat (Rust.withPanics ext) spqrMemmoveSym
-      (withAllocVmPreserved (sessionMemmoveSpec growOneStack)))
+      (withAllocVmPreserved (sessionMemmoveBoundedSpec growOneStack)))
     (hmemset : HookSat (Rust.withPanics ext) memsetName sessionMemsetRegionBudgetSpec)
     (hdecaps : HookSat (Rust.withPanics ext) spqrMlkemDecapsSym (withVmPreserved (mlkemDecapsSpec K)))
     (hhmac : HookSat (Rust.withPanics ext) spqrLibcruxHmacSym' (libcruxHmacBudgetSpec F M A lim))

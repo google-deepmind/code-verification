@@ -78,7 +78,7 @@ open CryptoVerification.LibsignalSpqrV1
   (Bytes Message MlKem PqRatchetState States V1State spqrAuthApi spqrDecodeState spqrHkdfWith
    spqrPolyApi spqrV1 spqrV1Recv)
 open CryptoVerification.LibsignalTripleRatchet
-  (LibsignalCodeRoLoaded SendCall VecArg sessionMemmoveSpec spqrRecvStack withLsCodeRoLoaded)
+  (LibsignalCodeRoLoaded SendCall VecArg spqrRecvStack withLsCodeRoLoaded)
 open CryptoVerification.LibsignalTripleRatchet.FromRecordCallees (lsLogOff)
 open CryptoVerification.SignalSession (CliHooks cliExternsPlaced)
 open CryptoVerification.SignalSession.Cli.RunGlue
@@ -351,7 +351,7 @@ theorem gu2b_statesFromPb_placed_okX_exact_cliExt [LibsignalPlacement]
   e2b_states_from_pb_ok_x_placed_exact
     (gu2b_fromPbAllocHooksBudget_cliExt mmpl gh W hA hExt)
     (hookSat_of_eq (gu2b_hExt_withPanics mmpl gh W hExt _ (by decide))
-      (cliExternsPlaced_sessionMemmove_allocVm_sat mmpl gh W))
+      (cliExternsPlaced_sessionMemmove_allocVm_sat mmpl gh W hA.extraOk))
 
 /-- Relocatable `Block 333` `StatesFromPbPlacedOkXOfEnv` producer at domain-split
 `e2b_StatesFromPbGuardedTightEnv`. -/
@@ -366,7 +366,7 @@ theorem gu2b_statesFromPb_placed_okX_guardedTight_cliExt [LibsignalPlacement]
   e2b_states_from_pb_ok_x_placed_guardedTight
     (gu2b_fromPbAllocHooksBudget_cliExt mmpl gh W hA hExt)
     (hookSat_of_eq (gu2b_hExt_withPanics mmpl gh W hExt _ (by decide))
-      (cliExternsPlaced_sessionMemmove_allocVm_sat mmpl gh W))
+      (cliExternsPlaced_sessionMemmove_allocVm_sat mmpl gh W hA.extraOk))
 
 /-- Relocatable `Block 333` `StatesFromPbPlacedOkXOfEnv` producer at implication-guarded
 `e2b_StatesFromPbImpTightEnv`. -/
@@ -381,7 +381,7 @@ theorem gu2b_statesFromPb_placed_okX_impTight_cliExt [LibsignalPlacement]
   e2b_states_from_pb_ok_x_placed_impTight
     (gu2b_fromPbAllocHooksBudget_cliExt mmpl gh W hA hExt)
     (hookSat_of_eq (gu2b_hExt_withPanics mmpl gh W hExt _ (by decide))
-      (cliExternsPlaced_sessionMemmove_allocVm_sat mmpl gh W))
+      (cliExternsPlaced_sessionMemmove_allocVm_sat mmpl gh W hA.extraOk))
 
 /-- Envelope-monotonic lift of `StatesFromPbPlacedOkXOfEnv` along any pointwise inclusion
 `∀ pb evs, Env₁ pb evs → Env₂ pb evs`. -/

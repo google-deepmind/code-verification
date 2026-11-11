@@ -24,6 +24,7 @@ public import LibsignalBinary.Proofs.SignalSession.Cli.Run.Proofs.Ratchet.Encryp
 public import LibsignalBinary.Proofs.SignalSession.Cli.Run.SkeletonPlacedBudget
 public import LibsignalBinary.Proofs.SignalSession.Cli.Store.IdSavePollPlacedBudgetFd
 public import LibsignalBinary.Proofs.SignalSession.Cli.Store.IdTrustPollPlacedBudgetFd
+public import LibsignalBinary.Proofs.SignalSession.Cli.Store.IdTrustPollPlacedBudgetFdSat -- proof-setup: allow-public-import
 public import LibsignalBinary.Proofs.SignalSession.Cli.Store.LoadPollPlacedBudgetFd
 public import LibsignalBinary.Proofs.SignalSession.Cli.Store.LoadPollRecordDeser
 public import LibsignalBinary.Proofs.SignalSession.Cli.Store.SerGlueXCliPlacedBudget
@@ -96,10 +97,13 @@ open LibsignalBinary.Proofs.SignalSession.Cli.Run.Proofs.Ratchet.EncryptLemmas.S
 open LibsignalBinary.Proofs.SignalSession.Cli.Run.SkeletonPlacedBudget (RunHooksPlaced)
 open LibsignalBinary.Proofs.SignalSession.Cli.SpecsPlacedBudget
   (dirGetSpecPlaced sessDeserializeSpecPlaced)
+open LibsignalBinary.Proofs.ConsumeMessageKey.FindIndexProofs.CtEqSat (blackBoxSpecSat)
 open LibsignalBinary.Proofs.SignalSession.Cli.Store.IdSavePollPlacedBudgetFd
-  (idSavePoll_placed_ok_of_get_put_bb_fd)
+  (idSavePoll_placed_ok_of_get_put_bb_fd idSavePoll_placed_ok_of_get_put_bb_fd_sat)
 open LibsignalBinary.Proofs.SignalSession.Cli.Store.IdTrustPollPlacedBudgetFd
   (idTrustPoll_placed_ok_of_get_bb_fd)
+open LibsignalBinary.Proofs.SignalSession.Cli.Store.IdTrustPollPlacedBudgetFdSat
+  (idTrustPoll_placed_ok_of_get_bb_fd_sat)
 open LibsignalBinary.Proofs.SignalSession.Cli.Store.LoadPollPlacedBudgetFd
   (sessLoadPoll_placed_ok_of_deps_fd)
 open LibsignalBinary.Proofs.SignalSession.Cli.Store.LoadPollRecordDeser (ofBytesEnv)
@@ -254,6 +258,35 @@ theorem w1BinaryIdKitPlaced_withFds_okIE [LibsignalPlacement] {M : AllocCostMode
   have h566Fd := idTrustPoll_placed_ok_of_get_bb_fd hh.allocFs hGet589 h_bb
     (Nat.le_refl _) (by decide) (by decide)
   have h565Fd := idSavePoll_placed_ok_of_get_put_bb_fd hh.allocFs hGet589 hPut543Fd h_bb
+    (Nat.le_refl _) (by decide) (by decide) (by decide) (by decide)
+  have hIdFds := cliIdKitOkIE_fds_placed_direct_of_polls
+    (F0 := F0) (peer := peer) (vtSym := cliIdentityVtRoSym)
+    hDropNz hh.allocFs h566Fd h565Fd
+    (Nat.le_refl trustShimNeed) (Nat.le_refl saveShimNeed)
+  exact identityStoreKitPlacedOkI_withFds_of_fds henf hIdFds
+
+theorem w1BinaryIdKitPlaced_withFds_okIE_sat [LibsignalPlacement] {M : AllocCostModel}
+    {A : RustCliAllocBudget M} {lim : BudgetLimits} {H : LibsignalHooks}
+    (henf : lim.enforced = true)
+    (B : RunBudgets) (F0 : FsFiles) (peer : AddrGhost)
+    (hDropNz : lsmpl.base 547 ≠ 0#64)
+    (hh : RunHooksPlaced A lim H)
+    (hhWf : RunHooksPlaced (withFds A) lim H)
+    (hGet589 : subroutine_ok (lsProg_589 H) (lsmpl.base 589)
+      (withFdsGe3Closed
+        (dirGetSpecPlaced cliIo.rd cliWrOk A lim
+          (DirGetEnv PathEnv (ReadFileRuleEnvFixed cliIo.rd) cliIo.rd)
+          (RunBudgets.dirGetNeed ⟨B.readFile⟩))))
+    (h_bb : HookSat H lsBlackBoxU8Sym
+      LibsignalBinary.Proofs.ConsumeMessageKey.FindIndexProofs.CtEqSat.blackBoxSpecSat) :
+    IdentityStoreKitPlacedOkI (withFds A) lim
+      (w1IdKitPlaced (withFds A).repAlloc B F0 peer)
+      (w1BinaryIdKitPlacedBudgetFixed (withFds A).repAlloc B F0 peer) H := by
+  have hPut543Wf := cliDirPutStr_placed_ok hhWf
+  have hPut543Fd := subroutine_ok_dirPutStr_withFdsGe3Closed_of_withFds henf hPut543Wf
+  have h566Fd := idTrustPoll_placed_ok_of_get_bb_fd_sat hh.allocFs hGet589 h_bb
+    (Nat.le_refl _) (by decide) (by decide)
+  have h565Fd := idSavePoll_placed_ok_of_get_put_bb_fd_sat hh.allocFs hGet589 hPut543Fd h_bb
     (Nat.le_refl _) (by decide) (by decide) (by decide) (by decide)
   have hIdFds := cliIdKitOkIE_fds_placed_direct_of_polls
     (F0 := F0) (peer := peer) (vtSym := cliIdentityVtRoSym)

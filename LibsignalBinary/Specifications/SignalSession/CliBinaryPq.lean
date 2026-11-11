@@ -48,9 +48,9 @@ and `CliSpecPqxdhNoMatch` (`PqDirNoMatch.lean`, DEV-CLI11) at `⟨W.C, W.Q⟩`.
 placements `mpl` (`libsignalSessionLib.LinkedAt bytes mpl`) and `mmpl`
 (`VerifiedLibraries.mallocngLib.LinkedAt bytes mmpl`, `Placed.CliElfCodeMatchesPlaced mpl mmpl elf`)
 places code and data where `elf` maps them (for the pinned non-PIE ELF `cliElfBytes`, linked with
-stock `ld.lld` under `cli-elf/stock.ld` at load base `0x400000`). The process gets an 8 MiB stack
-with its top at `0x7fff_ffff_0000` (DEV-CLI7), the engine's default auxiliary vector (`AT_RANDOM` =
-16 zero bytes, `AT_HWCAP` = `0x3`), `mmap` slots from `0x6000_0000_0000`
+stock `ld.lld` under `cli-elf/stock/stock_c2.ld` at load base `0x400000`). The process gets an
+8 MiB stack with its top at `0x7fff_ffff_0000` (DEV-CLI7), the engine's default auxiliary vector
+(`AT_RANDOM` = 16 zero bytes, `AT_HWCAP` = `0x3`), `mmap` slots from `0x6000_0000_0000`
 (`SignalSession/Process.lean`), and `brk` starting at `elf.brkStart`. A real kernel places the
 stack, `brk`, and the `mmap` area at random addresses. Effect: out of scope: no claim for another
 stack/`mmap`/`brk` layout.
@@ -60,7 +60,7 @@ pinned by SHA-256 in `CliElf.lean` (`cliElfBytes`): libsignal v0.105.4's `libsig
 from source by `scripts/cli-elf-stock --stdbin --build` from
 `third_party/libsignal/libsignal-session/cli-elf/stock/inputs_stock_stdbin.lock` (rustc 1.98.1 and
 its `aarch64-unknown-linux-musl` `self-contained/` CRT objects and `libc.a`, stock LLVM `ld.lld`
-22.1.8 `--no-relax` under `cli-elf/stock.ld`, zig 0.16.0 for `rdl_shim.S`, `std-main`, and
+22.1.8 `--no-relax` under `cli-elf/stock/stock_c2.ld`, zig 0.16.0 for `rdl_shim.S`, `std-main`, and
 `libsignal-session/translation.toml` plus `cli/io/translation.toml`, with the software AES and SHA-2
 backends). Effect: out of scope: production builds, other compilers and other flags are not covered.
 
@@ -71,8 +71,8 @@ processes.
 
 **DEV-E1 (machine model): hooks write only their outputs.** Under AAPCS64 a callee may clobber
 caller-saved registers (`x0`–`x18`, SIMD/FP, NZCV), whereas each hook in `cliHookTablePlaced`
-updates only its specified output registers/memory (`cliBcmpHook` writes `x0`;
-`durationSinceExactHook` writes its 24-byte result). Unhooked zero stubs halt and are forbidden by
+updates only its specified output registers/memory (e.g. `writeStdoutHook` writes `x0` and the
+trace). Unhooked zero stubs halt and are forbidden by
 `Placed.CliRunsToPlaced`. Effect: w.l.o.g., argued for standard compiler code generation.
 
 **DEV-E7 (machine model): the ELF aborts where the model panics.** Protocol-model panics map to
@@ -128,9 +128,16 @@ abbrev lsStaticSecretDropSym : String :=
 abbrev lsSharedSecretDropSym : String :=
   "_RNvXse_NtCscSWoUTnaXmu_12x25519_dalek6x25519NtB5_12SharedSecretNtNtNtCskxtBwYRO61I_4core3ops4drop4Drop4drop"
 
-/-- The `9` extern symbols de-hooked so the linked ELF bytes execute. Stock `ld.lld` cutover: `memcpy`
-and `memset`, whose `.symtab` definitions in the stock link are `VerifiedLibraries.mallocngLib`
-blocks `20` / `21`. Earlier F3 + IO.6b allocator/IO cutover: `7` mangled symbols,
+/-- The `19` extern symbols de-hooked so the linked ELF bytes execute. Second stock `ld.lld` cutover
+(C2, `10` symbols): the musl `libc.a` routines `memmove`, `bcmp` and `strlen` (`bcmp` tail-calls
+`memcmp`, which needs no row), and `7` compiled Rust functions:
+`core::slice::memchr::memrchr`, `core::str::converts::from_utf8`,
+`SystemTime::duration_since`, `<SystemTime as Add<Duration>>::add`,
+`subtle::black_box::<u8>`,
+and the `Drop` impls of x25519-dalek's `StaticSecret` and `SharedSecret`. First stock `ld.lld`
+cutover: `memcpy` and `memset`, whose `.symtab` definitions in the stock link are
+`VerifiedLibraries.mallocngLib` blocks `20` / `21`.
+Earlier F3 + IO.6b allocator/IO cutover: `7` mangled symbols,
 the `5` Rust global-allocator symbols (`rdl_shim.S` → `VerifiedLibraries.mallocngLib`)
 and `read_file` / `read_stdin` (`libsignal_cli_io`). (`<String as Clone>::clone` becomes an
 intra-library `libsignalSessionLib` block under SC-1 route `(I)`.) -/
@@ -143,7 +150,17 @@ def cliDehookedSymsPlaced : List String :=
    lsReadFileSym,
    lsReadStdinSym,
    "memcpy",
-   "memset"]
+   "memset",
+   "memmove",
+   "bcmp",
+   "strlen",
+   lsMemrchrSym,
+   lsFromUtf8Sym,
+   lsDurationSinceSym,
+   lsTimeAddSym,
+   lsBlackBoxSym,
+   lsStaticSecretDropSym,
+   lsSharedSecretDropSym]
 
 /-- Mangled-symbol PQXDH and SPQR primitive rows (`18` rows) matching `libsignalSessionMultiLib`,
 with `libcrux_hmac::hmac` wired over shared `mallocng` at placement `mmpl`. -/
@@ -184,33 +201,25 @@ noncomputable def cliPqxdhHookTablePlaced (mmpl : Obj.MultiPlacement) (C : Crypt
      mlkemValidatePkHook Q.K),
    ("_RNvCs65XVORQObL2_12libcrux_hmac4hmac", libcruxHmacHookMallocng mmpl C.F)]
 
-/-- Mangled-symbol CLI hook table (`37` rows) matching `libsignalSessionMultiLib` after the F3 + IO.6b
+/-- Mangled-symbol CLI hook table (`27` rows) matching `libsignalSessionMultiLib` after the F3 + IO.6b
 allocator/IO cutover (`5` `__rust_*` allocator rows, `<String as Clone>::clone`, `read_file`, and
 `read_stdin` removed so the linked ELF bytes execute; `aes_256_cbc_{encrypt,decrypt}` and
-`libcrux_hmac::hmac` wired over `VerifiedLibraries.mallocngLib` at placement `mmpl`) and the stock
-`ld.lld` cutover (`memset` and `memcpy` removed: they run as `mallocngLib` blocks `21` / `20`). -/
+`libcrux_hmac::hmac` wired over `VerifiedLibraries.mallocngLib` at placement `mmpl`) and the two
+stock `ld.lld` cutovers (`memset` and `memcpy` removed: they run as `mallocngLib` blocks `21` / `20`; then
+C2: the `10` symbols that are the last `10` entries of `cliDehookedSymsPlaced` removed: their
+linked code runs). -/
 noncomputable def cliHookTablePlaced (mmpl : Obj.MultiPlacement) (W : CliHooks) :
     List (String × (State → State)) :=
   cliPqxdhHookTablePlaced mmpl W.C W.Q ++ [
-  ("memmove", hookMemmove),
-  ("bcmp", cliBcmpHook W.bcmp),
-  ("strlen", strlenHook),
   (lsWriteFileSym, writeFileHook),
   (lsWriteStdoutSym, writeStdoutHook),
-  (lsMemrchrSym, memrchrHook),
-  (lsFromUtf8Sym, fromUtf8Hook W.utf8Err),
   (lsFmtWriteSym, fmtWriteHook0),
   (lsFormatInnerSym, formatInnerHook0),
-  (lsDurationSinceSym, durationSinceExactHook),
-  (lsTimeAddSym, timeAddHook),
-  (lsBlackBoxSym, LibsignalSession.blackBoxHook),
   (lsCompress256Sym, LibsignalHmac.compress256Hook W.C.F),
   (lsAesEncSym, aesEncHookMallocng mmpl W.C.E),
   (lsAesDecSym, aesDecHookMallocng mmpl W.C.D),
   (lsPubFromSecretSym, LibsignalTripleRatchet.pubFromSecretHook W.C.pubKey),
-  (lsDiffieHellmanSym, LibsignalTripleRatchet.diffieHellmanHook W.C.X),
-  (lsStaticSecretDropSym, LibsignalTripleRatchet.zeroizeSecretHook),
-  (lsSharedSecretDropSym, LibsignalTripleRatchet.zeroizeSecretHook)]
+  (lsDiffieHellmanSym, LibsignalTripleRatchet.diffieHellmanHook W.C.X)]
 
 /-- The `18` mangled panic extern symbols of `libsignalSessionMultiLib` mapped to `Rust.panicked`. -/
 def cliPanicSymbolsPlaced : List String :=
@@ -308,7 +317,7 @@ def DirectOrBranchStub (elf : ElfImage) (stubVa targetVa : BitVec 64) : Prop :=
 2. `VerifiedLibraries.mallocngLib` placement, in-ELF match, and writable-data disjointness (`mmpl`);
 3. K3(a): cross-library code-block and writable-data disjointness plus `externAt? = none` across all
    `mallocngLib` code bytes and at every de-hooked resolution `mpl.ρ sym`;
-4. K3(b): every `sym ∈ cliDehookedSymsPlaced` (the `9` external de-hooked symbols) resolves to a
+4. K3(b): every `sym ∈ cliDehookedSymsPlaced` (the `19` external de-hooked symbols) resolves to a
    unique defined `STT_FUNC` `.symtab` entry `targetVa` in `elf`
    (`DirectOrBranchStub elf (mpl.ρ sym) targetVa`) with `externAt? targetVa = none`. -/
 def CliElfCodeMatchesPlaced (mpl mmpl : Obj.MultiPlacement) (elf : ElfImage) : Prop :=

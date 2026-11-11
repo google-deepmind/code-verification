@@ -54,7 +54,7 @@ open LibsignalBinary.Heap.IfaceBudgetLemmas (
   rustCliReallocBudgetExternSpecWithStack
 )
 open LibsignalBinary.Proofs.TripleRatchet.Hooks.DefsBudget (
-  sessionShimBudgetSpec sessionMemcpyBudgetSpec sessionMemmoveBudgetSpec
+  sessionShimBudgetSpec sessionMemcpyBudgetSpec
 )
 open LibsignalBinary.Proofs.TripleRatchet.Alloc.DefsBudget (session2ShimBudgetSpecX)
 open LibsignalBinary.Proofs.SessionRecordAt.Hooks2.AdaptersBudget (Stage2ContractsPlaced)
@@ -71,7 +71,7 @@ open LibsignalBinary.Proofs.SessionRecordAt.Swarm.TRREF.B3DefsBudget (
 
 /-- Minimal relocatable budget-threaded `[LibsignalPlacement]` contract bundle for
 `SessionRecord::deserialize` (and `SessionRecord::serialize`):
-`AllocContractsPlaced M A lim H` (`alloc`, `dealloc`, `realloc`, `shim`, `memmove` at
+`AllocContractsPlaced M A lim H` (`alloc`, `dealloc`, `realloc`, `shim` at
 `extHookStack`) plus `VmPreserved`-preserving owned-source `memcpy` at `extHookStack`. -/
 structure Stage2ContractsMinPlaced [LibsignalPlacement] (M : AllocCostModel)
     (A : RustCliAllocBudget M) (lim : BudgetLimits) (H : LibsignalHooks) : Prop where
@@ -93,11 +93,9 @@ theorem Stage2ContractsMinPlaced.of_block0 [LibsignalPlacement] {M : AllocCostMo
     (hshim : subroutine_ok blk0Prog (lsρ lsRustNoAllocShimSym)
       (withLsCodeLoaded lsmpl session2ShimBudgetSpecX))
     (hmemcpy : subroutine_ok blk0Prog (lsρ lsMemcpySym)
-      (withLsCodeLoaded lsmpl (sessionMemcpyBudgetSpec extHookStack)))
-    (hmemmove : subroutine_ok blk0Prog (lsρ "memmove")
-      (withLsCodeLoaded lsmpl (sessionMemmoveBudgetSpec extHookStack))) :
+      (withLsCodeLoaded lsmpl (sessionMemcpyBudgetSpec extHookStack))) :
     Stage2ContractsMinPlaced M A lim H where
-  alloc := AllocContractsPlaced.of_block0 halloc hdealloc hrealloc hshim hmemmove
+  alloc := AllocContractsPlaced.of_block0 halloc hdealloc hrealloc hshim
   memcpy := ls_subroutine_ok_cl_of_callee (j := 0) hmemcpy
 
 /-- Construct `Stage2ContractsMinPlaced M A lim H` from `HookSat H` single-step budget hooks. -/
@@ -107,10 +105,9 @@ theorem Stage2ContractsMinPlaced.of_hooks [LibsignalPlacement] {M : AllocCostMod
     (hdealloc : HookSat H lsRustDeallocSym (rustCliDeallocBudgetSpec M A lim))
     (hrealloc : HookSat H lsRustReallocSym (rustCliReallocBudgetSpec M A lim))
     (hshim : HookSat H lsRustNoAllocShimSym sessionShimBudgetSpec)
-    (hmemcpy : HookSat H lsMemcpySym (sessionMemcpyBudgetSpec extHookStack))
-    (hmemmove : HookSat H "memmove" (sessionMemmoveBudgetSpec extHookStack)) :
+    (hmemcpy : HookSat H lsMemcpySym (sessionMemcpyBudgetSpec extHookStack)) :
     Stage2ContractsMinPlaced M A lim H where
-  alloc := AllocContractsPlaced.of_hooks halloc hdealloc hrealloc hshim hmemmove
+  alloc := AllocContractsPlaced.of_hooks halloc hdealloc hrealloc hshim
   memcpy := ls_subroutine_ok_cl_of_plain_prog (ls_hook_ok_of_caller hmemcpy)
 
 /-- Forget the unused fields of `Stage2ContractsPlaced A lim H`. -/

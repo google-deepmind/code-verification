@@ -29,26 +29,28 @@ rdl_shim_path = "third_party/libsignal/libsignal-session/cli-elf/stock/rdl_shim.
 rdl_shim_sha256 = "b1ea6c885b72ada33a0a52d4a8df3efdd0ddab579455e8853b5d85340a24da5f"
 
 native_only = []
+lib2_rows = "all"
+c2_moved_libc_rows = "all"
 
 stock_ld_mode = "pinned"
-linker_script_path = "third_party/libsignal/libsignal-session/cli-elf/stock.ld"
-linker_script_sha256 = "ddd8dd9df46f6ed840fe35ec185cd754cd82a2e18d608b5c6268779b1e5c4daa"
+linker_script_path = "third_party/libsignal/libsignal-session/cli-elf/stock/stock_c2.ld"
+linker_script_sha256 = "a9066f2183c8fa29b7412913628dd3d316ac3990a1868cca3e23b0c4b8757459"
 lld_no_relax = true
 
-elf_sha256 = "2f20c836342437a882b5882c34eab604e4f23b2b388c2b2a0696eeda51cddc7e"
-elf_size = 617448
-engine_stock_link_json_sha256 = "0a4e7ecf49ebd86f014121a7a995a0d7671bfbf81e2f6b757dfa7b2d63bb91db"
-link_map_sha256 = "9a106e1de1d90f94c623525871beb70fb6d4c9ac10a809698c393f24b5405600"
+elf_sha256 = "50066cbd732256eb5f19f93d1d98800914336b7926225de3ebfa0bb37eca98ce"
+elf_size = 619032
+engine_stock_link_json_sha256 = "70f8d7be7c7033ad468f4d12c45f7b08e4df0c6d142146732ad8b7ec3ecda9b4"
+link_map_sha256 = "f7cf0b1929934080a2c60b0f6fd70abcb23bbd37479b035e09c2525338fe39f5"
 main_rust_obj_sha256 = "db55dd1615f19140ce50155b9d51aeaf9ddbe262d8ce9669afb62b71510b0b9e"
 compiler_builtins_sha256 = "e9ede836762ee857758dcacd0a75f42eb68a7220d8c490648ef2c34a3b0d9958"
 stub_manifest_sha256 = "169fd6d8b82d5eb9012b92f779223afc20df30704ce00928fedcd63034cc833f"
 m4_lock_path = "third_party/libsignal/libsignal-session/cli-elf/stock/m4_stock.lock"
-m4_lock_sha256 = "9e934fa146794ffc1b689c0abc6f1b01a52a2d10c4fe3c6013da5a05ede78b8d"
+m4_lock_sha256 = "e98a380d99460c1a9e6a5d8b674575b126e344bd94645182a0d2c15d423860f8"
 
 expected_phnum = 7
 expected_pt_loads = 4
-expected_symtab_count = 2832
-expected_loader_sym_count = 300
+expected_symtab_count = 2860
+expected_loader_sym_count = 305
 expected_stub_manifest_count = 129
 expected_retained_stub_count = 82
 
@@ -95,11 +97,12 @@ lld_argv = [
   "--build-id=none",
   "--strip-debug",
   "-T",
-  "<STOCK_LD:third_party/libsignal/libsignal-session/cli-elf/stock.ld>",
+  "<STOCK_LD:third_party/libsignal/libsignal-session/cli-elf/stock/stock_c2.ld>",
   "--no-relax",
   "--undefined=session_message_encrypt",
   "--undefined=session_message_decrypt_signal",
   "--undefined=session_signal_message_parse",
+  "--undefined=_RINvCsdqpLrhraQXi_6subtle9black_boxhECs2wR8L9wiBdT_16curve25519_dalek",
   "--undefined=_RNvMs4_NtCs69KKACWg7bl_5alloc7raw_vecINtB5_6RawVecINtNtB7_3vec3VechEE8grow_oneCsfr5T3GFabw_3std",
   "--undefined=_RNvMs4_NtCs69KKACWg7bl_5alloc7raw_vecINtB5_6RawVecINtNtNtCslhx8g8CthFc_5gimli4read4unit14AttributeValueINtNtBR_12endian_slice11EndianSliceNtNtBT_9endianity12LittleEndianEjEE8grow_oneCsfr5T3GFabw_3std",
   "--undefined=_RNvMs4_NtCs69KKACWg7bl_5alloc7raw_vecINtB5_6RawVecNtNtB7_6string6StringE8grow_oneCsfr5T3GFabw_3std",
@@ -107,7 +110,14 @@ lld_argv = [
   "--undefined=_RNvMs4_NtCs69KKACWg7bl_5alloc7raw_vecINtB5_6RawVecNtNtCs9xXbyXU8IDi_9addr2line8function15FunctionAddressE8grow_oneCsfr5T3GFabw_3std",
   "--undefined=_RNvMs4_NtCs69KKACWg7bl_5alloc7raw_vecINtB5_6RawVecNtNtNtCsfr5T3GFabw_3std3ffi6os_str8OsStringE8grow_oneBS_",
   "--undefined=_RNvMs4_NtCs69KKACWg7bl_5alloc7raw_vecINtB5_6RawVechE8grow_oneB7_",
+  "--undefined=_RNvMs5_NtCsfr5T3GFabw_3std4timeNtB5_10SystemTime14duration_since",
+  "--undefined=_RNvNtNtCskxtBwYRO61I_4core3str8converts9from_utf8",
+  "--undefined=_RNvNtNtCskxtBwYRO61I_4core5slice6memchr7memrchr",
+  "--undefined=_RNvXs4_NtCs2wR8L9wiBdT_16curve25519_dalek10montgomeryNtB5_15MontgomeryPointNtCsjhEzohgaBbG_7zeroize7Zeroize7zeroize",
   "--undefined=_RNvXs4_NtCs69KKACWg7bl_5alloc6stringNtB5_6StringNtNtCskxtBwYRO61I_4core5clone5Clone5clone",
+  "--undefined=_RNvXs6_NtCsfr5T3GFabw_3std4timeNtB5_10SystemTimeINtNtNtCskxtBwYRO61I_4core3ops5arith3AddNtNtBR_4time8DurationE3add",
+  "--undefined=_RNvXsa_NtCscSWoUTnaXmu_12x25519_dalek6x25519NtB5_12StaticSecretNtNtNtCskxtBwYRO61I_4core3ops4drop4Drop4drop",
+  "--undefined=_RNvXse_NtCscSWoUTnaXmu_12x25519_dalek6x25519NtB5_12SharedSecretNtNtNtCskxtBwYRO61I_4core3ops4drop4Drop4drop",
   "--print-gc-sections",
   "--why-extract=why-extract.tsv",
   "-Map=link.map",
@@ -282,6 +292,12 @@ lld_argv = [
   "work/lib0_11.o",
   "work/lib0_12.o",
   "work/lib1_0.o",
+  "work/lib2_0.o",
+  "work/lib2_1.o",
+  "work/lib2_2.o",
+  "work/lib2_3.o",
+  "work/lib2_4.o",
+  "work/lib2_5.o",
   "--start-group",
   "work/main_rust.o",
   "work/self-contained/libc.a",
@@ -293,7 +309,7 @@ lld_argv = [
 ]
 
 [stock_lld_arg_files]
-"third_party/libsignal/libsignal-session/cli-elf/stock.ld" = "ddd8dd9df46f6ed840fe35ec185cd754cd82a2e18d608b5c6268779b1e5c4daa"
+"third_party/libsignal/libsignal-session/cli-elf/stock/stock_c2.ld" = "a9066f2183c8fa29b7412913628dd3d316ac3990a1868cca3e23b0c4b8757459"
 
 [runtime_archives]
 "crt1.o" = "2c8595cff75b182ad59c0278d5f81bed2cf1e51b5bf9324db52142c89dd6479f"
@@ -307,7 +323,7 @@ lld_argv = [
 [s2_real_body_lock.bcmp]
 definer_class = "R"
 input_binding = "STB_GLOBAL"
-elf_addr = "0x468ba8"
+elf_addr = "0x469a40"
 size = 4
 input_section = ".text.bcmp"
 source_file = "libc.a"
@@ -328,7 +344,7 @@ relocs = [
 [s2_real_body_lock.memcmp]
 definer_class = "R"
 input_binding = "STB_GLOBAL"
-elf_addr = "0x468b74"
+elf_addr = "0x469a0c"
 size = 52
 input_section = ".text.memcmp"
 source_file = "libc.a"
@@ -367,7 +383,7 @@ relocs = []
 [s2_real_body_lock.memmove]
 definer_class = "R"
 input_binding = "STB_GLOBAL"
-elf_addr = "0x468a4c"
+elf_addr = "0x4698e4"
 size = 296
 input_section = ".text.memmove"
 source_file = "libc.a"
@@ -380,7 +396,7 @@ member_file_sha = "1e57042165b65670bd83a6fba77a375595b5a444a6d5b611ced91e60bf0be
 matched_libc_member = "memmove.lo"
 member_text_relocs = 1
 text_sha = "c12d467225cb80b716bf2937af29adf446439046c9ff9a980eb4c4daf6875508"
-body_sha256 = "29f73b1800a3451387a2493ccfc81f74c325d4d73dd81f7adbd98c9a7a2ecc32"
+body_sha256 = "6490c2a56810c33dda3e5fa1e2b5baa64ecbf9121806f5191e1541b9db74baa4"
 relocs = [
   { offset = 104, rel_offset = 104, r_type = 282, rtype = 282, target_symbol = "memcpy", target = "memcpy", addend = 0 },
 ]
@@ -408,7 +424,7 @@ relocs = []
 [s2_real_body_lock.strlen]
 definer_class = "R"
 input_binding = "STB_GLOBAL"
-elf_addr = "0x468bac"
+elf_addr = "0x469a44"
 size = 88
 input_section = ".text.strlen"
 source_file = "libc.a"
@@ -444,7 +460,7 @@ elf_addr = "0x46f020"
 size = 8
 input_section = ".data._RNvCs4Dv7yoBiUx4_3log20MAX_LOG_LEVEL_FILTER"
 source_file = "extern_stubs_clean.o"
-sha256 = "ea88d803608b5fcb1c9bbec41a273d5121ff2735af5bc927ea9fb18b1d253573"
+sha256 = "7e1f69f3178c59a0b16d2eb32823547692f31faec62bbc2399a7610a925bafc3"
 
 [d1_extern_data_lock.kept."_RNvNtNtNtNtCs2wR8L9wiBdT_16curve25519_dalek7backend6serial3u649constants23ED25519_BASEPOINT_TABLE"]
 demangled_name = "curve25519_dalek::backend::serial::u64::constants::ED25519_BASEPOINT_TABLE"
@@ -454,7 +470,7 @@ elf_addr = "0x46f028"
 size = 8
 input_section = ".data._RNvNtNtNtNtCs2wR8L9wiBdT_16curve25519_dalek7backend6serial3u649constants23ED25519_BASEPOINT_TABLE"
 source_file = "extern_stubs_clean.o"
-sha256 = "ea88d803608b5fcb1c9bbec41a273d5121ff2735af5bc927ea9fb18b1d253573"
+sha256 = "7e1f69f3178c59a0b16d2eb32823547692f31faec62bbc2399a7610a925bafc3"
 
 [[stub_manifest]]
 name = "_RINvCsdqpLrhraQXi_6subtle9black_boxhECs2wR8L9wiBdT_16curve25519_dalek"

@@ -32,11 +32,11 @@ namespace CryptoVerification.SignalSession.Cli.RunGlue
 open Arm64 ProofLib CryptoVerification.SignalSession
 
 /-- The `bcmp` row of `cliHookTable` (index 8 of its own rows). -/
-theorem bcmp_row (W : CliHooks) : (cliBcmpName, cliBcmpHook W.bcmp) ∈ cliHookTable W :=
+theorem bcmp_row (W : CliHooks) : (cliBcmpName, cliBcmpHook CryptoVerification.SignalSession.cliDefaultBcmp) ∈ cliHookTable W :=
   List.mem_append_right _ (List.mem_of_getElem? (i := 8) rfl)
 
 /-- `cliExterns W` maps `bcmp` to `cliBcmpHook W.bcmp`. -/
-theorem cliExterns_bcmp (W : CliHooks) : cliExterns W cliBcmpName = some (cliBcmpHook W.bcmp) :=
+theorem cliExterns_bcmp (W : CliHooks) : cliExterns W cliBcmpName = some (cliBcmpHook CryptoVerification.SignalSession.cliDefaultBcmp) :=
   cliExterns_row W (bcmp_row W)
 
 /-- Either permission of `ChainProofs.bytesAt ro p bs` fixes the bytes read at `p`. -/
@@ -51,7 +51,7 @@ theorem bytesAt_readBytes {ro : Bool} {p : BitVec 64} {bs : List (BitVec 8)} {m 
 
 /-- `cliBcmpHook W.bcmp` meets `cliBcmpSpec` (for any `ro` on either side): memory is unchanged,
 `x0 := W.bcmp bsA bsB`, and `W.bcmp_ok` gives `w0 = 0 ↔ bsA = bsB`. -/
-theorem cliBcmpHook_ok (W : CliHooks) : HookOk (cliBcmpHook W.bcmp) cliBcmpSpec := by
+theorem cliBcmpHook_ok (_W : CliHooks) : HookOk (cliBcmpHook CryptoVerification.SignalSession.cliDefaultBcmp) cliBcmpSpec := by
   refine retHook_ok fun x R s0 hrun hpre _hsp => ?_
   simp only [cliBcmpSpec, sepConj_assoc, satisfies_pure_sepConj] at hpre
   rcases hpre with ⟨⟨hx0, hx1, hx2, hlen⟩, hmem⟩
@@ -71,11 +71,11 @@ theorem cliBcmpHook_ok (W : CliHooks) : HookOk (cliBcmpHook W.bcmp) cliBcmpSpec 
   dsimp only [cliBcmpSpec, cliBcmpHook, retHook]
   rw [hx0, hx1, hx2, hreadA, hreadB]
   simp only [sepConj_assoc, satisfies_pure_sepConj]
-  exact ⟨⟨W.bcmp_ok x.bsA x.bsB hlen.symm, rfl⟩, hmem⟩
+  exact ⟨⟨CryptoVerification.SignalSession.cliDefaultBcmp_ok x.bsA x.bsB hlen.symm, rfl⟩, hmem⟩
 
 /-- `HookSat (cliExterns W) cliBcmpName cliBcmpSpec`. -/
 theorem cli_hookSat_bcmp (W : CliHooks) : HookSat (cliExterns W) cliBcmpName cliBcmpSpec :=
-  ⟨cliBcmpHook W.bcmp, cliExterns_bcmp W, cliBcmpHook_ok W⟩
+  ⟨cliBcmpHook CryptoVerification.SignalSession.cliDefaultBcmp, cliExterns_bcmp W, cliBcmpHook_ok W⟩
 
 /-! ## Contract-backed `bcmp` (`CliExternsOk`) -/
 

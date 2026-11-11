@@ -59,6 +59,7 @@ open LibsignalBinary.Heap (
   rustCliAllocBudgetSpec rustCliAllocNoOomSpec rustCliDeallocBudgetSpec
   subroutine_ok_allocNoOom_of_budget
 )
+open LibsignalBinary.Proofs.HookDischarge.Libc.Memmove (sessionMemmoveBoundedBudgetSpec)
 open LibsignalBinary.Proofs.SessionRecordAt.Stage1X.GrowOneXBudget (growOneChainSpecX)
 open LibsignalBinary.Proofs.TripleRatchet.Alloc.DefsBudget (
   chainKeyToPbSpec chainKeyToPbSpecX framelessMemcpyBudgetSpec noAllocShimBudgetSpec
@@ -71,7 +72,6 @@ open LibsignalBinary.Proofs.TripleRatchet.Decrypt.DhCommitStep3Budget (growOneSp
 open LibsignalBinary.Proofs.TripleRatchet.Getters.DefsBudget (
   dropChainSpec dropChainSpecX
 )
-open LibsignalBinary.Proofs.TripleRatchet.Hooks.DefsBudget (sessionMemmoveBudgetSpec)
 
 open LibsignalBinary.Proofs.TripleRatchet.Decrypt.DhCommitMainBudgetCore (
   DhCommitBlockVmWp dhCommitBlockVmWp_159 dhCommitBlockVmWp_549
@@ -191,7 +191,7 @@ theorem dhCommit_placed_ok [LibsignalPlacement] {M : AllocCostModel}
     (hAlloc : subroutine_ok prog (lsmpl.ρ lsRustAllocSym) (rustCliAllocNoOomSpec M A lim false))
     (hDealloc : subroutine_ok prog (lsmpl.ρ lsRustDeallocSym) (rustCliDeallocBudgetSpec M A lim))
     (hMemcpy : subroutine_ok prog (lsmpl.ρ "memcpy") framelessMemcpyBudgetSpec)
-    (hMemmove : subroutine_ok prog (lsmpl.ρ "memmove") (sessionMemmoveBudgetSpec dropChainStack))
+    (hMemmove : subroutine_ok prog (lsmpl.ρ "memmove") (sessionMemmoveBoundedBudgetSpec dropChainStack))
     (x : TryDecryptGhost) (trG : TrGhost) (tr : TripleRatchet (List (BitVec 8)))
     (st1 : SessionState (List (BitVec 8))) (sc : SenderChain)
     (receiverChainKey : ChainKey) (newSenderKey : KeyPair)
@@ -304,7 +304,7 @@ theorem dhCommit_x_placed_ok [LibsignalPlacement] {M : AllocCostModel}
     (hAlloc : subroutine_ok prog (lsmpl.ρ lsRustAllocSym) (rustCliAllocNoOomSpec M A lim false))
     (hDealloc : subroutine_ok prog (lsmpl.ρ lsRustDeallocSym) (rustCliDeallocBudgetSpec M A lim))
     (hMemcpy : subroutine_ok prog (lsmpl.ρ "memcpy") framelessMemcpyBudgetSpec)
-    (hMemmove : subroutine_ok prog (lsmpl.ρ "memmove") (sessionMemmoveBudgetSpec dropChainStackX))
+    (hMemmove : subroutine_ok prog (lsmpl.ρ "memmove") (sessionMemmoveBoundedBudgetSpec dropChainStackX))
     (x : TryDecryptGhost) (trG : TrGhost) (tr : TripleRatchet (List (BitVec 8)))
     (st1 : SessionState (List (BitVec 8))) (sc : SenderChain)
     (receiverChainKey : ChainKey) (newSenderKey : KeyPair)
@@ -418,7 +418,7 @@ theorem s3_commit_placed_ok [LibsignalPlacement] {M : AllocCostModel}
     (hAlloc : subroutine_ok prog (lsmpl.ρ lsRustAllocSym) (rustCliAllocNoOomSpec M A lim false))
     (hDealloc : subroutine_ok prog (lsmpl.ρ lsRustDeallocSym) (rustCliDeallocBudgetSpec M A lim))
     (hMemcpy : subroutine_ok prog (lsmpl.ρ "memcpy") framelessMemcpyBudgetSpec)
-    (hMemmove : subroutine_ok prog (lsmpl.ρ "memmove") (sessionMemmoveBudgetSpec dropChainStack))
+    (hMemmove : subroutine_ok prog (lsmpl.ρ "memmove") (sessionMemmoveBoundedBudgetSpec dropChainStack))
     (hlr_alloc : LsRetAddr624 (entry + 0xa00#64) := by
       first
       | assumption
@@ -455,7 +455,7 @@ theorem s3_commit_budget_placed_ok [LibsignalPlacement] {M : AllocCostModel}
     (hAlloc : subroutine_ok prog (lsmpl.ρ lsRustAllocSym) (rustCliAllocBudgetSpec M A lim false))
     (hDealloc : subroutine_ok prog (lsmpl.ρ lsRustDeallocSym) (rustCliDeallocBudgetSpec M A lim))
     (hMemcpy : subroutine_ok prog (lsmpl.ρ "memcpy") framelessMemcpyBudgetSpec)
-    (hMemmove : subroutine_ok prog (lsmpl.ρ "memmove") (sessionMemmoveBudgetSpec dropChainStack))
+    (hMemmove : subroutine_ok prog (lsmpl.ρ "memmove") (sessionMemmoveBoundedBudgetSpec dropChainStack))
     (hlr_alloc : LsRetAddr624 (entry + 0xa00#64) := by
       first
       | assumption
@@ -488,7 +488,7 @@ theorem s3_commit_x_placed_ok [LibsignalPlacement] {M : AllocCostModel}
     (hAlloc : subroutine_ok prog (lsmpl.ρ lsRustAllocSym) (rustCliAllocNoOomSpec M A lim false))
     (hDealloc : subroutine_ok prog (lsmpl.ρ lsRustDeallocSym) (rustCliDeallocBudgetSpec M A lim))
     (hMemcpy : subroutine_ok prog (lsmpl.ρ "memcpy") framelessMemcpyBudgetSpec)
-    (hMemmove : subroutine_ok prog (lsmpl.ρ "memmove") (sessionMemmoveBudgetSpec dropChainStackX))
+    (hMemmove : subroutine_ok prog (lsmpl.ρ "memmove") (sessionMemmoveBoundedBudgetSpec dropChainStackX))
     (hlr_alloc : LsRetAddr624 (entry + 0xa00#64) := by
       first
       | assumption
@@ -527,7 +527,7 @@ theorem s3_commit_x_budget_placed_ok [LibsignalPlacement] {M : AllocCostModel}
     (hAlloc : subroutine_ok prog (lsmpl.ρ lsRustAllocSym) (rustCliAllocBudgetSpec M A lim false))
     (hDealloc : subroutine_ok prog (lsmpl.ρ lsRustDeallocSym) (rustCliDeallocBudgetSpec M A lim))
     (hMemcpy : subroutine_ok prog (lsmpl.ρ "memcpy") framelessMemcpyBudgetSpec)
-    (hMemmove : subroutine_ok prog (lsmpl.ρ "memmove") (sessionMemmoveBudgetSpec dropChainStackX))
+    (hMemmove : subroutine_ok prog (lsmpl.ρ "memmove") (sessionMemmoveBoundedBudgetSpec dropChainStackX))
     (hlr_alloc : LsRetAddr624 (entry + 0xa00#64) := by
       first
       | assumption
@@ -565,7 +565,7 @@ theorem s3_commit_159_placed_ok [LibsignalPlacement] {M : AllocCostModel}
     (hMemcpy : subroutine_ok ((blkPC_131).rebase (blkPl_131).base H)
       (lsmpl.ρ "memcpy") framelessMemcpyBudgetSpec)
     (hMemmove : subroutine_ok ((blkPC_131).rebase (blkPl_131).base H)
-      (lsmpl.ρ "memmove") (sessionMemmoveBudgetSpec dropChainStack)) :
+      (lsmpl.ρ "memmove") (sessionMemmoveBoundedBudgetSpec dropChainStack)) :
     S3CommitSeamPlaced ((blkPC_131).rebase (blkPl_131).base H) (lsmpl.base 131)
       C A lim ctl uuidTryParse S s3CommitDefaultEnv :=
   s3_commit_placed_ok (dhCommitBlockVmWp_159 H) C A lim ctl uuidTryParse S
@@ -594,7 +594,7 @@ theorem s3_commit_159_x_placed_ok [LibsignalPlacement] {M : AllocCostModel}
     (hMemcpy : subroutine_ok ((blkPC_131).rebase (blkPl_131).base H)
       (lsmpl.ρ "memcpy") framelessMemcpyBudgetSpec)
     (hMemmove : subroutine_ok ((blkPC_131).rebase (blkPl_131).base H)
-      (lsmpl.ρ "memmove") (sessionMemmoveBudgetSpec dropChainStackX)) :
+      (lsmpl.ρ "memmove") (sessionMemmoveBoundedBudgetSpec dropChainStackX)) :
     S3CommitSeamXPlaced ((blkPC_131).rebase (blkPl_131).base H) (lsmpl.base 131)
       C decFn A lim ctl uuidTryParse S s3CommitDefaultEnv :=
   s3_commit_x_placed_ok (dhCommitBlockVmWp_159 H) C decFn A lim ctl uuidTryParse S
@@ -621,7 +621,7 @@ theorem s3_commit_549_placed_ok [LibsignalPlacement] {M : AllocCostModel}
     (hMemcpy : subroutine_ok ((blkPC_434).rebase (blkPl_434).base H)
       (lsmpl.ρ "memcpy") framelessMemcpyBudgetSpec)
     (hMemmove : subroutine_ok ((blkPC_434).rebase (blkPl_434).base H)
-      (lsmpl.ρ "memmove") (sessionMemmoveBudgetSpec dropChainStack)) :
+      (lsmpl.ρ "memmove") (sessionMemmoveBoundedBudgetSpec dropChainStack)) :
     S3CommitSeamPlaced ((blkPC_434).rebase (blkPl_434).base H) (lsmpl.base 434)
       C A lim ctl uuidTryParse S s3CommitDefaultEnv :=
   s3_commit_placed_ok (dhCommitBlockVmWp_549 H) C A lim ctl uuidTryParse S
@@ -650,7 +650,7 @@ theorem s3_commit_549_x_placed_ok [LibsignalPlacement] {M : AllocCostModel}
     (hMemcpy : subroutine_ok ((blkPC_434).rebase (blkPl_434).base H)
       (lsmpl.ρ "memcpy") framelessMemcpyBudgetSpec)
     (hMemmove : subroutine_ok ((blkPC_434).rebase (blkPl_434).base H)
-      (lsmpl.ρ "memmove") (sessionMemmoveBudgetSpec dropChainStackX)) :
+      (lsmpl.ρ "memmove") (sessionMemmoveBoundedBudgetSpec dropChainStackX)) :
     S3CommitSeamXPlaced ((blkPC_434).rebase (blkPl_434).base H) (lsmpl.base 434)
       C decFn A lim ctl uuidTryParse S s3CommitDefaultEnv :=
   s3_commit_x_placed_ok (dhCommitBlockVmWp_549 H) C decFn A lim ctl uuidTryParse S

@@ -3235,14 +3235,6 @@ theorem sendSuccBinaryKitMainEnv_sub_realCliMainBinaryEnvOf [LibsignalPlacement]
 private def sendWitnessCliHooks : CliHooks where
   C := CryptoVerification.SignalSession.NonVacuityPq.C0
   Q := CryptoVerification.SignalSession.NonVacuityPq.Q0
-  bcmp := fun a b => if a == b then 0#64 else 1#64
-  bcmp_ok := by
-    intro a b _
-    by_cases h : a = b
-    · subst h; simp
-    · have hbeq : (a == b) = false := beq_false_of_ne h
-      simp [hbeq, h]
-  utf8Err := fun _ => (0#64, 0#16)
 
 private def sendWitnessRunEncGhost : EncGhost where
   peer := nonVacSendAddrGhost nonVacSendPeer

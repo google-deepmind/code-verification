@@ -176,7 +176,7 @@ DEFAULT_CLI_PANIC_SYMBOLS_PLACED: frozenset[str] = frozenset({
     "_RNvNvMs_NtCs69KKACWg7bl_5alloc3vecINtB6_3VecppE6remove13assert_failed",
 })
 
-# `CliBinaryPq.lean` `cliHookTablePlaced` (exact 37 mangled/C keys after WP6c + `libsignal-cli` rename)
+# Reference 37-entry WP6c `cliHookTablePlaced` (after WP6c + `libsignal-cli` rename; `alink_check` reads `CliBinaryPq.lean` / `--lock` directly per D-C2d)
 DEFAULT_CLI_HOOK_TABLE_PLACED: frozenset[str] = frozenset({
     # 18 PQXDH crypto/session hooks (`cliPqxdhHookTablePlaced`)
     "_RNvNtCsbvWyylYiyxg_4sha26sha51211compress512",
@@ -218,6 +218,91 @@ DEFAULT_CLI_HOOK_TABLE_PLACED: frozenset[str] = frozenset({
     "_RNvXsa_NtCscSWoUTnaXmu_12x25519_dalek6x25519NtB5_12StaticSecretNtNtNtCskxtBwYRO61I_4core3ops4drop4Drop4drop",
     "_RNvXse_NtCscSWoUTnaXmu_12x25519_dalek6x25519NtB5_12SharedSecretNtNtNtCskxtBwYRO61I_4core3ops4drop4Drop4drop",
 })
+
+# Baseline commit-1 stock ELF (`2f20c836342437a882b5882c34eab604e4f23b2b388c2b2a0696eeda51cddc7e`)
+# `.text.crate` `extern_stubs_clean.o` 4-byte `udf #0` slot addresses (`0x46890c..0x468a48`).
+BASELINE_2F20C836_STUB_ADDRS: dict[str, int] = {
+    "_RINvCsdqpLrhraQXi_6subtle9black_boxhECs2wR8L9wiBdT_16curve25519_dalek": 0x46890C,
+    "_RINvNtCskxtBwYRO61I_4core9panicking13assert_failedjjEB4_": 0x468910,
+    "_RINvNtCskxtBwYRO61I_4core9panicking13assert_failedyyEB4_": 0x468914,
+    "_RNvCs65XVORQObL2_12libcrux_hmac4hmac": 0x468918,
+    "_RNvMNtCs2wR8L9wiBdT_16curve25519_dalek6scalarNtB2_6Scalar20from_bytes_mod_order": 0x46891C,
+    "_RNvMNtCs2wR8L9wiBdT_16curve25519_dalek6scalarNtB2_6Scalar25from_bytes_mod_order_wide": 0x468920,
+    "_RNvMs0_NtNtCs1mK0QScfTrZ_14libcrux_ml_kem8mlkem76811incrementalNtB5_22KeyPairCompressedBytes3pk1": 0x468924,
+    "_RNvMs0_NtNtCs1mK0QScfTrZ_14libcrux_ml_kem8mlkem76811incrementalNtB5_22KeyPairCompressedBytes3pk2": 0x468928,
+    "_RNvMs0_NtNtCs1mK0QScfTrZ_14libcrux_ml_kem8mlkem76811incrementalNtB5_22KeyPairCompressedBytes9from_seed": 0x46892C,
+    "_RNvMs0_NtNtNtNtCsfr5T3GFabw_3std3sys4sync4once5futexNtB5_4Once4call": 0x468930,
+    "_RNvMs5_NtCs2wR8L9wiBdT_16curve25519_dalek10montgomeryNtB5_15MontgomeryPoint10to_edwards": 0x468934,
+    "_RNvMs5_NtCsfr5T3GFabw_3std4timeNtB5_10SystemTime14duration_since": 0x468938,
+    "_RNvMs6_NtCscSWoUTnaXmu_12x25519_dalek6x25519NtB5_12StaticSecret14diffie_hellman": 0x46893C,
+    "_RNvMsa_NtCskxtBwYRO61I_4core3fmtNtB5_9Formatter25debug_tuple_field1_finish": 0x468940,
+    "_RNvMsa_NtCskxtBwYRO61I_4core3fmtNtB5_9Formatter26debug_struct_field2_finish": 0x468944,
+    "_RNvMsa_NtCskxtBwYRO61I_4core3fmtNtB5_9Formatter3pad": 0x468948,
+    "_RNvMsa_NtCskxtBwYRO61I_4core3fmtNtB5_9Formatter9write_str": 0x46894C,
+    "_RNvMsa_NtNtNtCskxtBwYRO61I_4core3fmt3num3impm4__fmt": 0x468950,
+    "_RNvMsg_NtCs2wR8L9wiBdT_16curve25519_dalek7edwardsNtB5_12EdwardsPoint8compress": 0x468954,
+    "_RNvMsw_NtCs2wR8L9wiBdT_16curve25519_dalek7edwardsNtB5_12EdwardsPoint35vartime_double_scalar_mul_basepoint": 0x468958,
+    "_RNvMsx_NtCs2wR8L9wiBdT_16curve25519_dalek7edwardsNtB5_12EdwardsPoint15is_torsion_free": 0x46895C,
+    "_RNvNtCs69KKACWg7bl_5alloc5alloc18handle_alloc_error": 0x468960,
+    "_RNvNtCs69KKACWg7bl_5alloc7raw_vec12handle_error": 0x468964,
+    "_RNvNtCsbKnPy0UR4Ui_13signal_crypto7aes_cbc19aes_256_cbc_decrypt": 0x468968,
+    "_RNvNtCsbKnPy0UR4Ui_13signal_crypto7aes_cbc19aes_256_cbc_encrypt": 0x46896C,
+    "_RNvNtCsbvWyylYiyxg_4sha26sha25611compress256": 0x468970,
+    "_RNvNtCsbvWyylYiyxg_4sha26sha51211compress512": 0x468974,
+    "_RNvNtCskxtBwYRO61I_4core3fmt5write": 0x468978,
+    "_RNvNtCskxtBwYRO61I_4core6option13expect_failed": 0x46897C,
+    "_RNvNtCskxtBwYRO61I_4core6option13unwrap_failed": 0x468980,
+    "_RNvNtCskxtBwYRO61I_4core6result13unwrap_failed": 0x468984,
+    "_RNvNtCskxtBwYRO61I_4core9panicking18panic_bounds_check": 0x468988,
+    "_RNvNtCskxtBwYRO61I_4core9panicking19assert_failed_inner": 0x46898C,
+    "_RNvNtCskxtBwYRO61I_4core9panicking5panic": 0x468990,
+    "_RNvNtCskxtBwYRO61I_4core9panicking9panic_fmt": 0x468994,
+    "_RNvNtCslWItzXo2NmA_11cpufeatures7aarch6415getauxval_hwcap": 0x468998,
+    "_RNvNtNtCs1mK0QScfTrZ_14libcrux_ml_kem8mlkem76811incremental12encapsulate1": 0x46899C,
+    "_RNvNtNtCs1mK0QScfTrZ_14libcrux_ml_kem8mlkem76811incremental12encapsulate2": 0x4689A0,
+    "_RNvNtNtCs1mK0QScfTrZ_14libcrux_ml_kem8mlkem76811incremental17validate_pk_bytes": 0x4689A4,
+    "_RNvNtNtCs1mK0QScfTrZ_14libcrux_ml_kem8mlkem76811incremental26decapsulate_compressed_key": 0x4689A8,
+    "_RNvNtNtCs1mK0QScfTrZ_14libcrux_ml_kem9mlkem10245kyber11decapsulate": 0x4689AC,
+    "_RNvNtNtCs1mK0QScfTrZ_14libcrux_ml_kem9mlkem10245kyber11encapsulate": 0x4689B0,
+    "_RNvNtNtCs1mK0QScfTrZ_14libcrux_ml_kem9mlkem10245kyber17generate_key_pair": 0x4689B4,
+    "_RNvNtNtCsfr5T3GFabw_3std4sync9lazy_lock14panic_poisoned": 0x4689B8,
+    "_RNvNtNtCskxtBwYRO61I_4core3str8converts9from_utf8": 0x4689BC,
+    "_RNvNtNtCskxtBwYRO61I_4core5slice5index16slice_index_fail": 0x4689C0,
+    "_RNvNtNtCskxtBwYRO61I_4core5slice6memchr7memrchr": 0x4689C4,
+    "_RNvNtNtCskxtBwYRO61I_4core9panicking11panic_const24panic_const_add_overflow": 0x4689C8,
+    "_RNvNtNtCskxtBwYRO61I_4core9panicking11panic_const24panic_const_mul_overflow": 0x4689CC,
+    "_RNvNtNtCskxtBwYRO61I_4core9panicking11panic_const24panic_const_shl_overflow": 0x4689D0,
+    "_RNvNtNtCskxtBwYRO61I_4core9panicking11panic_const24panic_const_sub_overflow": 0x4689D4,
+    "_RNvNtNtCskxtBwYRO61I_4core9panicking11panic_const28panic_const_async_fn_resumed": 0x4689D8,
+    "_RNvNvMs_NtCs69KKACWg7bl_5alloc3vecINtB6_3VecppE6remove13assert_failed": 0x4689DC,
+    "_RNvNvNtCs69KKACWg7bl_5alloc3fmt6format12format_inner": 0x4689E0,
+    "_RNvXNtNtNtCskxtBwYRO61I_4core3fmt3num3imphNtB6_7Display3fmt": 0x4689E4,
+    "_RNvXs0_NtCs4Dv7yoBiUx4_3log13___private_apiNtB5_12GlobalLoggerNtB7_3Log3log": 0x4689E8,
+    "_RNvXs6_NtCsfr5T3GFabw_3std4timeNtB5_10SystemTimeINtNtNtCskxtBwYRO61I_4core3ops5arith3AddNtNtBR_4time8DurationE3add": 0x4689EC,
+    "_RNvXs6_NtNtCskxtBwYRO61I_4core3fmt3numjNtB7_8LowerHex3fmt": 0x4689F0,
+    "_RNvXs8_NtCscSWoUTnaXmu_12x25519_dalek6x25519NtB5_9PublicKeyINtNtCskxtBwYRO61I_4core7convert4FromRNtB5_12StaticSecretE4from": 0x4689F4,
+    "_RNvXs8_NtNtCskxtBwYRO61I_4core3fmt3numjNtB7_8UpperHex3fmt": 0x4689F8,
+    "_RNvXs8_NtNtNtCskxtBwYRO61I_4core3fmt3num3impmNtB9_7Display3fmt": 0x4689FC,
+    "_RNvXsX_NtCs2wR8L9wiBdT_16curve25519_dalek7edwardsRNtNtB7_6scalar6ScalarINtNtNtCskxtBwYRO61I_4core3ops5arith3MulRNtB5_21EdwardsBasepointTableE3mul": 0x468A00,
+    "_RNvXs_CsdZv6vxPi7MZ_3hexNtB4_15BytesToHexCharsNtNtNtNtCskxtBwYRO61I_4core4iter6traits8iterator8Iterator4next": 0x468A04,
+    "_RNvXs_CsdZv6vxPi7MZ_3hexNtB4_15BytesToHexCharsNtNtNtNtCskxtBwYRO61I_4core4iter6traits8iterator8Iterator9size_hint": 0x468A08,
+    "_RNvXsa_NtCscSWoUTnaXmu_12x25519_dalek6x25519NtB5_12StaticSecretNtNtNtCskxtBwYRO61I_4core3ops4drop4Drop4drop": 0x468A0C,
+    "_RNvXsd_NtNtNtCskxtBwYRO61I_4core3fmt3num3impyNtB9_7Display3fmt": 0x468A10,
+    "_RNvXse_NtCscSWoUTnaXmu_12x25519_dalek6x25519NtB5_12SharedSecretNtNtNtCskxtBwYRO61I_4core3ops4drop4Drop4drop": 0x468A14,
+    "_RNvXse_NtNtCskxtBwYRO61I_4core3fmt3numhNtB7_8LowerHex3fmt": 0x468A18,
+    "_RNvXsg_NtNtCskxtBwYRO61I_4core3fmt3numhNtB7_8UpperHex3fmt": 0x468A1C,
+    "_RNvXsh_NtCskxtBwYRO61I_4core3fmteNtB5_5Debug3fmt": 0x468A20,
+    "_RNvXsi_NtCskxtBwYRO61I_4core3fmteNtB5_7Display3fmt": 0x468A24,
+    "_RNvXsi_NtNtNtCskxtBwYRO61I_4core3fmt3num3impjNtB9_7Display3fmt": 0x468A28,
+    "_RNvXso_NtCs2wR8L9wiBdT_16curve25519_dalek7edwardsNtB5_12EdwardsPointNtNtNtCskxtBwYRO61I_4core3ops5arith3Neg3neg": 0x468A2C,
+    "_RNvXsv_NtCs2wR8L9wiBdT_16curve25519_dalek6scalarNtB5_6ScalarNtNtNtCskxtBwYRO61I_4core3ops5arith3Mul3mul": 0x468A30,
+    "_RNvXsw_NtNtCskxtBwYRO61I_4core3fmt3nummNtB7_8UpperHex3fmt": 0x468A34,
+    "_RNvXsz_NtCs2wR8L9wiBdT_16curve25519_dalek6scalarNtB5_6ScalarNtNtNtCskxtBwYRO61I_4core3ops5arith3Add3add": 0x468A38,
+    "__aarch64_cas8_acq_rel": 0x468A3C,
+    "__aarch64_ldadd8_rel": 0x468A40,
+    "__aarch64_ldadd8_relax": 0x468A44,
+    "libsignal_session_rng_fill": 0x468A48,
+}
 
 DISPLACED_WEAK_ATOMICS: frozenset[str] = frozenset({
     "__aarch64_cas8_acq_rel",
@@ -2114,6 +2199,26 @@ def decode_aarch64_b_target(word: int, pc_vma: int) -> int | None:
     return (pc_vma + signed_imm * 4) & 0xFFFFFFFFFFFFFFFF
 
 
+def decode_aarch64_branch_target(word: int, pc_vma: int) -> int | None:
+    """Decode any PC-relative AArch64 direct branch (`B`, `BL`, `B.cond`/`BC.cond`, `CBZ`/`CBNZ`, `TBZ`/`TBNZ`)."""
+    # Unconditional `B` (`0x14000000`) or `BL` (`0x94000000`)
+    if (word & 0x7C000000) == 0x14000000:
+        imm26 = word & 0x03FFFFFF
+        signed_imm = (imm26 - 0x04000000) if (imm26 & 0x02000000) else imm26
+        return (pc_vma + signed_imm * 4) & 0xFFFFFFFFFFFFFFFF
+    # Conditional `B.cond` / `BC.cond` (`0x54000000`) or `CBZ` / `CBNZ` (`0x34000000` / `0xB4000000`)
+    if (word & 0xFF000000) == 0x54000000 or (word & 0x7E000000) == 0x34000000:
+        imm19 = (word >> 5) & 0x7FFFF
+        signed_imm = (imm19 - 0x80000) if (imm19 & 0x40000) else imm19
+        return (pc_vma + signed_imm * 4) & 0xFFFFFFFFFFFFFFFF
+    # Test-bit `TBZ` / `TBNZ` (`0x36000000` / `0xB6000000`)
+    if (word & 0x7E000000) == 0x36000000:
+        imm14 = (word >> 5) & 0x3FFF
+        signed_imm = (imm14 - 0x4000) if (imm14 & 0x2000) else imm14
+        return (pc_vma + signed_imm * 4) & 0xFFFFFFFFFFFFFFFF
+    return None
+
+
 def format_section_relocs(obj: RelocObject, sec: RelSection) -> list[dict[str, object]]:
     """Return canonical sorted relocation list for `sec` in `obj` (GK row 375 lock format)."""
     rows: list[dict[str, object]] = []
@@ -2147,72 +2252,422 @@ def is_failstop_z_symbol(
     return raw_or_demangled in fset or dem in fset
 
 
-_LEAN_ABBREV_STR_RE = re.compile(r"(?:abbrev|def)\s+([A-Za-z0-9_']+)\s*:\s*String\s*:=\s*\"([^\"]+)\"")
-_LEAN_TUPLE_ENTRY_RE = re.compile(r'\(\s*(?:"([^"]+)"|([A-Za-z0-9_\']+))\s*,')
-_LEAN_LIST_STR_RE = re.compile(r'"([^"]+)"')
+@dataclass(frozen=True)
+class CliBinaryPqTables:
+    """Count-agnostic parsed tables from `LibsignalBinary/Specifications/SignalSession/CliBinaryPq.lean`."""
+
+    hooks: tuple[str, ...]
+    hook_set: frozenset[str]
+    dehooked: tuple[str, ...]
+    dehooked_set: frozenset[str]
+    panics: tuple[str, ...]
+    panic_set: frozenset[str]
+    pq_lean_path: str
+    pq_lean_sha256: str
+
+
+_LEAN_ABBREV_STR_RE = re.compile(
+    r"(?:^|\n)\s*(?:private\s+|protected\s+)?(?:abbrev|def)\s+([A-Za-z0-9_']+)\s*(?::\s*String)?\s*:=\s*\"([^\"\\]*(?:\\.[^\"\\]*)*)\""
+)
+_LEAN_IDENT_RE = re.compile(r"^[A-Za-z_][A-Za-z0-9_']*$")
+_LEAN_TOP_CMD_RE = re.compile(
+    r"(?:noncomputable|def|abbrev|theorem|lemma|private|protected|namespace|end|section|open|set_option|structure|inductive|class|instance|opaque|axiom|mutual|variable|#|@\[)(?:\b|$)"
+)
+
+
+def _scan_balanced_lean(text: str, start_idx: int, open_ch: str, close_ch: str, source: str) -> tuple[str, int]:
+    """Scan balanced `open_ch ... close_ch` starting at `text[start_idx] == open_ch` (respecting string literals)."""
+    if start_idx >= len(text) or text[start_idx] != open_ch:
+        raise ValueError(f"{source}: expected {open_ch!r} at offset {start_idx}")
+    i = start_idx + 1
+    n = len(text)
+    depth = 1
+    in_str = False
+    escape = False
+    while i < n:
+        ch = text[i]
+        if in_str:
+            if escape:
+                escape = False
+            elif ch == "\\":
+                escape = True
+            elif ch == '"':
+                in_str = False
+            i += 1
+            continue
+        if ch == '"':
+            in_str = True
+        elif ch == open_ch:
+            depth += 1
+        elif ch == close_ch:
+            depth -= 1
+            if depth == 0:
+                return text[start_idx + 1 : i], i + 1
+        i += 1
+    raise ValueError(f"{source}: unterminated {open_ch!r}..{close_ch!r} block")
+
+
+def _split_top_level_comma(inner: str, source: str) -> list[str]:
+    """Split `inner` by top-level `,` outside `(...)`, `[...]`, `{...}`, and string literals."""
+    items: list[str] = []
+    cur: list[str] = []
+    depth = 0
+    in_str = False
+    escape = False
+    for ch in inner:
+        if in_str:
+            cur.append(ch)
+            if escape:
+                escape = False
+            elif ch == "\\":
+                escape = True
+            elif ch == '"':
+                in_str = False
+            continue
+        if ch == '"':
+            in_str = True
+            cur.append(ch)
+        elif ch in "([{":
+            depth += 1
+            cur.append(ch)
+        elif ch in ")]}":
+            depth -= 1
+            if depth < 0:
+                raise ValueError(f"{source}: unbalanced closing bracket {ch!r}")
+            cur.append(ch)
+        elif ch == "," and depth == 0:
+            tok = "".join(cur).strip()
+            if tok:
+                items.append(tok)
+            cur = []
+        else:
+            cur.append(ch)
+    if in_str or depth != 0:
+        raise ValueError(f"{source}: unbalanced quotes or brackets inside list")
+    tail = "".join(cur).strip()
+    if tail:
+        items.append(tail)
+    return items
+
+
+def _resolve_lean_str_atom(atom: str, abbrev_map: dict[str, str], source: str, ctx: str) -> str:
+    """Resolve a Lean `String` list key (`"..."` literal or `abbrev` identifier), failing closed."""
+    s = atom.strip()
+    if len(s) >= 2 and s[0] == '"' and s[-1] == '"':
+        inner = s[1:-1]
+        if '"' in inner or "\\" in inner or "\n" in inner:
+            raise ValueError(f"{source}: unsupported escape or quote in string literal {s!r} in `{ctx}`")
+        return inner
+    if _LEAN_IDENT_RE.match(s):
+        if s not in abbrev_map:
+            raise ValueError(f"{source}: unknown String abbrev `{s}` in `{ctx}`")
+        return abbrev_map[s]
+    raise ValueError(f"{source}: malformed String entry {s!r} in `{ctx}`")
+
+
+def _extract_lean_list_rhs_segments(
+    code: str,
+    def_name: str,
+    source: str,
+    *,
+    required: bool = True,
+) -> list[tuple[str, str]] | None:
+    """Locate `def|abbrev <def_name> ... := <seg> (++ <seg>)*` and return `[('list', inner) | ('ref', ident), ...]`."""
+    matches = list(
+        re.finditer(
+            rf"(?:^|\n)[ \t]*(?:noncomputable\s+)?(?:def|abbrev)\s+{re.escape(def_name)}\b",
+            code,
+        )
+    )
+    if not matches:
+        if required:
+            raise ValueError(f"{source}: missing `def {def_name}`")
+        return None
+    if len(matches) > 1:
+        raise ValueError(f"{source}: duplicate `def {def_name}` ({len(matches)} definitions)")
+
+    # Scan signature past `:=` at bracket depth 0
+    i = matches[0].end()
+    n = len(code)
+    depth = 0
+    in_str = False
+    escape = False
+    after_eq = -1
+    while i < n:
+        ch = code[i]
+        if in_str:
+            if escape:
+                escape = False
+            elif ch == "\\":
+                escape = True
+            elif ch == '"':
+                in_str = False
+            i += 1
+            continue
+        if ch == '"':
+            in_str = True
+        elif ch in "([{":
+            depth += 1
+        elif ch in ")]}":
+            depth -= 1
+            if depth < 0:
+                raise ValueError(f"{source}: unbalanced {ch!r} in `def {def_name}` signature")
+        elif depth == 0 and code[i : i + 2] == ":=":
+            after_eq = i + 2
+            break
+        elif depth == 0 and ch == "\n":
+            nxt_line = code[i + 1 :].lstrip(" \t")
+            if _LEAN_TOP_CMD_RE.match(nxt_line):
+                break
+        i += 1
+    if after_eq < 0:
+        raise ValueError(f"{source}: missing `:=` in `def {def_name}`")
+
+    pos = after_eq
+    segments: list[tuple[str, str]] = []
+    while True:
+        while pos < n and code[pos] in " \t\r\n":
+            pos += 1
+        if pos >= n:
+            raise ValueError(f"{source}: unexpected EOF in `def {def_name}`")
+
+        if code[pos] == "[":
+            inner, pos = _scan_balanced_lean(code, pos, "[", "]", f"{source}:{def_name}")
+            segments.append(("list", inner))
+        else:
+            m_id = re.match(r"[A-Za-z_][A-Za-z0-9_']*", code[pos:])
+            if not m_id:
+                raise ValueError(
+                    f"{source}: unexpected token in `def {def_name}` near {code[pos : pos + 40]!r}"
+                )
+            ref_ident = m_id.group(0)
+            pos += len(ref_ident)
+            # Consume call arguments up to top-level `++`, newline before top-level command, or EOF
+            arg_depth = 0
+            arg_str = False
+            arg_esc = False
+            while pos < n:
+                ch = code[pos]
+                if arg_str:
+                    if arg_esc:
+                        arg_esc = False
+                    elif ch == "\\":
+                        arg_esc = True
+                    elif ch == '"':
+                        arg_str = False
+                    pos += 1
+                    continue
+                if ch == '"':
+                    arg_str = True
+                    pos += 1
+                elif ch in "([{":
+                    arg_depth += 1
+                    pos += 1
+                elif ch in ")]}":
+                    arg_depth -= 1
+                    if arg_depth < 0:
+                        raise ValueError(f"{source}: unbalanced {ch!r} in `def {def_name}`")
+                    pos += 1
+                elif arg_depth == 0 and code[pos : pos + 2] == "++":
+                    break
+                elif arg_depth == 0 and ch == "\n":
+                    rem = code[pos + 1 :].lstrip(" \t\r\n")
+                    if not rem or _LEAN_TOP_CMD_RE.match(rem):
+                        break
+                    pos += 1
+                else:
+                    pos += 1
+            if arg_str or arg_depth != 0:
+                raise ValueError(f"{source}: unterminated expression in `def {def_name}`")
+            segments.append(("ref", ref_ident))
+
+        ws_start = pos
+        while pos < n and code[pos] in " \t\r\n":
+            pos += 1
+        if pos < n and code[pos : pos + 2] == "++":
+            pos += 2
+            continue
+        if pos == n:
+            break
+        had_nl = "\n" in code[ws_start:pos]
+        if had_nl and _LEAN_TOP_CMD_RE.match(code[pos:]):
+            break
+        raise ValueError(
+            f"{source}: unexpected trailing expression in `def {def_name}` near {code[pos : pos + 40]!r}"
+        )
+
+    if not segments:
+        raise ValueError(f"{source}: empty RHS in `def {def_name}`")
+    return segments
+
+
+def _parse_lean_string_list_segments(
+    segments: Sequence[tuple[str, str]],
+    abbrev_map: dict[str, str],
+    known_lists: dict[str, list[str]],
+    source: str,
+    def_name: str,
+) -> list[str]:
+    out: list[str] = []
+    for kind, payload in segments:
+        if kind == "ref":
+            if payload not in known_lists:
+                raise ValueError(f"{source}: unsupported list reference `{payload}` in `def {def_name}`")
+            out.extend(known_lists[payload])
+        else:
+            for item in _split_top_level_comma(payload, f"{source}:{def_name}"):
+                out.append(_resolve_lean_str_atom(item, abbrev_map, source, def_name))
+    return out
+
+
+def _parse_lean_pair_key_segments(
+    segments: Sequence[tuple[str, str]],
+    abbrev_map: dict[str, str],
+    known_pair_keys: dict[str, list[str]],
+    source: str,
+    def_name: str,
+) -> list[str]:
+    out: list[str] = []
+    for kind, payload in segments:
+        if kind == "ref":
+            if payload not in known_pair_keys:
+                raise ValueError(f"{source}: unsupported hook-table reference `{payload}` in `def {def_name}`")
+            out.extend(known_pair_keys[payload])
+        else:
+            for item in _split_top_level_comma(payload, f"{source}:{def_name}"):
+                s = item.strip()
+                if not (s.startswith("(") and s.endswith(")")):
+                    raise ValueError(f"{source}: expected `(key, hook)` tuple in `def {def_name}`, got {s!r}")
+                pair_inner, end_idx = _scan_balanced_lean(s, 0, "(", ")", f"{source}:{def_name}")
+                if end_idx != len(s):
+                    raise ValueError(f"{source}: malformed tuple {s!r} in `def {def_name}`")
+                parts = _split_top_level_comma(pair_inner, f"{source}:{def_name}")
+                if len(parts) < 2 or not parts[1].strip():
+                    raise ValueError(f"{source}: expected `(key, hook)` pair in `def {def_name}`, got {s!r}")
+                out.append(_resolve_lean_str_atom(parts[0], abbrev_map, source, def_name))
+    return out
+
+
+def _ensure_unique_entries(items: Sequence[str], source: str, def_name: str) -> None:
+    seen: set[str] = set()
+    dups: list[str] = []
+    for x in items:
+        if x in seen and x not in dups:
+            dups.append(x)
+        seen.add(x)
+    if dups:
+        raise ValueError(f"{source}: duplicate symbol(s) in `{def_name}`: {dups}")
+
+
+def parse_cli_binary_pq_text(
+    text: str,
+    source: str = "<CliBinaryPq.lean>",
+    *,
+    raw_sha256: str | None = None,
+) -> CliBinaryPqTables:
+    """Count-agnostic, fail-closed parser for `cliHookTablePlaced`, `cliDehookedSymsPlaced`,
+    and `cliPanicSymbolsPlaced` in `CliBinaryPq.lean` (shared by `cli-elf-stock` and `alink_check`)."""
+    digest = raw_sha256 if raw_sha256 is not None else sha256_bytes(text.encode("utf-8"))
+    code_only = "\n".join(line for _, line in strip_lean_comments(text))
+
+    abbrev_map: dict[str, str] = {}
+    for m in _LEAN_ABBREV_STR_RE.finditer(code_only):
+        ident, val = m.group(1), m.group(2)
+        if '"' in val or "\\" in val or "\n" in val:
+            raise ValueError(f"{source}: unsupported escape in `abbrev {ident}`: {val!r}")
+        if ident in abbrev_map and abbrev_map[ident] != val:
+            raise ValueError(f"{source}: conflicting String definitions for `{ident}`")
+        abbrev_map[ident] = val
+
+    dehooked_segs = _extract_lean_list_rhs_segments(code_only, "cliDehookedSymsPlaced", source, required=True)
+    assert dehooked_segs is not None
+    dehooked_list = _parse_lean_string_list_segments(
+        dehooked_segs, abbrev_map, {}, source, "cliDehookedSymsPlaced"
+    )
+
+    known_pair_tables: dict[str, list[str]] = {}
+    pq_segs = _extract_lean_list_rhs_segments(code_only, "cliPqxdhHookTablePlaced", source, required=False)
+    if pq_segs is not None:
+        pq_keys = _parse_lean_pair_key_segments(
+            pq_segs, abbrev_map, {}, source, "cliPqxdhHookTablePlaced"
+        )
+        _ensure_unique_entries(pq_keys, source, "cliPqxdhHookTablePlaced")
+        known_pair_tables["cliPqxdhHookTablePlaced"] = pq_keys
+
+    hook_segs = _extract_lean_list_rhs_segments(code_only, "cliHookTablePlaced", source, required=True)
+    assert hook_segs is not None
+    hook_list = _parse_lean_pair_key_segments(
+        hook_segs, abbrev_map, known_pair_tables, source, "cliHookTablePlaced"
+    )
+
+    panic_segs = _extract_lean_list_rhs_segments(code_only, "cliPanicSymbolsPlaced", source, required=True)
+    assert panic_segs is not None
+    panic_list = _parse_lean_string_list_segments(
+        panic_segs, abbrev_map, {}, source, "cliPanicSymbolsPlaced"
+    )
+
+    if not hook_list:
+        raise ValueError(f"{source}: `cliHookTablePlaced` parsed as empty")
+    if not panic_list:
+        raise ValueError(f"{source}: `cliPanicSymbolsPlaced` parsed as empty")
+
+    _ensure_unique_entries(hook_list, source, "cliHookTablePlaced")
+    _ensure_unique_entries(dehooked_list, source, "cliDehookedSymsPlaced")
+    _ensure_unique_entries(panic_list, source, "cliPanicSymbolsPlaced")
+
+    hook_set = frozenset(hook_list)
+    dehooked_set = frozenset(dehooked_list)
+    panic_set = frozenset(panic_list)
+
+    if hook_set & dehooked_set:
+        raise ValueError(
+            f"{source}: `cliHookTablePlaced` and `cliDehookedSymsPlaced` overlap: {sorted(hook_set & dehooked_set)}"
+        )
+    if hook_set & panic_set:
+        raise ValueError(
+            f"{source}: `cliHookTablePlaced` and `cliPanicSymbolsPlaced` overlap: {sorted(hook_set & panic_set)}"
+        )
+    if dehooked_set & panic_set:
+        raise ValueError(
+            f"{source}: `cliDehookedSymsPlaced` and `cliPanicSymbolsPlaced` overlap: {sorted(dehooked_set & panic_set)}"
+        )
+
+    return CliBinaryPqTables(
+        hooks=tuple(hook_list),
+        hook_set=hook_set,
+        dehooked=tuple(dehooked_list),
+        dehooked_set=dehooked_set,
+        panics=tuple(panic_list),
+        panic_set=panic_set,
+        pq_lean_path=str(source),
+        pq_lean_sha256=digest,
+    )
+
+
+def load_cli_binary_pq_tables(repo_root: pathlib.Path) -> CliBinaryPqTables:
+    """Load `CliBinaryPqTables` from `<repo_root>/LibsignalBinary/Specifications/SignalSession/CliBinaryPq.lean`."""
+    pq_lean = (repo_root / "LibsignalBinary/Specifications/SignalSession/CliBinaryPq.lean").resolve()
+    if not pq_lean.is_file():
+        raise FileNotFoundError(f"trusted `CliBinaryPq.lean` missing: {pq_lean}")
+    raw_bytes = pq_lean.read_bytes()
+    return parse_cli_binary_pq_text(
+        raw_bytes.decode("utf-8"),
+        str(pq_lean),
+        raw_sha256=sha256_bytes(raw_bytes),
+    )
 
 
 def load_cli_hook_and_panic_tables(
     repo_root: pathlib.Path | None = None,
 ) -> tuple[frozenset[str], frozenset[str]]:
-    """Load `cliHookTablePlaced` and `cliPanicSymbolsPlaced` from `CliBinaryPq.lean` when present,
-    failing closed if they drift from `DEFAULT_CLI_HOOK_TABLE_PLACED` / `DEFAULT_CLI_PANIC_SYMBOLS_PLACED`."""
+    """Load `cliHookTablePlaced` and `cliPanicSymbolsPlaced` from `CliBinaryPq.lean` when present."""
     if repo_root is None:
         return DEFAULT_CLI_HOOK_TABLE_PLACED, DEFAULT_CLI_PANIC_SYMBOLS_PLACED
     pq_lean = repo_root / "LibsignalBinary/Specifications/SignalSession/CliBinaryPq.lean"
     if not pq_lean.is_file():
         return DEFAULT_CLI_HOOK_TABLE_PLACED, DEFAULT_CLI_PANIC_SYMBOLS_PLACED
-
-    code_only = "\n".join(line for _, line in strip_lean_comments(pq_lean.read_text(encoding="utf-8")))
-    abbrev_map: dict[str, str] = {
-        m.group(1): m.group(2) for m in _LEAN_ABBREV_STR_RE.finditer(code_only)
-    }
-    m_pq = re.search(
-        r"(?:noncomputable\s+)?def\s+cliPqxdhHookTablePlaced\b.*?:=\s*\[\s*(.*?)\s*\]\s*(?:noncomputable\s+)?def\s+cliHookTablePlaced\b",
-        code_only,
-        re.S,
-    )
-    m_cli = re.search(
-        r"(?:noncomputable\s+)?def\s+cliHookTablePlaced\b.*?:=\s*cliPqxdhHookTablePlaced[^\[]*\+\+\s*\[\s*(.*?)\s*\]\s*(?:noncomputable\s+)?(?:def\s+|abbrev\s+)",
-        code_only,
-        re.S,
-    )
-    m_pan = re.search(
-        r"(?:noncomputable\s+)?def\s+cliPanicSymbolsPlaced\b.*?:=\s*\[\s*(.*?)\s*\]\s*(?:noncomputable\s+)?(?:def\s+|abbrev\s+)",
-        code_only,
-        re.S,
-    )
-    if not (m_pq and m_cli and m_pan):
-        raise ValueError(f"{pq_lean}: failed to parse `cliHookTablePlaced` / `cliPanicSymbolsPlaced`")
-
-    hook_list: list[str] = []
-    for block_str in (m_pq.group(1), m_cli.group(1)):
-        for m_ent in _LEAN_TUPLE_ENTRY_RE.finditer(block_str):
-            lit_val, ident_val = m_ent.group(1), m_ent.group(2)
-            if lit_val is not None:
-                hook_list.append(lit_val)
-            else:
-                if ident_val not in abbrev_map:
-                    raise ValueError(f"{pq_lean}: unknown String abbrev `{ident_val}` in hook table")
-                hook_list.append(abbrev_map[ident_val])
-
-    hooks = frozenset(hook_list)
-    panics = frozenset(_LEAN_LIST_STR_RE.findall(m_pan.group(1)))
-    if hooks != DEFAULT_CLI_HOOK_TABLE_PLACED:
-        added = sorted(hooks - DEFAULT_CLI_HOOK_TABLE_PLACED)
-        removed = sorted(DEFAULT_CLI_HOOK_TABLE_PLACED - hooks)
-        raise ValueError(
-            f"{pq_lean}: `cliHookTablePlaced` drifted from `DEFAULT_CLI_HOOK_TABLE_PLACED` "
-            f"(added={added}, removed={removed})"
-        )
-    if panics != DEFAULT_CLI_PANIC_SYMBOLS_PLACED:
-        added = sorted(panics - DEFAULT_CLI_PANIC_SYMBOLS_PLACED)
-        removed = sorted(DEFAULT_CLI_PANIC_SYMBOLS_PLACED - panics)
-        raise ValueError(
-            f"{pq_lean}: `cliPanicSymbolsPlaced` drifted from `DEFAULT_CLI_PANIC_SYMBOLS_PLACED` "
-            f"(added={added}, removed={removed})"
-        )
-    return hooks, panics
+    tables = load_cli_binary_pq_tables(repo_root)
+    return tables.hook_set, tables.panic_set
 
 
 def load_config_declared_exports(repo_root: pathlib.Path, config_rel_path: str) -> list[str]:

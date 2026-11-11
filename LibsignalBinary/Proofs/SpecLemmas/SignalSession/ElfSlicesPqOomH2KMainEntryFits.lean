@@ -49,7 +49,7 @@ open CryptoVerification.LibsignalTripleRatchet (extHookStack)
 open CryptoVerification.LibsignalTripleRatchetRepr (UuidParser uuidTryParse)
 open CryptoVerification.RustHeap (allocFailedIn)
 open CryptoVerification.SignalSession
-  (CliHooks CliPqxdhInputs Inputs cliExternsPlaced cliProcessInputs fromUtf8Hook
+  (CliHooks CliPqxdhInputs Inputs cliProcessInputs fromUtf8Hook
    libsignalSessionLib lsFromUtf8Sym lsMemrchrSym memrchrHook stdinCapBytes strlenHook)
 open CryptoVerification.SignalSession.Cli
   (CliInputsOk CoinsReadable IsSendOverCap MainPost MainResult RunAnswer StoresGhost
@@ -65,9 +65,6 @@ open CryptoVerification.SignalSession.Cli.MainHops
 open CryptoVerification.SignalSession.Cli.MainHops.MainOkPlacedHelpers
   (panic_of_mem traceStreamBytes_nil)
 open CryptoVerification.SignalSession.Cli.RunCompose (RunSem runRel)
-open CryptoVerification.SignalSession.Cli.RunGlue (CliGhostHooks cliGhostExterns)
-open CryptoVerification.SignalSession.Cli.Slots
-  (cliGhostExterns_fromUtf8_eq cliGhostExterns_memrchr_eq)
 open LibsignalBinary.Heap
   (AllocCostModel AllocEvent BudgetLimits FitsEvents RustCliAllocBudget rustAllocEvents)
 open LibsignalBinary.Heap.Fine
@@ -84,8 +81,8 @@ open LibsignalBinary.Proofs.SignalSession.Cli.M24.CliStrictPlaced
    cliStaticsPlacedAt_eq_cliStaticsPlaced)
 open LibsignalBinary.Proofs.SignalSession.Cli.M24.MainEntryBudgetFitsInst
   (B2St1CapOf B2St2CapOf B2St3Cap B2St4Cap B2St5Cap MainEntryBudgetFitsCapOf b2St0Cap_init
-   b2St01_of_mainEntryBudgetFitsCapOf cliGhostExterns_handleErrorMain cliGhostExterns_strlen
-   domScopedRun domScopedRun_dom mainCalleesBlk617_of_allocFs_and_hooks_cliResStack)
+   b2St01_of_mainEntryBudgetFitsCapOf domScopedRun domScopedRun_dom
+   mainCalleesBlk617_of_allocFs_and_hooks_cliResStack)
 open LibsignalBinary.Proofs.SignalSession.Cli.M24.MainIoBoundedPlaced (ReadStdinBoundedEnv)
 open LibsignalBinary.Proofs.SignalSession.Cli.M24.MainOkCliExtB2NeedLocksInst
   (cliRunSemD2c_placed initFsState_cliProcessInputs_eq mainFrameSize_le_cliMainStk
@@ -107,8 +104,6 @@ open LibsignalBinary.Proofs.SignalSession.Cli.Main.Proofs.M5PlacedBudget
 open LibsignalBinary.Proofs.SignalSession.Cli.Main.Proofs.M6PlacedBudget
   (main_m6_of_m6Env_pool_proof_placed)
 open LibsignalBinary.Proofs.SignalSession.Cli.Main.Proofs.RetPlacedBudget (ExitKPoolPlaced)
-open LibsignalBinary.Proofs.SignalSession.Cli.Run.Slots.CliHookSatPlacedBudget
-  (CliGhostAllocHooks allocContractsFsPlaced_of_hooks)
 open LibsignalBinary.Proofs.SignalSession.Cli.SpecsPlacedBudget
   (AllocContractsFsPlaced runSpecPlaced)
 open LibsignalBinary.Proofs.SpecLemmas.SignalSession.ElfSlicesPqOomH2KIfaces
@@ -1436,113 +1431,5 @@ theorem mainOkCliExtOverB2NeedLocksPlacedAt_of_runTight_and_budgetFitsCapOf_preF
         (hFs W γ tp) (hioOf W γ tp)
         (hstrlen W) (hutf8 W) (hmemrchr W) (hpan W) hstk
         (hfitCap h547 X W γ tp) (hrun h547 X W γ tp)
-
-/-- `cliGhostExterns` specialization of
-`mainOkCliExtPqB2NeedLocksPlacedAt_of_runTight_and_budgetFitsCapOf_preFd`. -/
-theorem mainOkCliExtPqB2NeedLocksPlacedAt_cliGhostExterns_of_runTight_and_budgetFitsCapOf_preFd
-    {mpl mmpl : MultiPlacement}
-    (hblk : ∀ i, i < libsignalSessionLib.blocks.length → (i ∈ libsignalMutatedBlocks) = false →
-      (libsignalSessionLib.blockLib i).Placeable (libsignalSessionLib.blockPlacement mpl i))
-    (hext_nodup : (libsignalSessionExterns.map mpl.ρ).Nodup)
-    {CodeOk : Memory → Prop}
-    (hCI : @LsCodeInv (libsignalPlacementOf mpl hblk hext_nodup) CodeOk)
-    (ghOf : CliHooks → CliGhostHooks)
-    {libcAddr brkStart : BitVec 64} {lim : BudgetLimits} {hookStack : Nat}
-    {ReadEnv : FsFiles → List (BitVec 8) → List AllocEvent → Prop}
-    (RunEnv : UnreachedPqxdhPrimitives → CliHooks → GhostName → BitVec 64 →
-      RunCall → List AllocEvent → Prop)
-    (hlibc : libcAddr = (mallocngAddrsOfPlacement mmpl).libc)
-    (hG : ∀ (W : CliHooks) (γ : GhostName) (tp : BitVec 64),
-      @CliGhostAllocHooks (libsignalPlacementOf mpl hblk hext_nodup) fineCostModel
-        (fineHookRustCliAllocBudget γ mmpl tp brkStart) lim (ghOf W))
-    (hioOf : ∀ (W : CliHooks) (γ : GhostName) (tp : BitVec 64),
-      @MainIoOfPlacedFd (libsignalPlacementOf mpl hblk hext_nodup) _
-        (fineHookRustCliAllocBudget γ mmpl tp brkStart) lim
-        (cliGhostExterns (ghOf W) (cliExternsPlaced mmpl W)) cliIo hookStack
-        ReadStdinBoundedEnv ReadEnv)
-    (hstk : mainFrameSize + max (max extHookStack hookStack) cliResStack ≤ cliMainStk := by decide)
-    (hfitCap : mpl.base 547 ≠ 0#64 →
-      ∀ (X : UnreachedPqxdhPrimitives) (W : CliHooks) (γ : GhostName) (tp : BitVec 64),
-        MainEntryBudgetFitsCapOf fineCostModel lim fineCostModel.init cliIo ReadEnv uuidTryParse
-          (RunEnv X W γ tp)
-          (pqScopedRun ⟨W.C, W.Q⟩ (runRel (cliRunSemD2c_placed X W))))
-    (hrun : mpl.base 547 ≠ 0#64 →
-      ∀ (X : UnreachedPqxdhPrimitives) (W : CliHooks) (γ : GhostName) (tp : BitVec 64),
-        @subroutine_ok _
-          (@mProgPlaced (libsignalPlacementOf mpl hblk hext_nodup)
-            (cliGhostExterns (ghOf W) (cliExternsPlaced mmpl W)))
-          (mpl.base 579)
-          (@runSpecTightPlacedPreFd (libsignalPlacementOf mpl hblk hext_nodup) _
-            CodeOk (fineHookRustCliAllocBudget γ mmpl tp brkStart) lim (RunEnv X W γ tp) uuidTryParse
-            (runRel (cliRunSemD2c_placed X W))
-            cliWrOk cliResStack)) :
-    MainOkCliExtPqB2NeedLocksPlacedAt mpl mmpl
-      (fun W => cliGhostExterns (ghOf W) (cliExternsPlaced mmpl W)) 617 cliProcessInputs CodeOk
-      libcAddr brkStart cliMainStk lim :=
-  mainOkCliExtPqB2NeedLocksPlacedAt_of_runTight_and_budgetFitsCapOf_preFd
-    hblk hext_nodup hCI CliHooks.utf8Err RunEnv hlibc
-    (fun W γ tp => by
-      letI : LibsignalPlacement := libsignalPlacementOf mpl hblk hext_nodup
-      exact allocContractsFsPlaced_of_hooks mmpl (ghOf W) W (hG W γ tp))
-    hioOf
-    (fun W => cliGhostExterns_strlen mmpl (ghOf W) W)
-    (fun W => cliGhostExterns_fromUtf8_eq mmpl (ghOf W) W)
-    (fun W => cliGhostExterns_memrchr_eq mmpl (ghOf W) W)
-    (fun W => cliGhostExterns_handleErrorMain mmpl (ghOf W) W)
-    hstk hfitCap hrun
-
-/-- `cliGhostExterns` specialization of
-`mainOkCliExtOverB2NeedLocksPlacedAt_of_runTight_and_budgetFitsCapOf_preFd`. -/
-theorem mainOkCliExtOverB2NeedLocksPlacedAt_cliGhostExterns_of_runTight_and_budgetFitsCapOf_preFd
-    {mpl mmpl : MultiPlacement}
-    (hblk : ∀ i, i < libsignalSessionLib.blocks.length → (i ∈ libsignalMutatedBlocks) = false →
-      (libsignalSessionLib.blockLib i).Placeable (libsignalSessionLib.blockPlacement mpl i))
-    (hext_nodup : (libsignalSessionExterns.map mpl.ρ).Nodup)
-    {CodeOk : Memory → Prop}
-    (hCI : @LsCodeInv (libsignalPlacementOf mpl hblk hext_nodup) CodeOk)
-    (ghOf : CliHooks → CliGhostHooks)
-    {libcAddr brkStart : BitVec 64} {lim : BudgetLimits} {hookStack : Nat}
-    {ReadEnv : FsFiles → List (BitVec 8) → List AllocEvent → Prop}
-    (RunEnv : UnreachedPqxdhPrimitives → CliHooks → GhostName → BitVec 64 →
-      RunCall → List AllocEvent → Prop)
-    (hlibc : libcAddr = (mallocngAddrsOfPlacement mmpl).libc)
-    (hG : ∀ (W : CliHooks) (γ : GhostName) (tp : BitVec 64),
-      @CliGhostAllocHooks (libsignalPlacementOf mpl hblk hext_nodup) fineCostModel
-        (fineHookRustCliAllocBudget γ mmpl tp brkStart) lim (ghOf W))
-    (hioOf : ∀ (W : CliHooks) (γ : GhostName) (tp : BitVec 64),
-      @MainIoOfPlacedFd (libsignalPlacementOf mpl hblk hext_nodup) _
-        (fineHookRustCliAllocBudget γ mmpl tp brkStart) lim
-        (cliGhostExterns (ghOf W) (cliExternsPlaced mmpl W)) cliIo hookStack
-        ReadStdinBoundedEnv ReadEnv)
-    (hstk : mainFrameSize + max (max extHookStack hookStack) cliResStack ≤ cliMainStk := by decide)
-    (hfitCap : mpl.base 547 ≠ 0#64 →
-      ∀ (X : UnreachedPqxdhPrimitives) (W : CliHooks) (γ : GhostName) (tp : BitVec 64),
-        MainEntryBudgetFitsCapOf fineCostModel lim fineCostModel.init cliIo ReadEnv uuidTryParse
-          (RunEnv X W γ tp)
-          (pqScopedRun ⟨W.C, W.Q⟩ (runRel (cliRunSemD2c_placed X W))))
-    (hrun : mpl.base 547 ≠ 0#64 →
-      ∀ (X : UnreachedPqxdhPrimitives) (W : CliHooks) (γ : GhostName) (tp : BitVec 64),
-        @subroutine_ok _
-          (@mProgPlaced (libsignalPlacementOf mpl hblk hext_nodup)
-            (cliGhostExterns (ghOf W) (cliExternsPlaced mmpl W)))
-          (mpl.base 579)
-          (@runSpecTightPlacedPreFd (libsignalPlacementOf mpl hblk hext_nodup) _
-            CodeOk (fineHookRustCliAllocBudget γ mmpl tp brkStart) lim (RunEnv X W γ tp) uuidTryParse
-            (runRel (cliRunSemD2c_placed X W))
-            cliWrOk cliResStack)) :
-    MainOkCliExtOverB2NeedLocksPlacedAt mpl mmpl
-      (fun W => cliGhostExterns (ghOf W) (cliExternsPlaced mmpl W)) 617 cliProcessInputs CodeOk
-      libcAddr brkStart cliMainStk lim :=
-  mainOkCliExtOverB2NeedLocksPlacedAt_of_runTight_and_budgetFitsCapOf_preFd
-    hblk hext_nodup hCI CliHooks.utf8Err RunEnv hlibc
-    (fun W γ tp => by
-      letI : LibsignalPlacement := libsignalPlacementOf mpl hblk hext_nodup
-      exact allocContractsFsPlaced_of_hooks mmpl (ghOf W) W (hG W γ tp))
-    hioOf
-    (fun W => cliGhostExterns_strlen mmpl (ghOf W) W)
-    (fun W => cliGhostExterns_fromUtf8_eq mmpl (ghOf W) W)
-    (fun W => cliGhostExterns_memrchr_eq mmpl (ghOf W) W)
-    (fun W => cliGhostExterns_handleErrorMain mmpl (ghOf W) W)
-    hstk hfitCap hrun
 
 end LibsignalBinary.Proofs.SpecLemmas.SignalSession.ElfSlicesPqOomH2KMainEntryFits

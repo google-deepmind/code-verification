@@ -9,6 +9,7 @@ limitations under the License.
 
 module
 
+public import LibsignalBinary.Proofs.HookDischarge.Libc.Memmove -- proof-setup: allow-public-import
 public import LibsignalBinary.Proofs.Placed.ElfLsRetAddr
 public import LibsignalBinary.Proofs.TripleRatchet.Decrypt.DhCommitMainBudgetStep4
 public meta import LibsignalBinary.Proofs.Common.SharedHelpers -- shake: keep
@@ -48,6 +49,9 @@ open CryptoVerification.LibsignalTripleRatchet.Decrypt.DhCommit.DhCommitFacts (
   ult_five_eq_false_of_le_five ult_five_of_ge_six ult_six_eq_false_of_not_lt_six ult_six_of_lt_six)
 open CryptoVerification.RustHeap (vecBuf)
 open LibsignalBinary.Heap (AllocCostModel AllocEvent BudgetLimits FreeOnlyEvs RustCliAllocBudget)
+open LibsignalBinary.Proofs.HookDischarge.Libc.Memmove (
+  MemmoveArithBound sessionMemmoveBoundedBudgetSpec
+)
 open LibsignalBinary.Proofs.Placed.ElfLsRetAddr (LsRetAddr624 lsLen)
 open LibsignalBinary.Proofs.TripleRatchet.Decrypt.DhCommitMainBudgetStep4 (
   CommitStep4aGeVmWp CommitStep4aLoVmWp CommitStep4bPostMemmoveVmWp CommitStep4bPreMemmoveVmWp
@@ -104,6 +108,15 @@ private theorem steps_of_call_no_panic_cl [LibsignalPlacement] {α : Type} {prog
   · rw [hexit_false code s1, satisfies_pure_sepConj] at hpost1; exact False.elim hpost1.1
   · rw [hoom_false s1, satisfies_pure_sepConj] at hpost1; exact False.elim hpost1.1
 
+private theorem repAlloc_live_noWrap {M : AllocCostModel} (A : RustCliAllocBudget M)
+    (p : BitVec 64) (n al : Nat) :
+    A.repAlloc.live p n al ⊢ ⌜p.toNat + n < 2 ^ 64⌝ ∗ A.repAlloc.live p n al := by
+  simp only [RustCliAllocBudget.repAlloc_live]
+  refine Entails.trans (A.block_valid p n al) ?_
+  apply Entails.pure_left
+  rintro ⟨_, _, hnw, _⟩
+  exact Entails.pure_right hnw (Entails.refl _)
+
 /-- Single iteration of the receiver-chain eviction loop (`+0xb04 → +0xb8c`) for `gc₀ :: gcs`
 with `withLsCodeLoaded lsmpl` on `hDrop`, yielding `FreeOnlyEvs evs`. -/
 theorem dhCommit_evict_one_cl_of_wp [LibsignalPlacement]
@@ -111,7 +124,7 @@ theorem dhCommit_evict_one_cl_of_wp [LibsignalPlacement]
     {stk : Nat} {M : AllocCostModel} (A : RustCliAllocBudget M) (lim : BudgetLimits) (st : M.σ)
     (hwp_pre : CommitStep4bPreMemmoveVmWp prog entry memmoveEntry)
     (hwp_post : CommitStep4bPostMemmoveVmWp prog entry dropChainEntry)
-    (hMemmove : subroutine_ok prog memmoveEntry (sessionMemmoveBudgetSpec stk))
+    (hMemmove : subroutine_ok prog memmoveEntry (sessionMemmoveBoundedBudgetSpec stk))
     (hDrop : subroutine_ok prog dropChainEntry
       (withLsCodeLoaded lsmpl (dropChainSpecWithStack stk M A lim)))
     (R Frame : SepProp) (s0 s : State)
@@ -165,6 +178,12 @@ theorem dhCommit_evict_one_cl_of_wp [LibsignalPlacement]
   rw [sepExists_sepConj_left, satisfies_sepExists] at hexp_pull; rcases hexp_pull with ⟨bs_rest, hexp_pull⟩
   rw [sepConj_assoc, satisfies_pure_sepConj] at hexp_pull
   rcases hexp_pull with ⟨⟨hpad₀, hrest, hbs_len, hcap_le, hcap_lt, hptr, _hcap_ne⟩, hm0⟩
+  have hnw : chainsPtr.toNat + chainsCap.toNat * 104 < 2 ^ 64 := by
+    have h := Satisfies.mono
+      (sepConj_mono_left (sepConj_mono_left
+        (repAlloc_live_noWrap A chainsPtr (chainsCap.toNat * 104) 8))) hm0
+    simp only [sepConj_assoc, satisfies_pure_sepConj] at h
+    exact h.1
   have hsrk_pull : s.mem ⊨ chainHeap A.repAlloc gc₀ ∗
       (A.repAlloc.live chainsPtr (chainsCap.toNat * 104) 8 ∗
        (chainsPtr ↦ₛ chainBytes gc₀ pad₀) ∗ ((chainsPtr + 104#64) ↦ₛ bs_rest) ∗
@@ -238,13 +257,20 @@ theorem dhCommit_evict_one_cl_of_wp [LibsignalPlacement]
   have hcomb_bytes : (chainsPtr ↦ₛ (b₀ ++ bs_rest)) = (chainsPtr ↦ₛ b₀) ∗ ((chainsPtr + 104#64) ↦ₛ bs_rest) := by
     rw [pointsToBytes_append, hb₀_len]
   have hx2_toNat : (s1.readReg64 .x2).toNat = gcs.length * 104 := by rw [hx2_1, List.length_cons]; exact memmove_len_toNat hlen_lt
+  have hbound : MemmoveArithBound chainsPtr (b₀ ++ bs_rest) := by
+    have hmul : (gcs.length + 1) * 104 ≤ chainsCap.toNat * 104 :=
+      Nat.mul_le_mul_right 104 hcap_le
+    refine ⟨?_, ?_⟩ <;> rw [List.length_append, hb₀_len, hbs_len] <;> omega
   have hm_memmove : s1.mem ⊨
-      (sessionMemmoveBudgetSpec stk).pre (chainsPtr, b₀ ++ bs_rest, 0, 104, gcs.length * 104) s1 ∗
+      (sessionMemmoveBoundedBudgetSpec stk).pre (chainsPtr, b₀ ++ bs_rest, 0, 104, gcs.length * 104) s1 ∗
       ((((sp + 0x40#64) ↦₆₄ chainsPtr) ∗ ((sp + 0x48#64) ↦₆₄ BitVec.ofNat 64 (gc₀ :: gcs).length) ∗
         memRegion (sp + 0x190#64) 104 ∗ cells500 sp c1 c2 c3 c4 c5 c6 c7 c8 c9 c10 c11 c12 ∗
         A.repAlloc.live chainsPtr (chainsCap.toNat * 104) 8 ∗
         memRegion (chainsPtr + BitVec.ofNat 64 ((gcs.length + 1) * 104)) ((chainsCap.toNat - (gcs.length + 1)) * 104) ∗
         chainHeap A.repAlloc gc₀ ∗ chainHeaps A.repAlloc gcs ∗ A.pool lim st s1 ∗ Frame) ∗ R) := by
+    dsimp only [sessionMemmoveBoundedBudgetSpec]
+    rw [sepConj_assoc, satisfies_pure_sepConj]
+    refine ⟨hbound, ?_⟩
     dsimp only [sessionMemmoveBudgetSpec, sessionMemmoveSpec, libcMemmoveSpec, cells500]
     have ⟨hb1, hb2⟩ := memmove_bounds (n := gcs.length); rw [hsp1, sepConj_assoc, satisfies_pure_sepConj]
     refine ⟨by rw [BitVec.add_zero, List.length_append, hb₀_len, hbs_len]; exact ⟨hx0_1, hx1_1, hx2_toNat, hb1, hb2⟩, ?_⟩
@@ -253,7 +279,7 @@ theorem dhCommit_evict_one_cl_of_wp [LibsignalPlacement]
   refine steps_of_call_no_panic_cl hMemmove hpc1 hrun1 hsp_align1 hx30_1 hm_memmove hcl1 hL1
     (by intro _; rfl) (by intros; rfl) (by intro _; rfl) ?_
   intro s2 hpc2 hrun2 hsp2 hsp_align2 hcs2 hcl2 hL2 hm_s2
-  dsimp only [sessionMemmoveBudgetSpec, sessionMemmoveSpec] at hm_s2
+  dsimp only [sessionMemmoveBoundedBudgetSpec, sessionMemmoveBudgetSpec, sessionMemmoveSpec] at hm_s2
   rw [hsp1, sepConj_assoc, satisfies_pure_sepConj] at hm_s2; rcases hm_s2 with ⟨hvm2, hm_s2⟩
   rw [sepConj_assoc, satisfies_pure_sepConj] at hm_s2; rcases hm_s2 with ⟨⟨_hx0_2, htr2⟩, hm_s2⟩
   rw [← A.pool_transport lim st s1 s2 hvm2] at hm_s2
@@ -360,7 +386,7 @@ private theorem dhCommit_evict_loop_cl_of_wp [LibsignalPlacement]
     (hwp_pre : CommitStep4bPreMemmoveVmWp prog entry memmoveEntry)
     (hwp_post : CommitStep4bPostMemmoveVmWp prog entry dropChainEntry)
     (hwp_4c_hi : CommitStep4cHiVmWp prog entry) (hwp_4c_le : CommitStep4cLeVmWp prog entry)
-    (hMemmove : subroutine_ok prog memmoveEntry (sessionMemmoveBudgetSpec stk))
+    (hMemmove : subroutine_ok prog memmoveEntry (sessionMemmoveBoundedBudgetSpec stk))
     (hDropChain : subroutine_ok prog dropChainEntry (withLsCodeLoaded lsmpl (dropChainSpecWithStack stk M A lim)))
     (R Frame : SepProp) (s0 : State) (sp chainsCap chainsPtr : BitVec 64)
     (gcs : List (ChainGhost × ReceiverChain))
@@ -455,7 +481,7 @@ theorem dhCommit_step4_cl_of_wp [LibsignalPlacement]
     (hwp_post : CommitStep4bPostMemmoveVmWp prog entry dropChainEntry)
     (hwp_4c_hi : CommitStep4cHiVmWp prog entry)
     (hwp_4c_le : CommitStep4cLeVmWp prog entry)
-    (hMemmove : subroutine_ok prog memmoveEntry (sessionMemmoveBudgetSpec stk))
+    (hMemmove : subroutine_ok prog memmoveEntry (sessionMemmoveBoundedBudgetSpec stk))
     (hDropChain : subroutine_ok prog dropChainEntry
       (withLsCodeLoaded lsmpl (dropChainSpecWithStack stk M A lim)))
     (R Frame : SepProp) (s0 s : State)

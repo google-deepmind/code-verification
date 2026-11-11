@@ -42,7 +42,7 @@ open CryptoVerification.LibsignalTripleRatchet (extHookStack)
 open CryptoVerification.LibsignalTripleRatchetRepr (UuidParser uuidTryParse)
 open CryptoVerification.RustHeap (allocFailedIn)
 open CryptoVerification.SignalSession
-  (CliHooks Inputs cliExternsPlaced fromUtf8Hook lsFromUtf8Sym lsMemrchrSym memrchrHook strlenHook)
+  (Inputs fromUtf8Hook lsFromUtf8Sym lsMemrchrSym memrchrHook strlenHook)
 open CryptoVerification.SignalSession.Cli (CliInputsOk)
 open CryptoVerification.SignalSession.Cli.MainHops
   (AtCallPlaced AtM1EndPlaced CallV CallW LsCodeInv argsBuf callCellsPlaced callHeap locals
@@ -51,8 +51,7 @@ open LibsignalBinary.Heap
   (AllocCostModel AllocEvent BudgetLimits FitsEnv FitsEvents OomPreserved RustCliAllocBudget SeqEnv
    rustAllocEvents rustDeallocEvents)
 open LibsignalBinary.Proofs.SignalSession.Cli.M24.AddressRoA1PlacedBudget
-  (mainCalleesROBlk617_of_mainCalleesBlk617_and_hooks
-   mainCalleesROBlk617_of_mainCalleesBlk617_cliExterns)
+  (mainCalleesROBlk617_of_mainCalleesBlk617_and_hooks)
 open LibsignalBinary.Proofs.SignalSession.Cli.M24.B2MainFrameComposeBudget (argvAtROP)
 open LibsignalBinary.Proofs.SignalSession.Cli.M24.CalleesRO (MainCalleesROBlk617)
 open LibsignalBinary.Proofs.SignalSession.Cli.Main.HopsPlacedBudget
@@ -407,53 +406,6 @@ theorem main_m2_pool_placed_of_hooks [LibsignalPlacement] {CodeOk : Memory → P
     (mainCalleesROBlk617_of_mainCalleesBlk617_and_hooks hc hstrlen hutf8 hmemrchr hres hres64)
     hstk hstk64 hok hne hps hfit hs hexit hnext
 
-/-- Specialization of `main_m2_pool_placed_of_hooks` to `cliExternsPlaced mmpl W` via
-`AddressRoA1PlacedBudget.mainCalleesROBlk617_of_mainCalleesBlk617_cliExterns`. -/
-theorem main_m2_pool_placed_cliExterns [LibsignalPlacement] {CodeOk : Memory → Prop}
-    [LsCodeInv CodeOk] {M : AllocCostModel} (mmpl : Obj.MultiPlacement) (W : CliHooks)
-    {A : RustCliAllocBudget M} {lim : BudgetLimits} {st : M.σ}
-    {i : Inputs} {s0 s : State} {stk hookStack resStack : Nat}
-    {buf p0 : BitVec 64} {ps : List (BitVec 64 × List (BitVec 8))}
-    {Statics : SepProp} {Q Qp : State → SepProp → Prop} {oom : State → SepProp}
-    (hc : MainCalleesBlk617 A lim (cliExternsPlaced mmpl W) uuidTryParse hookStack resStack)
-    (hres : 0xB0 + extHookStack ≤ resStack) (hres64 : resStack ≤ 2 ^ 63)
-    (hstk : mainFrameSize + max (max extHookStack hookStack) resStack ≤ stk)
-    (hstk64 : stk ≤ 2 ^ 63)
-    (hok : CliInputsOk i) (hne : i.argv ≠ [])
-    (hps : ps.map (·.2) = i.argv.map bytesOfString)
-    (hfit : FitsEnv M lim st (M2PreDeallocEnv uuidTryParse (i.argv.map bytesOfString)))
-    (hs : AtM1EndPlaced CodeOk s0 s i.argv.length buf)
-    (hexit : ExitKPoolPlaced CodeOk (cliExternsPlaced mmpl W) A lim s0 stk
-      (fun code s' => code = 2 ∧ parseArgs uuidTryParse (i.argv.map bytesOfString) = none ∧
-        s'.trace = s0.trace ∧ s'.fs = s0.fs) Q Qp)
-    (hnext : ∀ (s' : State) (vcap : BitVec 64) (evs_c : List AllocEvent) (w : CallW) (c : CallV),
-      M2CollectEnv i.argv.length evs_c →
-      vcap ≠ 0#64 →
-      parseArgs uuidTryParse (i.argv.map bytesOfString) = some c →
-      AtCallPlaced CodeOk s0 s' w i.argv.length buf →
-      ProofLib.SepWPp (mProgPlaced (cliExternsPlaced mmpl W)) (s0.readReg64 .lr) s'
-        (callHeap A.repAlloc w c ∗ argsBuf A.repAlloc (BitVec.ofNat 64 i.argv.length) buf ps ∗
-          argvAtROP (s0.readReg64 .x1) ((p0, bytesOfString "libsignal-cli") :: ps) ∗
-          mainSaved s0 ∗ locals (s0.sp - BitVec.ofNat 64 mainFrameSize)
-            (callCellsPlaced (s0.sp - BitVec.ofNat 64 mainFrameSize) w) ∗
-          stackAt (s0.sp - BitVec.ofNat 64 mainFrameSize) (stk - mainFrameSize) ∗
-          A.pool lim
-            (M.stepEvents (rustDeallocEvents (vcap.toNat * 16) 8)
-              (M.stepEvents (m2DispatchEvents uuidTryParse (i.argv.map bytesOfString))
-                (M.stepEvents evs_c st))) s' ∗
-          Statics)
-        Q Qp oom) :
-    ProofLib.SepWPp (mProgPlaced (cliExternsPlaced mmpl W)) (s0.readReg64 .lr) s
-      (argsBuf A.repAlloc (BitVec.ofNat 64 i.argv.length) buf ps ∗
-        argvAtROP (s0.readReg64 .x1) ((p0, bytesOfString "libsignal-cli") :: ps) ∗
-        mainSaved s0 ∗ locals (s0.sp - BitVec.ofNat 64 mainFrameSize) [] ∗
-        stackAt (s0.sp - BitVec.ofNat 64 mainFrameSize) (stk - mainFrameSize) ∗
-        A.pool lim st s ∗ Statics)
-      Q Qp oom :=
-  main_m2_pool_placed_proof
-    (mainCalleesROBlk617_of_mainCalleesBlk617_cliExterns mmpl W hc hres hres64)
-    hstk hstk64 hok hne hps hfit hs hexit hnext
-
 /-- Ready-made `step2` discharge for `B2MainFrameComposeBudget.b2MainSpecTightNeedLocksFineAt_of_steps`
 over any `H : LibsignalHooks` satisfying `MainCalleesBlk617` and the three hook equalities. -/
 theorem b2_step2_pool_placed_of_hooks [LibsignalPlacement] {CodeOk : Memory → Prop}
@@ -511,62 +463,6 @@ theorem b2_step2_pool_placed_of_hooks [LibsignalPlacement] {CodeOk : Memory → 
         Q Qp oom :=
   fun hst1 hok hne hps hs _hpanic hexit hnext =>
     main_m2_pool_placed_of_hooks hc hstrlen hutf8 hmemrchr hres hres64 hstk hstk64 hok hne hps
-      (hfit_st1 hst1 hok hne) hs hexit
-      fun s' vcap evs_c w c hevs_c hvcap hp ha =>
-        hnext s' w c _ (hst2 hst1 hok hne hevs_c hvcap hp) hp ha
-
-/-- Ready-made `step2` discharge specialized to `cliExternsPlaced mmpl W`. -/
-theorem b2_step2_pool_placed_cliExterns [LibsignalPlacement] {CodeOk : Memory → Prop}
-    [LsCodeInv CodeOk] {M : AllocCostModel} (mmpl : Obj.MultiPlacement) (W : CliHooks)
-    {A : RustCliAllocBudget M} {lim : BudgetLimits}
-    {stk hookStack resStack : Nat}
-    {St1 : Inputs → M.σ → Prop} {St2 : Inputs → CallV → M.σ → Prop}
-    (hc : MainCalleesBlk617 A lim (cliExternsPlaced mmpl W) uuidTryParse hookStack resStack)
-    (hres : 0xB0 + extHookStack ≤ resStack) (hres64 : resStack ≤ 2 ^ 63)
-    (hstk : mainFrameSize + max (max extHookStack hookStack) resStack ≤ stk)
-    (hstk64 : stk ≤ 2 ^ 63)
-    (hfit_st1 : ∀ {i : Inputs} {st1 : M.σ}, St1 i st1 → CliInputsOk i → i.argv ≠ [] →
-      FitsEnv M lim st1 (M2PreDeallocEnv uuidTryParse (i.argv.map bytesOfString)))
-    (hst2 : ∀ {i : Inputs} {c : CallV} {st1 : M.σ} {vcap : BitVec 64} {evs_c : List AllocEvent},
-      St1 i st1 → CliInputsOk i → i.argv ≠ [] →
-      M2CollectEnv i.argv.length evs_c → vcap ≠ 0#64 →
-      parseArgs uuidTryParse (i.argv.map bytesOfString) = some c →
-      St2 i c
-        (M.stepEvents (rustDeallocEvents (vcap.toNat * 16) 8)
-          (M.stepEvents (m2DispatchEvents uuidTryParse (i.argv.map bytesOfString))
-            (M.stepEvents evs_c st1)))) :
-    ∀ {i : Inputs} {s0 s : State} {buf p0 : BitVec 64}
-      {ps : List (BitVec 64 × List (BitVec 8))} {st1 : M.σ} {Statics : SepProp}
-      {Q Qp : State → SepProp → Prop} {oom : State → SepProp},
-      St1 i st1 →
-      CliInputsOk i → i.argv ≠ [] →
-      ps.map (·.2) = i.argv.map bytesOfString →
-      AtM1EndPlaced CodeOk s0 s i.argv.length buf →
-      (∀ sf Pf, allocFailedIn s0 sf → Qp sf Pf) →
-      ExitKPoolPlaced CodeOk (cliExternsPlaced mmpl W) A lim s0 stk
-        (fun code s' => code = 2 ∧ parseArgs uuidTryParse (i.argv.map bytesOfString) = none ∧
-          s'.trace = s0.trace ∧ s'.fs = s0.fs) Q Qp →
-      (∀ (s' : State) (w : CallW) (c : CallV) (st2 : M.σ),
-        St2 i c st2 →
-        parseArgs uuidTryParse (i.argv.map bytesOfString) = some c →
-        AtCallPlaced CodeOk s0 s' w i.argv.length buf →
-        ProofLib.SepWPp (mProgPlaced (cliExternsPlaced mmpl W)) (s0.readReg64 .lr) s'
-          (callHeap A.repAlloc w c ∗ argsBuf A.repAlloc (BitVec.ofNat 64 i.argv.length) buf ps ∗
-            argvAtROP (s0.readReg64 .x1) ((p0, bytesOfString "libsignal-cli") :: ps) ∗
-            mainSaved s0 ∗ locals (s0.sp - BitVec.ofNat 64 mainFrameSize)
-              (callCellsPlaced (s0.sp - BitVec.ofNat 64 mainFrameSize) w) ∗
-            stackAt (s0.sp - BitVec.ofNat 64 mainFrameSize) (stk - mainFrameSize) ∗
-            A.pool lim st2 s' ∗ Statics)
-          Q Qp oom) →
-      ProofLib.SepWPp (mProgPlaced (cliExternsPlaced mmpl W)) (s0.readReg64 .lr) s
-        (argsBuf A.repAlloc (BitVec.ofNat 64 i.argv.length) buf ps ∗
-          argvAtROP (s0.readReg64 .x1) ((p0, bytesOfString "libsignal-cli") :: ps) ∗
-          mainSaved s0 ∗ locals (s0.sp - BitVec.ofNat 64 mainFrameSize) [] ∗
-          stackAt (s0.sp - BitVec.ofNat 64 mainFrameSize) (stk - mainFrameSize) ∗
-          A.pool lim st1 s ∗ Statics)
-        Q Qp oom :=
-  fun hst1 hok hne hps hs _hpanic hexit hnext =>
-    main_m2_pool_placed_cliExterns mmpl W hc hres hres64 hstk hstk64 hok hne hps
       (hfit_st1 hst1 hok hne) hs hexit
       fun s' vcap evs_c w c hevs_c hvcap hp ha =>
         hnext s' w c _ (hst2 hst1 hok hne hevs_c hvcap hp) hp ha

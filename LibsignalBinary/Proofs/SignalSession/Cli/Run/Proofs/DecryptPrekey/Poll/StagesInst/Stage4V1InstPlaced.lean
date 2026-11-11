@@ -65,7 +65,7 @@ open CryptoVerification.SignalSession.Cli.KitInst hiding
   cliPreKeyStoreSpecPlaced cliSignedPreKeyStoreSpecPlaced cliKyberPreKeyStoreSpecPlaced
   cliPreKeyStoreSpecPlaced_quiet cliSignedPreKeyStoreSpecPlaced_quiet
 open LibsignalBinary.Proofs.SignalSession.Cli.AllocGhostLinkTransfer
-  (CliGhostHooks cliGhostExterns cliGhostExterns_other)
+  (CliGhostHooks cliGhostExterns)
 
 private theorem panic_absorb_extra_placed {φ : Prop} {extra R : SepProp} {m : Memory}
     (h : m ⊨ (⌜φ⌝ ∗ anyHeap) ∗ (extra ∗ R)) : m ⊨ (⌜φ⌝ ∗ anyHeap) ∗ R := by
@@ -125,39 +125,11 @@ theorem cliIdKitPlacedOkI_full [LibsignalPlacement] {A : RustAlloc} {H : Libsign
     simp only [sepExists_sepConj_left, sepExists_sepConj_right, satisfies_sepExists] at hpost ⊢
     obtain ⟨ans, hm⟩ := hpost; rw [saveUpd_own_placed]; exact ⟨ans, Eq.mp (congrArg (sf.mem ⊨ ·) (by ac_rfl)) hm⟩
 
-set_option linter.unusedSimpArgs false in
 private theorem withPanics_cliGhostExterns_eq (mmpl : Obj.MultiPlacement)
     (gh : CliGhostHooks) (W : CliHooks) :
     Rust.withPanics (cliGhostExterns gh (cliExternsPlaced mmpl W)) =
-      cliGhostExterns gh (cliExternsPlaced mmpl W) := by
-  funext n
-  by_cases hp : Rust.isPanicSymbol n = true
-  · have hother : cliGhostExterns gh (cliExternsPlaced mmpl W) n = cliExternsPlaced mmpl W n :=
-      cliGhostExterns_other gh (cliExternsPlaced mmpl W)
-        (fun h => by subst h; simp [Rust.isPanicSymbol, lsRustAllocSymCli, lsRustDeallocSymCli, lsRustReallocSymCli, lsRustAllocZeroedSymCli, lsRustNoAllocShimSymCli, lsStringCloneSym] at hp)
-        (fun h => by subst h; simp [Rust.isPanicSymbol, lsRustAllocSymCli, lsRustDeallocSymCli, lsRustReallocSymCli, lsRustAllocZeroedSymCli, lsRustNoAllocShimSymCli, lsStringCloneSym] at hp)
-        (fun h => by subst h; simp [Rust.isPanicSymbol, lsRustAllocSymCli, lsRustDeallocSymCli, lsRustReallocSymCli, lsRustAllocZeroedSymCli, lsRustNoAllocShimSymCli, lsStringCloneSym] at hp)
-        (fun h => by subst h; simp [Rust.isPanicSymbol, lsRustAllocSymCli, lsRustDeallocSymCli, lsRustReallocSymCli, lsRustAllocZeroedSymCli, lsRustNoAllocShimSymCli, lsStringCloneSym] at hp)
-        (fun h => by subst h; simp [Rust.isPanicSymbol, lsRustAllocSymCli, lsRustDeallocSymCli, lsRustReallocSymCli, lsRustAllocZeroedSymCli, lsRustNoAllocShimSymCli, lsStringCloneSym] at hp)
-        (fun h => by subst h; simp [Rust.isPanicSymbol, lsRustAllocSymCli, lsRustDeallocSymCli, lsRustReallocSymCli, lsRustAllocZeroedSymCli, lsRustNoAllocShimSymCli, lsStringCloneSym] at hp)
-        (fun h => by subst h; simp [Rust.isPanicSymbol, CryptoVerification.SignalSession.lsReadFileSym] at hp)
-        (fun h => by subst h; simp [Rust.isPanicSymbol, CryptoVerification.SignalSession.lsReadStdinSym] at hp)
-        (fun h => by subst h; simp [Rust.isPanicSymbol, CryptoVerification.SignalSession.lsMemsetSym] at hp)
-        (fun h => by subst h; simp [Rust.isPanicSymbol, CryptoVerification.SignalSession.lsMemcpySym] at hp)
-    unfold Rust.withPanics
-    rw [hother]
-    unfold cliExternsPlaced isCliPanicSymbolPlaced
-    simp [hp]
-  · simp [Rust.withPanics, hp]
-
-theorem cliGhostExterns_blackBox (mmpl : Obj.MultiPlacement)
-    (gh : CliGhostHooks) (W : CliHooks) :
-    cliGhostExterns gh (cliExternsPlaced mmpl W) lsBlackBoxU8Sym =
-      some CryptoVerification.LibsignalSession.blackBoxHook :=
-  (cliGhostExterns_other gh (cliExternsPlaced mmpl W)
-    (by decide) (by decide) (by decide) (by decide) (by decide) (by decide)).trans
-    (CryptoVerification.SignalSession.Cli.RunGlue.cliExternsPlaced_row mmpl W
-      (List.mem_append_right _ (List.mem_of_getElem? (i := 11) rfl)))
+      cliGhostExterns gh (cliExternsPlaced mmpl W) :=
+  CryptoVerification.SignalSession.Cli.RunGlue.withPanics_cliGhostExterns mmpl gh W
 
 theorem cliSerContractsX_placed_ok [LibsignalPlacement] (mmpl : Obj.MultiPlacement)
     (gh : CliGhostHooks) (W : CliHooks)
@@ -171,11 +143,6 @@ theorem cliSerContractsX_placed_ok [LibsignalPlacement] (mmpl : Obj.MultiPlaceme
     ((show CryptoVerification.LibsignalTripleRatchet.noAllocShimSpec =
         CryptoVerification.LibsignalTripleRatchet.sessionShimSpec from rfl) ▸
       hh.codecHooks.shim)
-    ⟨hookMemmove,
-     (cliGhostExterns_other gh (cliExternsPlaced mmpl W)
-       (by decide) (by decide) (by decide) (by decide) (by decide) (by decide)).trans
-       (cliExternsPlaced_memmove mmpl W),
-     hookMemmove_trace_ok Proofs.libsignal.Stage1X.extHookStack⟩
     (by
       refine ProofLib.HookSat.mono hh.codecHooks.memcpy fun ⟨dst, src, bs⟩ R s0 hpre =>
         ⟨(dst, src, bs), stackAt s0.sp extHookStack ∗ R, ?_, fun sf hpost => ?_⟩
@@ -252,11 +219,11 @@ theorem stageP4Matched_placed_inst [LibsignalPlacement] (hDropNz : lsmpl.base 54
   have hSvt : SessionOnlyVtablesPlacedOk kit := cliPollSess_vtablesPlacedOk F0 Slots.scopeKit peer σ hDropNz
   have hIkit : IdentityStoreKitPlacedOkI ikit (cliGhostExterns gh (cliExternsPlaced mmpl W)) :=
     cliIdKitPlacedOkI_full
-      (IdKit.cliIdKitOkIE_placed
+      (IdKit.cliIdKitOkIE_placed_sat
         (readProg := dpPollProgPlaced (cliGhostExterns gh (cliExternsPlaced mmpl W))) (jRead := 518)
         hDropNz (fun _ hp => hp.2) hh
         (StoreKit.subroutine_ok_withLsCodeRoLoaded_of_plain hread)
-        (cliGhostExterns_blackBox mmpl gh W)
+        hh.blackBox
         (Nat.le_refl _) (Nat.le_refl _) (Nat.le_refl _) (Nat.le_refl _)
         (by decide) (by decide))
   have hIvt : IdentityVtablesPlacedOk ikit := cliPollId_vtablesPlacedOk F0 peer σ hDropNz
@@ -1303,11 +1270,11 @@ theorem stageP4PathA_placed_inst [LibsignalPlacement] (hDropNz : lsmpl.base 547 
   have hSvt : SessionOnlyVtablesPlacedOk kit := cliPollSess_vtablesPlacedOk F0 Slots.scopeKit peer σ hDropNz
   have hIkit : IdentityStoreKitPlacedOkI ikit (cliGhostExterns gh (cliExternsPlaced mmpl W)) :=
     cliIdKitPlacedOkI_full
-      (IdKit.cliIdKitOkIE_placed
+      (IdKit.cliIdKitOkIE_placed_sat
         (readProg := dpPollProgPlaced (cliGhostExterns gh (cliExternsPlaced mmpl W))) (jRead := 518)
         hDropNz (fun _ hp => hp.2) hh
         (StoreKit.subroutine_ok_withLsCodeRoLoaded_of_plain hread)
-        (cliGhostExterns_blackBox mmpl gh W)
+        hh.blackBox
         (Nat.le_refl _) (Nat.le_refl _) (Nat.le_refl _) (Nat.le_refl _)
         (by decide) (by decide))
   have hIvt : IdentityVtablesPlacedOk ikit := cliPollId_vtablesPlacedOk F0 peer σ hDropNz

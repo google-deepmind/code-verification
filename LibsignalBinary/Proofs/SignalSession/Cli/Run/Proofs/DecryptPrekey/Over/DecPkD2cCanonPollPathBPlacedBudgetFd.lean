@@ -10,6 +10,7 @@ limitations under the License.
 module
 
 public import LibsignalBinary.Proofs.Cli.E2E.Pqxdh.ResponderClosure.Matched.M2TopPlacedBudget
+public import LibsignalBinary.Proofs.Cli.E2E.Pqxdh.ResponderClosure.Matched.M2TopPlacedBudgetSat
 public import LibsignalBinary.Proofs.SignalSession.Cli.Run.Proofs.DecryptPrekey.Over.DecPkD2cCanonKitsPlacedBudgetFd
 public import LibsignalBinary.Proofs.SignalSession.Cli.Run.Proofs.DecryptPrekey.Over.DecPkD2cCanonPollPathBP4PlacedBudgetFd
 public import LibsignalBinary.Proofs.SignalSession.Cli.Run.Proofs.DecryptPrekey.Over.DecPkD2cCanonStage3Prev1PlacedBudgetFd
@@ -81,10 +82,7 @@ open CryptoVerification.CliHandshake.RespClosurePlaced (lsProg_518)
 open scoped CryptoVerification.CliHandshake.RespClosurePlaced
 
 open CryptoVerification.SignalSession.Cli.RunGlue (
-  CliGhostHooks cliExternsPlaced_row cliGhostExterns cliGhostExterns_other withPanics_cliGhostExterns
-)
-open CryptoVerification.SignalSession.Cli.Slots (
-  blackBox_row_placed cliGhostExterns_sat_of_cliExternsPlaced
+  CliGhostHooks cliGhostExterns withPanics_cliGhostExterns
 )
 open LibsignalBinary.Heap (
   AllocCostModel AllocEvent BudgetLimits FitsEnv FreeOnlyEvs RustCliAllocBudget SeqEnv
@@ -114,7 +112,10 @@ open LibsignalBinary.Proofs.Cli.E2E.Pqxdh.ResponderClosure.Matched.M2TailPlacedB
   str_to_owned_local2_placed_ok_at
 )
 open LibsignalBinary.Proofs.Cli.E2E.Pqxdh.ResponderClosure.Matched.M2TopPlacedBudget (
-  StageP2MatchedEnv StageP2MatchedMismatchEnv stageP2_matched_ok_framed_placed
+  StageP2MatchedEnv StageP2MatchedMismatchEnv
+)
+open LibsignalBinary.Proofs.Cli.E2E.Pqxdh.ResponderClosure.Matched.M2TopPlacedBudgetSat (
+  stageP2_matched_ok_framed_placed_sat
 )
 open LibsignalBinary.Proofs.Cli.E2E.Pqxdh.ResponderClosure.GenP3.ChainClone3ExtPlacedBudget (
   chainClone3_placed_ok_of_hooks senderChainClone3_placed_ok_of_hooks
@@ -203,15 +204,6 @@ private theorem hookSat_noAllocShimBudget_of_withVmPreserved_p4 {H : String → 
     rw [satisfies_pure_sepConj]
     exact ⟨⟨hpost.2.1, hpost.1⟩, hpost.2.2⟩
   · exact Or.inr hrest
-
-private theorem cliExternsPlaced_blackBox_withPanics_p4 (mmpl : Obj.MultiPlacement)
-    (gh : CliGhostHooks) (W : CliHooks) :
-    Rust.withPanics (cliGhostExterns gh (cliExternsPlaced mmpl W)) lsBlackBoxU8Sym =
-      some blackBoxHook := by
-  rw [withPanics_cliGhostExterns mmpl gh W,
-    cliGhostExterns_other gh _ (by decide) (by decide) (by decide)
-      (by decide) (by decide) (by decide)]
-  exact cliExternsPlaced_row mmpl W (blackBox_row_placed mmpl W)
 
 private theorem cliPublicKeySerialize_placed_ok_p4 [LibsignalPlacement]
     {M : AllocCostModel} {A : RustCliAllocBudget M} {lim : BudgetLimits}
@@ -411,11 +403,11 @@ private theorem stageP2Matched_noRead_framed_cli_placed_ok [LibsignalPlacement]
     sep_ac_rfl
   rw [hpre_assoc]
   refine sepWPp_entails_post ?_
-  exact stageP2_matched_ok_framed_placed
+  exact stageP2_matched_ok_framed_placed_sat
     (cliPublicKeySerialize_placed_ok_p4 mmpl gh W hh)
     (cliStrToOwnedLocal2_placed_ok_p4 mmpl gh W hh)
     (cliDealloc_placed_ok_p4 mmpl gh W hh)
-    (cliExternsPlaced_blackBox_withPanics_p4 mmpl gh W)
+    (hookSat_withPanics_placed_p4 mmpl gh W hh.blackBox)
     (cliDropSessionStructureLocal2_placed_ok_p4 mmpl gh W hh)
     st_b s0 s1
     sp y.fut y.out y.g.msgA y.g.peerA y.g.meA

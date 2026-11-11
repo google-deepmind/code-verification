@@ -41,7 +41,6 @@ open CryptoVerification.LibsignalPublicApiRepr (RecordGhost)
 open CryptoVerification.LibsignalTripleRatchet (extHookStack)
 open CryptoVerification.SignalSession (CliHooks cliExternsPlaced)
 open CryptoVerification.SignalSession.Cli.RunGlue (CliGhostHooks cliGhostExterns)
-open CryptoVerification.SignalSession.Cli.Slots (cliGhostExterns_sat_of_cliExternsPlaced)
 open LibsignalBinary.Heap (AllocCostModel AllocEvent BudgetLimits RustCliAllocBudget)
 open LibsignalBinary.Proofs.PublicApi.StoreKit.Over.ArchiveAuxBudget
   (EncodeRawPreallocPlacedOkX encodeRawPreallocSpecX)
@@ -54,7 +53,7 @@ open LibsignalBinary.Proofs.SignalSession.Cli.Run.Slots.CliHookSatPlacedBudget
   (CliGhostAllocHooks bumpGhost cliGhostAllocHooks_bumpGhost
    cliExternsPlaced_alloc_budget_sat cliExternsPlaced_dealloc_budget_sat
    cliExternsPlaced_realloc_budget_sat cliExternsPlaced_sessionMemcpy_budget_sat
-   cliExternsPlaced_sessionMemmove_budget_sat cliExternsPlaced_shim_budget_sat)
+   cliExternsPlaced_shim_budget_sat)
 open LibsignalBinary.Proofs.SignalSession.Cli.Store.SerGlueXPlacedBudget
   (hSerEnv_placed_cl_of_serContractsX hSerEnv_placed_lscro_of_serContractsX
    hSerEnv_placed_ok_of_serContractsX hSer_placed_cl_of_serContractsX
@@ -110,8 +109,6 @@ theorem serContractsX_cli_placed [LibsignalPlacement] (mmpl : Obj.MultiPlacement
     (cliExternsPlaced_dealloc_budget_sat mmpl g W hG)
     (cliExternsPlaced_realloc_budget_sat mmpl g W hG)
     (cliExternsPlaced_shim_budget_sat mmpl g W hG.shim_eq)
-    (cliGhostExterns_sat_of_cliExternsPlaced mmpl g W
-      (cliExternsPlaced_sessionMemmove_budget_sat mmpl W extHookStack))
     (cliExternsPlaced_sessionMemcpy_budget_sat mmpl g W hG extHookStack)
 
 /-- `serializeSpecX M A lim` on Block `52` at `cliGhostExterns g (cliExternsPlaced mmpl W)`

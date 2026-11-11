@@ -19,7 +19,7 @@ public import ProofLib.ProgramReflection
 public meta import ProofLib.ProgramReflection
 public import Symbolic.BugInjection.Disproofs.Impl.MutantParse
 public import Symbolic.BugInjection.Disproofs.Impl.MutantLink.MutantSymChars
-public import Symbolic.BugInjection.Disproofs.Impl.MutantLink.WalkSpec
+public import Symbolic.BugInjection.Disproofs.Impl.MutantLink.WalkSpecAnyOrder
 public import Symbolic.BugInjection.Disproofs.Impl.SmallSubgroup.F3LayoutData
 public import Symbolic.BugInjection.Disproofs.Impl.SmallSubgroup.MutantLinkData
 public import VerifiedLibraries.Mallocng.Proofs.PlacedInterned
@@ -28,7 +28,7 @@ public import VerifiedLibraries.Mallocng.Proofs.PlacedInterned
 # `cheval26-small-subgroup` `mallocngLib` Linking Proof
 
 Proves `VerifiedLibraries.mallocngLib.LinkedAt mutantCliElfBytes mutantMmpl` for the
-`cheval26-small-subgroup` mutant ELF image.
+`cheval26-small-subgroup` stock-linked mutant ELF image.
 -/
 
 @[expose] public section
@@ -45,8 +45,8 @@ open Symbolic.BugInjection.Disproofs.Impl.MutantParse (mutantCliElf_parse)
 open Symbolic.BugInjection.Disproofs.Impl.MutantLink.MutantSymChars (
   mutantCliElfSymChars mutantCliElf_symbols_eq
 )
-open Symbolic.BugInjection.Disproofs.Impl.MutantLink.WalkSpec (
-  SlicesTextVarOk checkMultiVarSliced_spec
+open Symbolic.BugInjection.Disproofs.Impl.MutantLink.WalkSpecAnyOrder (
+  checkMultiMetaCoreAnyOrderB checkMultiSplitAnyOrder_spec
 )
 open VerifiedLibraries.Mallocng.Proofs (
   mallocngMultiL mallocngMultiL_names mallocngMultiL_toMultiPlacedLib mallocngNameChars
@@ -55,7 +55,7 @@ open VerifiedLibraries.Mallocng.Proofs (
 #guard CryptoVerification.BugInjection.mutant == "cheval26-small-subgroup"
 
 theorem mutant_mallocng_metaCore_ok :
-    Obj.Interned.checkMultiMetaCoreFastB mallocngMultiL f3MallocngMly
+    checkMultiMetaCoreAnyOrderB mallocngMultiL f3MallocngMly
       mallocngNameChars = true := by
   rfl_kernel
 
@@ -68,29 +68,15 @@ theorem mutant_mallocng_metaExports_ok :
       mallocngNameChars mutantCliElfSymChars = true := by
   rfl_kernel
 
-theorem mutant_mallocng_meta_ok :
-    Obj.Interned.checkMultiMetaFastB mallocngMultiL f3MallocngMly
-      mallocngNameChars mutantCliElfSymChars = true :=
-  Obj.Interned.checkMultiMetaFastB_of_parts
-    mutant_mallocng_metaCore_ok mutant_mallocng_metaData_ok mutant_mallocng_metaExports_ok
-
 theorem mutant_mallocng_dataWalk_ok :
     Obj.Interned.checkMultiDataWalkFastB mallocngMultiL f3MallocngMly
       mutantCliElfImage = true := by
   rfl_kernel
 
-theorem mutant_mallocng_blocks_bound :
-    Nat.ble mallocngMultiL.blocks.length 24 = true := by
+theorem mutant_mallocng_textWalk_ok :
+    Obj.Interned.checkMultiTextWalkFastB mallocngMultiL f3MallocngMly
+      mutantCliElfImage = true := by
   rfl_kernel
-
-theorem mutant_mallocng_textWalk_00 :
-    Obj.Interned.checkMultiTextSliceB mallocngMultiL f3MallocngMly
-      mutantCliElfImage 0 24 = true := by
-  rfl_kernel
-
-theorem mutant_mallocng_slicesTextVarOk :
-    SlicesTextVarOk mallocngMultiL f3MallocngMly mutantCliElfImage 24 :=
-  SlicesTextVarOk.zero.step mutant_mallocng_textWalk_00
 
 theorem mutant_mallocng_placed :
     VerifiedLibraries.mallocngLib.Placeable mutantMmpl ∧
@@ -100,10 +86,11 @@ theorem mutant_mallocng_placed :
       VerifiedLibraries.mallocngLib.Placeable (f3MallocngMly.toMultiPlacement mallocngMultiL.names) ∧
       VerifiedLibraries.mallocngLib.InElf mutantCliElfImage (f3MallocngMly.toMultiPlacement mallocngMultiL.names) ∧
       VerifiedLibraries.mallocngLib.DataDisjoint (f3MallocngMly.toMultiPlacement mallocngMultiL.names) :=
-    checkMultiVarSliced_spec mallocngMultiL_toMultiPlacedLib.symm
+    checkMultiSplitAnyOrder_spec mallocngMultiL_toMultiPlacedLib.symm
       mallocngMultiL_names mutantCliElf_symbols_eq
-      mutant_mallocng_meta_ok mutant_mallocng_dataWalk_ok
-      mutant_mallocng_blocks_bound mutant_mallocng_slicesTextVarOk
+      mutant_mallocng_metaCore_ok mutant_mallocng_metaData_ok
+      mutant_mallocng_metaExports_ok mutant_mallocng_dataWalk_ok
+      mutant_mallocng_textWalk_ok
   have h_eq : mutantMmpl = f3MallocngMly.toMultiPlacement mallocngMultiL.names := rfl
   rwa [h_eq]
 

@@ -243,24 +243,6 @@ theorem session_memcpy_region_lscro_of_cli [LibsignalPlacement] {A : RustAlloc} 
       (StoreKit.withLsCodeRoLoaded lsmpl (withStack sessionMemcpyRegionSpec stk)) :=
   ls_transfer_lscro (callerProg := callerProg) (j := 617) (hC.session_memcpy_region stk h1 h2) hi
 
-theorem memmove_lscro_of_cli [LibsignalPlacement] {A : RustAlloc} {H : LibsignalHooks}
-    {callerProg : Program} {i : Nat} [IsLsBlockProg callerProg i H]
-    (hC : AllocContractsXCliPlaced A H)
-    {stk : Nat} (h1 : extHookStack ≤ stk := by decide) (h2 : stk ≤ 2 ^ 64 := by decide)
-    (hi : i < 619 := by decide) :
-    subroutine_ok callerProg (lsρ memmoveName)
-      (StoreKit.withLsCodeRoLoaded lsmpl (libcMemmoveSpec stk)) :=
-  ls_transfer_lscro (callerProg := callerProg) (j := 617) (hC.memmove stk h1 h2) hi
-
-theorem session_memmove_lscro_of_cli [LibsignalPlacement] {A : RustAlloc} {H : LibsignalHooks}
-    {callerProg : Program} {i : Nat} [IsLsBlockProg callerProg i H]
-    (hC : AllocContractsXCliPlaced A H)
-    {stk : Nat} (h1 : extHookStack ≤ stk := by decide) (h2 : stk ≤ 2 ^ 64 := by decide)
-    (hi : i < 619 := by decide) :
-    subroutine_ok callerProg (lsρ memmoveName)
-      (StoreKit.withLsCodeRoLoaded lsmpl (sessionMemmoveSpec stk)) :=
-  ls_transfer_lscro (callerProg := callerProg) (j := 617) (hC.session_memmove stk h1 h2) hi
-
 theorem memset_lscro_of_cli [LibsignalPlacement] {A : RustAlloc} {H : LibsignalHooks}
     {callerProg : Program} {i : Nat} [IsLsBlockProg callerProg i H]
     (hC : AllocContractsXCliPlaced A H)

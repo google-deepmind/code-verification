@@ -44,18 +44,17 @@ open CryptoVerification.E2E
    fmtWriteHook0 formatInnerHook0 kemDecapsHook kemEncapsHook libcruxHmacHookMallocng
    mlkemDecapsHook mlkemEncaps1Hook mlkemEncaps2Hook mlkemFromSeedHook mlkemPk1Hook mlkemPk2Hook
    mlkemValidatePkHook restoreCallerRegs scalarModHook scalarWideHook stepRustAlloc1
-   stepRustDealloc1 timeAddHook toEdwardsHook torsionFreeHook writeVecHeader)
+   stepRustDealloc1 toEdwardsHook torsionFreeHook writeVecHeader)
 open CryptoVerification.LibsignalAesCbc (returnToLinkRegister)
 open CryptoVerification.LibsignalHmac (compress256Hook)
-open CryptoVerification.LibsignalSession (blackBoxHook)
 open CryptoVerification.LibsignalTripleRatchet
-  (diffieHellmanHook pubFromSecretHook zeroizeSecretHook)
+  (diffieHellmanHook pubFromSecretHook)
 open CryptoVerification.SignalSession
-  (CliHooks Inputs cliBcmpHook cliExternsPlaced cliHookTablePlaced cliPqxdhHookTablePlaced
-   cliProcessInputs durationSinceExactHook fromUtf8Hook isCliPanicSymbolPlaced libsignalSessionLib
+  (CliHooks Inputs cliExternsPlaced cliHookTablePlaced cliPqxdhHookTablePlaced
+   cliProcessInputs isCliPanicSymbolPlaced libsignalSessionLib
    lsReadFileSym lsReadStdinSym lsRustAllocSymCli lsRustAllocZeroedSymCli lsRustDeallocSymCli
-   lsRustNoAllocShimSymCli lsRustReallocSymCli lsStringCloneSym memrchrHook strlenHook unitResult
-   unmodelled writeFileHook writeStdoutHook)
+   lsRustNoAllocShimSymCli lsRustReallocSymCli lsStringCloneSym unitResult
+   writeFileHook writeStdoutHook)
 open CryptoVerification.SignalSession.Placed (DirectOrBranchStub)
 open CryptoVerification.SignalSession.Cli (RunAnswer)
 open CryptoVerification.SignalSession.Cli.RunGlue (CliGhostHooks cliGhostExterns)
@@ -553,7 +552,9 @@ theorem stubReachesTargetOn_of_directOrBranchStub
     rw [hev] at hstep
     exact Steps.step hstep (Steps.refl _)
 
-/-- Active symbol/hook pairs overridden by `ghFixed : CliGhostHooks` in `cliGhostExterns`. -/
+/-- Active symbol/hook pairs overridden by `ghFixed : CliGhostHooks` in `cliGhostExterns`
+    (10 named slots + domain-guarded Cutover-2 `ghFixed.extra` table; `rfl`-equal to
+    `ExtraGhostReplay.GhostSymActiveWithExtra ghFixed ghFixed.extra`). -/
 def GhostSymActive (ghFixed : CliGhostHooks) (sym : String) (f : State → State) : Prop :=
   (sym = lsRustAllocSymCli ∧ f = ghFixed.alloc) ∨
   (sym = lsRustDeallocSymCli ∧ f = ghFixed.dealloc) ∨
@@ -564,14 +565,16 @@ def GhostSymActive (ghFixed : CliGhostHooks) (sym : String) (f : State → State
   (sym = lsReadFileSym ∧ ∃ h, ghFixed.readFile = some ⟨f, h⟩) ∨
   (sym = lsReadStdinSym ∧ ∃ h, ghFixed.readStdin = some ⟨f, h⟩) ∨
   (sym = CryptoVerification.SignalSession.lsMemsetSym ∧ ghFixed.memset = some f) ∨
-  (sym = CryptoVerification.SignalSession.lsMemcpySym ∧ ghFixed.memcpy = some f)
+  (sym = CryptoVerification.SignalSession.lsMemcpySym ∧ ghFixed.memcpy = some f) ∨
+  (CryptoVerification.SignalSession.Cli.RunGlue.cliExtraGhostSyms.contains sym = true ∧
+    ghFixed.extra.lookup sym = some f)
 
 /-- `cliGhostExterns ghFixed baseExt` only adds hooks: if it maps `sym` to `none`, so does `baseExt`. -/
 theorem cliGhostExterns_none_imp
     {ghFixed : CliGhostHooks} {baseExt : String → Option (State → State)} {sym : String}
     (h : cliGhostExterns ghFixed baseExt sym = none) :
     baseExt sym = none := by
-  unfold cliGhostExterns at h
+  unfold cliGhostExterns CryptoVerification.SignalSession.Cli.RunGlue.cliGhostExternsWithExtra at h
   split at h <;> try cases h
   split at h <;> try cases h
   split at h <;> try cases h
@@ -597,7 +600,11 @@ theorem cliGhostExterns_none_imp
           · split at h
             · cases h
             · exact h
-          · exact h
+          · split at h
+            · split at h
+              · cases h
+              · exact h
+            · exact h
 
 private theorem findSome?_const_none {α β : Type} (xs : List α) (p : α → Bool) :
     (xs.findSome? fun x => if p x then (none : Option β) else none) = none := by
@@ -648,7 +655,7 @@ private theorem cliGhostExterns_some_cases
     {sym : String} {f : State → State}
     (h : cliGhostExterns ghFixed baseExt sym = some f) :
     GhostSymActive ghFixed sym f ∨ baseExt sym = some f := by
-  unfold cliGhostExterns at h
+  unfold cliGhostExterns CryptoVerification.SignalSession.Cli.RunGlue.cliGhostExternsWithExtra at h
   cases hc1 : (sym == lsRustAllocSymCli) with
   | true =>
     simp only [hc1, ↓reduceIte] at h
@@ -753,10 +760,24 @@ private theorem cliGhostExterns_some_cases
                         rw [hmc] at h
                         injection h with h
                         subst h
-                        exact Or.inl (Or.inr (Or.inr (Or.inr (Or.inr (Or.inr (Or.inr (Or.inr (Or.inr (Or.inr ⟨beq_iff_eq.mp hc10, hmc⟩)))))))))
+                        exact Or.inl (Or.inr (Or.inr (Or.inr (Or.inr (Or.inr (Or.inr (Or.inr (Or.inr (Or.inr (Or.inl ⟨beq_iff_eq.mp hc10, hmc⟩))))))))))
                     | false =>
                       simp only [hc10, Bool.false_eq_true, ↓reduceIte] at h
-                      exact Or.inr h
+                      cases hc11 : CryptoVerification.SignalSession.Cli.RunGlue.cliExtraGhostSyms.contains sym with
+                      | true =>
+                        simp only [hc11, ↓reduceIte] at h
+                        cases hex : ghFixed.extra.lookup sym with
+                        | none =>
+                          rw [hex] at h
+                          exact Or.inr h
+                        | some g =>
+                          rw [hex] at h
+                          injection h with h
+                          subst h
+                          exact Or.inl (Or.inr (Or.inr (Or.inr (Or.inr (Or.inr (Or.inr (Or.inr (Or.inr (Or.inr (Or.inr ⟨hc11, hex⟩))))))))))
+                      | false =>
+                        simp only [hc11, Bool.false_eq_true, ↓reduceIte] at h
+                        exact Or.inr h
 
 private theorem findSome?_stubs_cliGhostExterns_cases
     (exts : List String) (ρ : String → BitVec 64) (base pc : BitVec 64)
@@ -1490,11 +1511,7 @@ private theorem table_cliHookTablePlaced_execFrozen (mmpl : Obj.MultiPlacement) 
   rcases hp with hpq | hcli
   · exact table_cliPqxdhPlaced_execFrozen mmpl W.C W.Q p hpq
   · simp only [List.mem_cons, List.not_mem_nil, or_false] at hcli
-    rcases hcli with rfl | rfl | rfl | rfl | rfl | rfl | rfl | rfl | rfl | rfl |
-      rfl | rfl | rfl | rfl | rfl | rfl | rfl | rfl | rfl
-    · intro u hfr; unfold hookMemmove hookMemcpy; rw [retHook_mem]; exact execFrozen_writeBytes hfr _ _
-    · intro _ hfr; exact hfr
-    · intro u hfr; unfold strlenHook; dsimp only; split <;> exact hfr
+    rcases hcli with rfl | rfl | rfl | rfl | rfl | rfl | rfl | rfl | rfl
     · intro u hfr
       unfold writeFileHook; dsimp only
       split
@@ -1505,39 +1522,13 @@ private theorem table_cliHookTablePlaced_execFrozen (mmpl : Obj.MultiPlacement) 
           · exact hfr
           · split <;> exact hfr
     · intro u hfr; unfold writeStdoutHook; dsimp only; split <;> exact hfr
-    · intro u hfr
-      unfold memrchrHook; dsimp only
-      split
-      · exact hfr
-      · split <;> exact hfr
-    · intro u hfr
-      unfold fromUtf8Hook; dsimp only
-      split
-      · exact hfr
-      · split
-        · rw [retHook_mem]
-          exact execFrozen_write64 (execFrozen_write64 (execFrozen_write64 hfr _ _) _ _) _ _
-        · rw [retHook_mem]
-          exact execFrozen_write16 (execFrozen_write64 (execFrozen_write64 hfr _ _) _ _) _ _
     · intro _ hfr; exact hfr
     · intro u hfr; unfold formatInnerHook0; rw [retHook_mem]; exact execFrozen_writeVecHeader hfr _ _ _ _
-    · intro u hfr
-      unfold durationSinceExactHook; dsimp only
-      split
-      · exact hfr
-      · split
-        · rw [retHook_mem]
-          exact execFrozen_write32 (execFrozen_write64 (execFrozen_write64 hfr _ _) _ _) _ _
-        · exact hfr
-    · intro u hfr; unfold timeAddHook; dsimp only; split <;> split <;> exact hfr
-    · intro _ hfr; exact hfr
     · intro u hfr; unfold compress256Hook; rw [returnToLinkRegister_mem]; exact execFrozen_writeBytes hfr _ _
     · exact execFrozen_aesEncHookMallocng mmpl W.C.E
     · exact execFrozen_aesDecHookMallocng mmpl W.C.D
     · intro u hfr; unfold pubFromSecretHook; rw [retHook_mem]; exact execFrozen_writeBytes hfr _ _
     · intro u hfr; unfold diffieHellmanHook; rw [retHook_mem]; exact execFrozen_writeBytes hfr _ _
-    · intro u hfr; unfold zeroizeSecretHook; rw [retHook_mem]; exact execFrozen_writeBytes hfr _ _
-    · intro u hfr; unfold zeroizeSecretHook; rw [retHook_mem]; exact execFrozen_writeBytes hfr _ _
 
 /-- Every hook `f` in `cliExternsPlaced mmpl W` (`39` rows + `Rust.panicked`) preserves
     `ExecFrozen` unconditionally. -/
@@ -1595,11 +1586,7 @@ private theorem table_cliHookTablePlaced_fdsGe3Closed (mmpl : Obj.MultiPlacement
   rcases hp with hpq | hcli
   · exact table_cliPqxdhPlaced_fdsGe3Closed mmpl W p hpq
   · simp only [List.mem_cons, List.not_mem_nil, or_false] at hcli
-    rcases hcli with rfl | rfl | rfl | rfl | rfl | rfl | rfl | rfl | rfl | rfl |
-      rfl | rfl | rfl | rfl | rfl | rfl | rfl | rfl | rfl
-    · exact Or.inl (fun _ hfs => hfs)
-    · exact Or.inl (fun _ hfs => hfs)
-    · exact Or.inl (fun u hfs => by unfold strlenHook; dsimp only; split <;> exact hfs)
+    rcases hcli with rfl | rfl | rfl | rfl | rfl | rfl | rfl | rfl | rfl
     · refine Or.inl (fun u hfs => ?_)
       unfold writeFileHook; dsimp only
       split
@@ -1613,30 +1600,11 @@ private theorem table_cliHookTablePlaced_fdsGe3Closed (mmpl : Obj.MultiPlacement
             · exact hfs
             · exact fdsGe3Closed_setFile _ _ hfs
     · exact Or.inl (fun u hfs => by unfold writeStdoutHook; dsimp only; split <;> exact hfs)
-    · exact Or.inl (fun u hfs => by
-        unfold memrchrHook; dsimp only
-        split
-        · exact hfs
-        · split <;> exact hfs)
-    · exact Or.inl (fun u hfs => by
-        unfold fromUtf8Hook; dsimp only
-        split
-        · exact hfs
-        · split <;> exact hfs)
     · exact Or.inl (fun _ hfs => hfs)
-    · exact Or.inl (fun _ hfs => hfs)
-    · exact Or.inl (fun u hfs => by
-        unfold durationSinceExactHook; dsimp only
-        split
-        · exact hfs
-        · split <;> exact hfs)
-    · exact Or.inl (fun u hfs => by unfold timeAddHook; dsimp only; split <;> split <;> exact hfs)
     · exact Or.inl (fun _ hfs => hfs)
     · exact Or.inl (fun _ hfs => hfs)
     · exact Or.inr (Or.inl rfl)
     · exact Or.inr (Or.inr (Or.inl rfl))
-    · exact Or.inl (fun _ hfs => hfs)
-    · exact Or.inl (fun _ hfs => hfs)
     · exact Or.inl (fun _ hfs => hfs)
     · exact Or.inl (fun _ hfs => hfs)
 

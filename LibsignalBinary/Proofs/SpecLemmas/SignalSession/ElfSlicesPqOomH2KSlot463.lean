@@ -53,6 +53,7 @@ public import LibsignalBinary.Proofs.SpqrV1.Top.InitialState.DefsPlacedBudget
 public import LibsignalBinary.Proofs.TripleRatchet.Record.DefsBudget
 public meta import LibsignalBinary.Proofs.Common.SharedHelpers -- shake: keep
 import LibsignalBinary.Proofs.Common.SharedHelpers
+import LibsignalBinary.Proofs.HookDischarge.Libc.Memmove
 import LibsignalBinary.Proofs.SignalSession.Cli.Main.Proofs.KeepsFs
 import LibsignalBinary.Proofs.SignalSession.Cli.Run.Glue.BcmpHookPlaced
 import LibsignalBinary.Proofs.SpqrV1.States.Recv.TopPlacedBudgetSat
@@ -94,18 +95,16 @@ open CryptoVerification.LibsignalTripleRatchet (SendCall extHookStack)
 open CryptoVerification.LibsignalTripleRatchetRepr (signalMessageAt uuidTryParse)
 open CryptoVerification.RustHeap (vecU8)
 open CryptoVerification.SignalSession (
-  CliHooks cliBcmpHook cliElfBytes cliElfImage cliExternsPlaced libsignalSessionLib lsReadFileSym
+  CliHooks cliElfBytes cliElfImage cliExternsPlaced libsignalSessionLib lsReadFileSym
 )
-open CryptoVerification.SignalSession.Cli (PathGhost StoresGhost cliBcmpSpec)
+open CryptoVerification.SignalSession.Cli (PathGhost StoresGhost)
 open CryptoVerification.SignalSession.Cli.MainHops (cliIo cliRunBudgets cliRunNeeds cliWrOk)
 open CryptoVerification.SignalSession.Cli.Placed (blkPl_589 lsProg_589)
 open CryptoVerification.SignalSession.Cli.Run.Placed (lsProg_579)
 open CryptoVerification.SignalSession.Cli.RunCompose (
   DecSigGhost RunSem idVtPlaced mkSlot sessVtPlaced withCodeOk
 )
-open CryptoVerification.SignalSession.Cli.RunGlue (
-  CliGhostHooks cliExternsPlaced_bcmp cliGhostExterns cliGhostExterns_bcmp
-)
+open CryptoVerification.SignalSession.Cli.RunGlue (CliGhostHooks cliGhostExterns)
 open CryptoVerification.SignalSession.Cli.RunProofs (cliDecryptPrekeyNeed cliDecryptSignalNeed)
 open CryptoVerification.SignalSession.Cli.RunProofs.DecryptLemmas (toDecryptGhost)
 open CryptoVerification.SignalSession.Cli.RunSkeleton (RunBudgets pathNeed)
@@ -116,7 +115,7 @@ open CryptoVerification.SpqrV1.ChainProofs (bytesAt)
 open CryptoVerification.SpqrV1.Top.InitialState (InitialStateGhost)
 open LibsignalBinary.Heap (AllocCostModel AllocEvent BudgetLimits FitsEnv RustCliAllocBudget SeqEnv)
 open LibsignalBinary.Heap.Fine (fineCostModel fineHookRustCliAllocBudget)
-open LibsignalBinary.Heap.SpecBudget (FmtWriteEnv FormatInnerEnv aesDecBudgetSpec withVmPreserved)
+open LibsignalBinary.Heap.SpecBudget (FmtWriteEnv FormatInnerEnv aesDecBudgetSpec)
 open LibsignalBinary.Proofs.PeakBudget.CliFitsTraceArith (cliBudgetLimits)
 open LibsignalBinary.Proofs.PeakBudget.RealCliRunEnvMemFixed (
   decBinaryIdKitPlacedBudgetFixed decBinarySessKitPlacedBudgetFixed
@@ -165,7 +164,7 @@ open LibsignalBinary.Proofs.SignalSession.Cli.Run.Proofs.Ratchet.DecryptSignalPl
 )
 open LibsignalBinary.Proofs.SignalSession.Cli.Run.SkeletonPlacedBudget (RunHooksPlaced)
 open LibsignalBinary.Proofs.SignalSession.Cli.Run.Slots.CliHookSatPlacedBudget (
-  CliGhostAllocHooks CliGhostSpqrAllocHooks cliExternsPlaced_bcmp_budget_sat
+  CliGhostAllocHooks CliGhostSpqrAllocHooks
 )
 open LibsignalBinary.Proofs.SignalSession.Cli.SpecsPlacedBudget (
   AllocContractsFsPlaced dirGetSpecPlaced pathSpecPlaced
@@ -252,12 +251,6 @@ theorem h2k463_dirGet_withFds_ok [LibsignalPlacement]
         (RunBudgets.dirGetNeed ⟨cliRunBudgets.readFile⟩)) := by
   let H := cliGhostExterns gh (cliExternsPlaced mmpl W)
   have hsh := SessKitHooksPlaced.of_runHooks hhWithFds
-  have hbcmp : HookSat H "bcmp" (withVmPreserved cliBcmpSpec).keepsFs := by
-    obtain ⟨f, hf_eq, hf_ok⟩ := cliExternsPlaced_bcmp_budget_sat mmpl W
-    have hf : f = cliBcmpHook W.bcmp :=
-      Option.some.inj (hf_eq.symm.trans (cliExternsPlaced_bcmp mmpl W))
-    subst hf
-    exact ⟨cliBcmpHook W.bcmp, cliGhostExterns_bcmp mmpl gh W, hf_ok.keepsFs (fun _ => rfl)⟩
   have hPathPool : subroutine_ok (lsProg_589 H) (lsmpl.base 596)
       (pathSpecPlaced (withFds A) lim PathEnv pathNeed) :=
     hsh.path (callerProg := lsProg_589 H) (i := 589) (Nat.le_refl pathNeed) (by decide)
@@ -274,7 +267,7 @@ theorem h2k463_dirGet_withFds_ok [LibsignalPlacement]
           (RunBudgets.dirGetNeed ⟨cliRunBudgets.readFile⟩))) :=
     dirGet_placed_ok_of_h2k_fd
       (pathProg := lsProg_589 H) (jPath := 589)
-      (fun _ hp => hp.2) hAllocFs hbcmp (by decide) (by decide)
+      (fun _ hp => hp.2) hAllocFs hhWithFds.bcmp (by decide) (by decide)
       hPathFd hReadSatFd hlr (hhWithFds.fs (lsProg_589 H) 589)
       (Nat.le_refl (RunBudgets.dirGetNeed ⟨cliRunBudgets.readFile⟩))
       (fun _ _ _ _ h => h)
@@ -611,7 +604,8 @@ open CryptoVerification.SignalSession
   (cliHookTablePlaced lsReadStdinSym lsRustAllocSymCli lsRustAllocZeroedSymCli
    lsRustDeallocSymCli lsRustNoAllocShimSymCli lsRustReallocSymCli lsStringCloneSym)
 open CryptoVerification.SignalSession.Cli.RunGlue
-  (cliExternsPlaced_row cliGhostExterns_other hookSat_of_eq withPanics_cliGhostExterns)
+  (cliExternsPlaced_row cliExtraGhostSyms cliGhostExterns_other hookSat_of_eq
+   withPanics_cliGhostExterns)
 open CryptoVerification.SignalSession.Cli.Slots
   (cliGhostExterns_sat_of_cliExternsPlaced compress256_row_placed trTrapExternsPlaced)
 open CryptoVerification.SpqrV1.Alloc (growOneStack)
@@ -630,6 +624,7 @@ open CryptoVerification.SpqrV1Sync.SendTotal
   (BOkTight isEkSide st_bCodec st_bRecvCt_tight st_bRecvEk_tight st_bSize_tight)
 open CryptoVerification.SpqrV1Sync.TopSync (topPb)
 open LibsignalBinary.Heap.SpecBudget (libcruxHmacBudgetSpec)
+open LibsignalBinary.Proofs.HookDischarge.Libc.Memmove (sessionMemmoveBoundedSpec)
 open LibsignalBinary.Proofs.PeakBudget.DecPkD2cSlotOkLinkedAux
   (spqrRecvPlacedInnerSpecXTOfEnv_of_placedSpecXT)
 open LibsignalBinary.Proofs.PeakBudget.SpqrBoundedCredit (StatesIntoPbTightEnv)
@@ -714,9 +709,11 @@ private theorem h2k463_cliGhost_row_aux (mmpl : MultiPlacement) (g : CliGhostHoo
     (h5 : sym ≠ lsRustNoAllocShimSymCli := by decide) (h6 : sym ≠ lsStringCloneSym := by decide)
     (h7 : sym ≠ lsReadFileSym := by decide) (h8 : sym ≠ lsReadStdinSym := by decide)
     (h9 : sym ≠ CryptoVerification.SignalSession.lsMemsetSym := by decide)
-    (h10 : sym ≠ CryptoVerification.SignalSession.lsMemcpySym := by decide) :
+    (h10 : sym ≠ CryptoVerification.SignalSession.lsMemcpySym := by decide)
+    (hExtra : cliExtraGhostSyms.contains sym = false ∨ g.extra.lookup sym = none := by
+      left; decide) :
     cliGhostExterns g (cliExternsPlaced mmpl W) sym = some f :=
-  (cliGhostExterns_other g _ h1 h2 h3 h4 h5 h6 h7 h8 h9 h10).trans
+  (cliGhostExterns_other g _ h1 h2 h3 h4 h5 h6 h7 h8 h9 h10 hExtra).trans
     (cliExternsPlaced_row mmpl W hrow)
 
 private def h2k463_FromPbStateGuard (F : ShaCompress) (pb : V1State) : Prop :=
@@ -913,14 +910,16 @@ private theorem h2k463_spqrRecv_topStateGuarded_seam_of_contracts [LibsignalPlac
 
 private theorem h2k463_hookSat_withAllocVmPreserved_memmove_of_zero
     {H : String → Option (State → State)} {sym : String} (hookStack : Nat)
-    (h : HookSat H sym (withAllocVmPreserved (sessionMemmoveSpec 0))) :
-    HookSat H sym (withAllocVmPreserved (sessionMemmoveSpec hookStack)) := by
+    (h : HookSat H sym (withAllocVmPreserved (sessionMemmoveBoundedSpec 0))) :
+    HookSat H sym (withAllocVmPreserved (sessionMemmoveBoundedSpec hookStack)) := by
   refine ProofLib.HookSat.mono h fun ⟨base, buf, dst, src, len⟩ R s0 hpre =>
     ⟨(base, buf, dst, src, len), stackAt s0.sp hookStack ∗ R, ?_, fun sf hpost => ?_⟩
-  · dsimp only [withAllocVmPreserved, sessionMemmoveSpec, libcMemmoveSpec, stackAt] at hpre ⊢
+  · dsimp only [withAllocVmPreserved, sessionMemmoveBoundedSpec, sessionMemmoveSpec,
+      libcMemmoveSpec, stackAt] at hpre ⊢
     simp only [ProofLib.memRegion_zero, sepConj_emp]
     ac_nf at hpre ⊢
-  · dsimp only [withAllocVmPreserved, sessionMemmoveSpec, stackAt] at hpost ⊢
+  · dsimp only [withAllocVmPreserved, sessionMemmoveBoundedSpec, sessionMemmoveSpec,
+      stackAt] at hpost ⊢
     simp only [ProofLib.memRegion_zero, sepConj_emp] at hpost
     ac_nf at hpost ⊢
 
@@ -953,7 +952,7 @@ private theorem h2k463_statesRecv_recv_exactTight_ok [LibsignalPlacement]
     (cliRecvCt2PlacedAllocExt mmpl gh W hA hExt)
     (h2k463_hookSat_withAllocVmPreserved_memmove_of_zero growOneStack
       (hookSat_of_eq (hExt_wp _ (by decide))
-        (cliExternsPlaced_sessionMemmove_allocVm_sat mmpl gh W)))
+        (cliExternsPlaced_sessionMemmove_allocVm_sat mmpl gh W hA.extraOk)))
     hmemset_wp
     (hookSat_of_eq (hExt_wp _ (by decide))
       (cliGhostExterns_sat_of_cliExternsPlaced mmpl gh W

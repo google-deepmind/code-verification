@@ -162,8 +162,8 @@ theorem cliExterns_timeAdd (W : CliHooks) :
   ⟨E2E.timeAddHook, cliExterns_row W (timeAdd_row W), E2E.HooksE.timeAddHook_ok⟩
 theorem cliExterns_bcmp (W : CliHooks) : HookSat (cliExterns W) cliBcmpName cliBcmpSpec :=
   RunGlue.cli_hookSat_bcmp W
-theorem cliBcmpHook_vregs_ok (W : CliHooks) :
-    HookOk (cliBcmpHook W.bcmp) E2E.HooksE.bcmpVregsSpec := by
+theorem cliBcmpHook_vregs_ok (_W : CliHooks) :
+    HookOk (cliBcmpHook CryptoVerification.SignalSession.cliDefaultBcmp) E2E.HooksE.bcmpVregsSpec := by
   refine retHook_ok fun x R s0 hrun hpre _hsp => ?_
   simp only [E2E.HooksE.bcmpVregsSpec, sepConj_assoc, satisfies_pure_sepConj] at hpre
   rcases hpre with ⟨⟨hx0, hx1, hx2, hlen⟩, hmem⟩
@@ -179,13 +179,13 @@ theorem cliBcmpHook_vregs_ok (W : CliHooks) :
   rw [hx0, hx1, hx2, hreadA, hreadB]
   try rw [CryptoVerification.LibsignalSession.NonVacuityWitness.readReg64_setPC_writeReg64_x0]
   simp only [sepConj_assoc, satisfies_pure_sepConj]
-  exact ⟨⟨W.bcmp_ok x.bsA x.bsB hlen.symm, rfl, rfl⟩, hmem⟩
+  exact ⟨⟨CryptoVerification.SignalSession.cliDefaultBcmp_ok x.bsA x.bsB hlen.symm, rfl, rfl⟩, hmem⟩
 theorem cliExterns_bcmpVregs (W : CliHooks) :
     HookSat (cliExterns W) E2E.bcmpName E2E.HooksE.bcmpVregsSpec :=
-  ⟨cliBcmpHook W.bcmp, cliExterns_row W (RunGlue.bcmp_row W), cliBcmpHook_vregs_ok W⟩
+  ⟨cliBcmpHook CryptoVerification.SignalSession.cliDefaultBcmp, cliExterns_row W (RunGlue.bcmp_row W), cliBcmpHook_vregs_ok W⟩
 theorem cliExterns_e2eBcmp (W : CliHooks) :
     HookSat (cliExterns W) E2E.bcmpName E2E.HooksE.e2eBcmpSpec :=
-  ⟨cliBcmpHook W.bcmp, cliExterns_row W (RunGlue.bcmp_row W),
+  ⟨cliBcmpHook CryptoVerification.SignalSession.cliDefaultBcmp, cliExterns_row W (RunGlue.bcmp_row W),
     E2E.HooksE.hookOk_bcmpSpec_of_vregs (cliBcmpHook_vregs_ok W)⟩
 theorem cliExterns_memcpyRegionRO (W : CliHooks) :
     HookSat (cliExterns W) memcpyName CryptoVerification.SpqrV1.Alloc.sessionMemcpyRegionROSpec :=

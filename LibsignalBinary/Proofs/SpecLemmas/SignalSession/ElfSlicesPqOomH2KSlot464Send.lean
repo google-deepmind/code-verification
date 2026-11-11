@@ -14,6 +14,7 @@ public meta import LibsignalBinary.Proofs.Common.SharedHelpers -- shake: keep
 import Arm64.Trusted.Spec.Hoare
 import Arm64.Trusted.Spec.SepLogic
 import LibsignalBinary.Proofs.Common.SharedHelpers
+import LibsignalBinary.Proofs.HookDischarge.Libc.Memmove
 
 /-!
 # `{A}`-Generic Block-`427` (`spqr::send::<Coins>`) Guarded-Tight Seam (`ElfSlicesPqOomH2KSlot464Send`)
@@ -76,6 +77,7 @@ open LibsignalBinary.Proofs.Cli.SpqrV1.Top.Send.DefsPlacedBudget
 open LibsignalBinary.Proofs.Cli.SpqrV1.Top.Send.SeamSpecsPlacedBudget
   (decodeStatePlacedSpecXOfEnv spqrSendCoinsPlacedSpecOfEnv spqrSendCoinsPlacedSpecTOfEnv
    statesFromPbPlacedSpecXOfEnv)
+open LibsignalBinary.Proofs.HookDischarge.Libc.Memmove (sessionMemmoveBoundedSpec)
 open LibsignalBinary.Proofs.PeakBudget.SpqrCodecPeakSpec (StatesFromPbTightEnv)
 open LibsignalBinary.Proofs.PeakBudget.SpqrTightLeafBridges
   (tlb_DecodeStateGuardedEnv tlb_DecodeStateTightEnv
@@ -305,9 +307,9 @@ private theorem cliSpqrSend_statesFromPb_exact_on [LibsignalPlacement]
       memcpy := hookSat_allocMemcpyVm_of_framelessAcp hRecv.memcpy
     }
   have hmemmove0 : HookSat (Rust.withPanics H) spqrMemmoveSym
-      (withAllocVmPreserved (CryptoVerification.LibsignalTripleRatchet.sessionMemmoveSpec 0)) :=
+      (withAllocVmPreserved (sessionMemmoveBoundedSpec 0)) :=
     hookSat_of_eq (hExt_withPanics_id mmpl gh W _ (by decide))
-      (cliExternsPlaced_sessionMemmove_allocVm_sat mmpl gh W)
+      (cliExternsPlaced_sessionMemmove_allocVm_sat mmpl gh W hA.extraOk)
   have hok333 := e2b_states_from_pb_ok_x_placed_exact (F := W.C.F) hFromPbHooks hmemmove0
   have hok : subroutine_ok (spqrSendPlacedProg H) (lsmpl.base 333)
       (withLsCodeRoLoaded lsmpl

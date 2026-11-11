@@ -5,7 +5,7 @@
 # If any pinned source file changes blob, `machine_free_check.py` fails closed (exit 1) until re-signed.
 # blob-pin: LibsignalBinary/Specifications/LibsignalTripleRatchetRepr.lean = e1b0ceb39e3a3afd4b546809ac9a729fabf98835
 # blob-pin: LibsignalBinary/Specifications/LibsignalAesCbc.lean = c069e18e7a9c23c24482f53b68c21af4e8368993
-# blob-pin: LibsignalBinary/Specifications/LibsignalTripleRatchet.lean = 390f93c1c403c17a88fff553749bb01e65394ae9
+# blob-pin: LibsignalBinary/Specifications/LibsignalTripleRatchet.lean = 907c8f78eb0fa76affaf359d0c1074fddf56c94b
 # Re-pinned after dead-declaration removal; no pinned constant changed; approved by swarat.
 # Re-pinned again after the trust-banner edit of #808: one comment line changed in each of LibsignalTripleRatchetRepr.lean and LibsignalAesCbc.lean; no line moved, no pinned constant changed.
 # Re-pinned after the computational-TCB rename (`scripts/rename_computational_tcb.tsv`): identifier renames in all three files, no line added or removed, no pinned constant renamed or changed.
@@ -14,6 +14,7 @@
 # Re-pinned after the `lake shake` import narrowing: header import lines only (LibsignalTripleRatchetRepr: `-- shake: keep` comment on 1 import; LibsignalTripleRatchet: 2 `public import` lines removed, so l.NNN references below shift by −2); no pinned constant changed (GK ledger rows 84/85: statement hashes identical).
 # Re-pinned after merging #846 onto the import-narrowed main; proof-side definitions moved to *ProofDefs and unused open removed (l.NNN references below remapped by declaration); no pinned constant changed.
 # Pinned engine submodule commit for the `Arm64.*` entries (Arm64/Trusted/ISA/State.lean): engine submodule c2ef2f44e5988bf39d73cbf7fb5c784417818bd3
+# Re-pinned after the C2 trust-banner edit of LibsignalTripleRatchet.lean (second stock `ld.lld` cutover: `zeroizeSecretHook` left the hook table): comment-only, 5 docstring lines rewritten, no line added or removed, l.NNN references unchanged, no pinned constant changed.
 # require-tag: [MODEL]
 
 # --- Realized lemmas of signed parents (Q1 addendum, GK row 138) ---

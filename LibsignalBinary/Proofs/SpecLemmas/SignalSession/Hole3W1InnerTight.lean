@@ -175,6 +175,7 @@ import LibsignalBinary.Proofs.ConsumeMessageKey.AssemblyBudgetAux
 import LibsignalBinary.Proofs.ConsumeMessageKey.HmacProofs.NewFromSliceSecondHalf
 import LibsignalBinary.Proofs.E2E.Pqxdh.ResponderCore.CryptoBridgePlacedBudgetSat
 import LibsignalBinary.Proofs.E2E.Pqxdh.ResponderCore.CryptoCalleesPlacedBudgetSat
+import LibsignalBinary.Proofs.HookDischarge.Libc.Memmove
 import LibsignalBinary.Proofs.PeakBudget.SpqrSendTieLemmas
 import LibsignalBinary.Proofs.SpqrV1.Top.Send.Pure
 import LibsignalBinary.Proofs.SpqrV1.Top.Send.Top
@@ -372,6 +373,7 @@ open LibsignalBinary.Proofs.SpqrV1.States.FromPb.TopPlacedTightBudgetR
 open LibsignalBinary.Proofs.SpqrV1.States.FromPb.Variant2aPlacedBudgetAux
   (FromPbAllocHooksBudget)
 open CryptoVerification.SpqrV1.Alloc (spqrMemmoveSym)
+open LibsignalBinary.Proofs.HookDischarge.Libc.Memmove (sessionMemmoveBoundedSpec)
 open LibsignalBinary.Proofs.SpqrV1.Chain.NextKeyInternalBudget (withAllocVmPreserved)
 open CryptoVerification.SpqrV1.Top.DecodeState.Placed (blkPC_325 blkPl_325)
 open CryptoVerification (ls_blockPlacement_base)
@@ -1263,9 +1265,9 @@ private theorem w1t_cliSpqrSend_statesFromPb_exact_on [LibsignalPlacement]
       memcpy := w1t_hookSat_allocMemcpyVm_of_framelessAcp hRecv.memcpy
     }
   have hmemmove0 : HookSat (Rust.withPanics H) spqrMemmoveSym
-      (withAllocVmPreserved (CryptoVerification.LibsignalTripleRatchet.sessionMemmoveSpec 0)) :=
+      (withAllocVmPreserved (sessionMemmoveBoundedSpec 0)) :=
     hookSat_of_eq (w1t_s427_hExt_withPanics_id mmpl gh W _ (by decide))
-      (cliExternsPlaced_sessionMemmove_allocVm_sat mmpl gh W)
+      (cliExternsPlaced_sessionMemmove_allocVm_sat mmpl gh W hA.extraOk)
   have hok333 := e2b_states_from_pb_ok_x_placed_exact (F := W.C.F) hFromPbHooks hmemmove0
   have hok : subroutine_ok (spqrSendPlacedProg H) (lsmpl.base 333)
       (withLsCodeRoLoaded lsmpl
@@ -3387,7 +3389,7 @@ open CryptoVerification.SignalSession (
 )
 open CryptoVerification.SignalSession.Cli (StoresGhost)
 open CryptoVerification.SignalSession.Cli.KitInst (
-  cliGhostExterns_blackBox cliIdentityVtRoSym
+  cliGhostExterns_blackBox_sat cliIdentityVtRoSym
 )
 open CryptoVerification.SignalSession.Cli.KitInst.IdKit (
   savePollNeed saveShimNeed trustPollNeed trustShimNeed
@@ -3458,7 +3460,7 @@ open LibsignalBinary.Proofs.PublicApi.MessageEncrypt.Seg.SegTrustCommonPlacedBud
 )
 open LibsignalBinary.Proofs.SignalSession.Cli.F3.HRead.ReadFileBudgetPlaced (ReadFileRuleEnvFixed)
 open LibsignalBinary.Proofs.SignalSession.Cli.KitInst.IdentityKitOkPlacedBudget (
-  cliIdKitOkIE_placed
+  cliIdKitOkIE_placed_sat
 )
 open LibsignalBinary.Proofs.SignalSession.Cli.M24.B2MainFrameComposeBudget (libsignalPlacementOf)
 open LibsignalBinary.Proofs.SignalSession.Cli.M24.MainOkCliExtB2NeedLocksInst (cliRunSemD2c_placed)
@@ -3488,12 +3490,11 @@ open LibsignalBinary.Proofs.SignalSession.Cli.Run.SkeletonPlacedBudget (RunHooks
 open LibsignalBinary.Proofs.SignalSession.Cli.Run.Slots.CliHookSatPlacedBudget (
   CliGhostAllocHooks CliGhostSpqrAllocHooks
   cliExternsPlaced_alloc_budget_sat cliExternsPlaced_compress256Multi_budget_sat
-  cliExternsPlaced_dealloc_budget_sat cliExternsPlaced_durationSinceBounded_budget_sat
-  cliExternsPlaced_exactMemcpy_sat
+  cliExternsPlaced_dealloc_budget_sat cliExternsPlaced_exactMemcpy_sat
   cliExternsPlaced_framelessMemcpy_budget_sat cliExternsPlaced_noAllocShim_budget_sat
   cliExternsPlaced_realloc_budget_sat cliExternsPlaced_sessionMemcpyRegion_budget_sat
   cliExternsPlaced_sessionMemsetRegion_budget_sat cliExternsPlaced_shim_budget_sat
-  cliExternsPlaced_timeAdd_budget_sat
+  cliGhostExterns_durationSinceBounded_budget_sat cliGhostExterns_timeAdd_budget_sat
 )
 open LibsignalBinary.Proofs.SignalSession.Cli.SpecsPlacedBudget (readFileSpecPlaced)
 open LibsignalBinary.Proofs.SignalSession.Cli.SpqrV1PlacedSeamsBudget (spqrSendCoinsPlacedSpecTOfEnv)
@@ -3771,10 +3772,9 @@ private theorem w1t_publicApiEncHooks [LibsignalPlacement] {M : AllocCostModel}
   realloc := cliExternsPlaced_realloc_budget_sat mmpl g W hG
   memcpy := cliExternsPlaced_sessionMemcpyRegion_budget_sat mmpl g W hG
   stringClone := hh.stringClone
-  timeAdd := cliGhostExterns_sat_of_cliExternsPlaced mmpl g W
-    (cliExternsPlaced_timeAdd_budget_sat mmpl W)
-  durationSince := cliGhostExterns_sat_of_cliExternsPlaced mmpl g W
-    (cliExternsPlaced_durationSinceBounded_budget_sat mmpl W)
+  timeAdd := cliGhostExterns_timeAdd_budget_sat g (cliExternsPlaced mmpl W) hG.extraOk
+  durationSince :=
+    cliGhostExterns_durationSinceBounded_budget_sat g (cliExternsPlaced mmpl W) hG.extraOk
   handleError := cliGhostExterns_panic_handle_error mmpl g W
   handleAllocError := cliGhostExterns_panic_handle_alloc_error mmpl g W
   expectFailed := cliGhostExterns_panic_option_expect_failed mmpl g W
@@ -4034,7 +4034,7 @@ theorem w1t_w1Inner_of_sendCoins [LibsignalFullPlacement]
   intro F peer hok
   exact withStores_placed_okVT_fs_cli hhooks
     (w1BinarySessKitPlacedFixed_okSE cliRunBudgets F peer h547 hh hRead589 hDeser569 hSer52)
-    (cliIdKitOkIE_placed
+    (cliIdKitOkIE_placed_sat
       (rd := cliIo.rd) (F0 := F) (pathOk := cliWrOk) (peer := peer)
       (readStk := cliRunBudgets.readFile)
       (s1 := trustShimNeed) (s2 := trustPollNeed cliRunBudgets.readFile)
@@ -4042,7 +4042,7 @@ theorem w1t_w1Inner_of_sendCoins [LibsignalFullPlacement]
       (vtSym := cliIdentityVtRoSym)
       (readProg := lsProg_589 H) (jRead := 589)
       h547 (fun _ hp => hp.2) hh hRead589
-      (cliGhostExterns_blackBox mmpl ghFixed W)
+      (cliGhostExterns_blackBox_sat mmpl ghFixed W hG.extraOk)
       (Nat.le_refl _) (Nat.le_refl _) (Nat.le_refl _) (Nat.le_refl _)
       (by decide) (by decide))
     hOtrT hOtrEmpty

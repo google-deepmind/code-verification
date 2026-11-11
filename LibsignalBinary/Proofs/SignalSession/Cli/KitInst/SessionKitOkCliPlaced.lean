@@ -654,8 +654,6 @@ theorem serContractsX_of_runHooks [LibsignalPlacement] (mmpl : Obj.MultiPlacemen
     hh.codecHooks.dealloc
     hh.codecHooks.realloc
     hh.codecHooks.shim
-    (Slots.cliGhostExterns_sat_of_cliExternsPlaced mmpl g W
-      (Slots.cliExternsPlaced_sessionMemmove_sat mmpl W _))
     (hookSat_sessionMemcpy_of_frameless _ hh.codecHooks.memcpy)
     (Slots.cliGhostExterns_panic_handle_error mmpl g W)
     (Slots.cliGhostExterns_panic_handle_alloc_error mmpl g W)
@@ -672,8 +670,6 @@ theorem stage2ContractsMinPlaced_of_runHooks [LibsignalPlacement] (mmpl : Obj.Mu
     hh.codecHooks.realloc
     hh.codecHooks.shim
     (hookSat_sessionMemcpy_of_frameless _ hh.codecHooks.memcpy)
-    (Slots.cliGhostExterns_sat_of_cliExternsPlaced mmpl g W
-      (Slots.cliExternsPlaced_sessionMemmove_sat mmpl W _))
     (Slots.cliGhostExterns_panic_handle_error mmpl g W)
     (Slots.cliGhostExterns_panic_handle_alloc_error mmpl g W)
 

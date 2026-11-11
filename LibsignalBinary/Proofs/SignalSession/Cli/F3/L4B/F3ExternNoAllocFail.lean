@@ -1330,27 +1330,16 @@ private theorem tablePreserves_cliHookTablePlaced (mmpl : Obj.MultiPlacement) (W
   rcases hp with hpq | hcli
   · exact tablePreserves_cliPqxdhPlaced mmpl W.C W.Q p hpq
   · simp only [List.mem_cons, List.not_mem_nil, or_false] at hcli
-    rcases hcli with rfl | rfl | rfl | rfl | rfl | rfl | rfl | rfl | rfl | rfl |
-      rfl | rfl | rfl | rfl | rfl | rfl | rfl | rfl | rfl
-    · exact preservesNoAllocFailed_hookMemmove
-    · exact preservesNoAllocFailed_cliBcmpHook W.bcmp
-    · exact preservesNoAllocFailed_strlenHook
+    rcases hcli with rfl | rfl | rfl | rfl | rfl | rfl | rfl | rfl | rfl
     · exact preservesNoAllocFailed_writeFileHook
     · exact preservesNoAllocFailed_writeStdoutHook
-    · exact preservesNoAllocFailed_memrchrHook
-    · exact preservesNoAllocFailed_fromUtf8Hook W.utf8Err
     · exact preservesNoAllocFailed_fmtWriteHook0
     · exact preservesNoAllocFailed_formatInnerHook0
-    · exact preservesNoAllocFailed_durationSinceExactHook
-    · exact preservesNoAllocFailed_timeAddHook
-    · exact preservesNoAllocFailed_blackBoxHook
     · exact preservesNoAllocFailed_compress256Hook W.C.F
     · exact preservesNoAllocFailed_aesEncHookMallocng mmpl W.C.E
     · exact preservesNoAllocFailed_aesDecHookMallocng mmpl W.C.D
     · exact preservesNoAllocFailed_pubFromSecretHook W.C.pubKey
     · exact preservesNoAllocFailed_diffieHellmanHook W.C.X
-    · exact preservesNoAllocFailed_zeroizeSecretHook
-    · exact preservesNoAllocFailed_zeroizeSecretHook
 
 /-- Every hook in `cliExternsPlaced mmpl W` preserves `allocFailedEvent ∉ s.trace`. -/
 theorem externPreservesNoAllocFailed_cliExternsPlaced

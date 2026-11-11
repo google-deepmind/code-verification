@@ -91,10 +91,12 @@ open CryptoVerification.SignalSession.Cli.MainHops (
   ReadStdinGhost cliExternsPlaced_writeFile cliExternsPlaced_writeStdout cliIo cliWrOk hookNoop_fs
 )
 open CryptoVerification.SignalSession.Cli.RunGlue (
-  CliGhostHooks CliGhostHooksFs FsTHooks IsFsC cliGhostExterns cliGhostExterns_other
-  cliGhostExterns_readFile_some cliGhostExterns_readStdin_some cliGhostExterns_stringClone_some
-  fsTHooks_cliExternsPlaced fsTHooks_cliGhostExterns_of_fs hookNoop_fsT
+  CliGhostHooks CliGhostHooksFs ExtraGhostTable FsTHooks IsFsC cliExtraGhostSyms cliGhostExterns
+  cliGhostExterns_other cliGhostExterns_readFile_some cliGhostExterns_readStdin_some
+  cliGhostExterns_stringClone_some fsTHooks_cliExternsPlaced fsTHooks_cliGhostExterns_of_fs
+  hookNoop_fsT
 )
+open LibsignalBinary.Proofs.SignalSession.Cli.Run.Slots.ExtraGhostSpecs (ExtraFullListSpecOk)
 open VerifiedLibraries.Mallocng (
   IsPow2Align MallocngMaxAllocSize MaxAlignedAllocAlign
   alignedAllocAlignOk mallocngAddrsOfPlacement mallocngAlignedAllocOk mallocngAlignedEffSize
@@ -3503,7 +3505,8 @@ noncomputable def f3CliGhostHooksFixed [LibsignalPlacement]
     (T : F3GhostEntryTargets)
     (mmpl : Obj.MultiPlacement) (brkStart : BitVec 64)
     (lim : BudgetLimits) (stk : Nat)
-    (fMemset fMemcpy : Option (State → State) := none) : CliGhostHooks where
+    (fMemset fMemcpy : Option (State → State) := none)
+    (extra : ExtraGhostTable := []) : CliGhostHooks where
   alloc := f3AllocGhostHookFine keep P_real P_sub T.alloc mmpl brkStart lim
   dealloc := f3DeallocGhostHookFine keep P_real P_sub T.dealloc mmpl brkStart lim
   realloc := f3ReallocGhostHookFine keep P_real P_sub T.realloc mmpl brkStart lim
@@ -3514,6 +3517,7 @@ noncomputable def f3CliGhostHooksFixed [LibsignalPlacement]
   readStdin := some (f3ReadStdinGhostHookFineSub keep P_real P_sub T.readStdin mmpl brkStart lim stk)
   memset := fMemset
   memcpy := fMemcpy
+  extra := extra
 
 theorem cliGhostHooksFs_f3CliGhostHooksFixed [LibsignalPlacement]
     (keep : BitVec 64 → Bool) (P_real P_sub : Program)
@@ -3521,10 +3525,15 @@ theorem cliGhostHooksFs_f3CliGhostHooksFixed [LibsignalPlacement]
     (mmpl : Obj.MultiPlacement) (brkStart : BitVec 64)
     (lim : BudgetLimits) (stk : Nat)
     (fMemset fMemcpy : Option (State → State))
+    (extra : ExtraGhostTable := [])
     (hMsFsT : ∀ f, fMemset = some f → HookFsTraced IsFsC f := by intro _ h; cases h)
-    (hMcFsT : ∀ f, fMemcpy = some f → HookFsTraced IsFsC f := by intro _ h; cases h) :
+    (hMcFsT : ∀ f, fMemcpy = some f → HookFsTraced IsFsC f := by intro _ h; cases h)
+    (hExtraFsT : ∀ sym f,
+      cliExtraGhostSyms.contains sym = true →
+      extra.lookup sym = some f →
+      HookFsTraced IsFsC f := by intro _ _ _ h; cases h) :
     CliGhostHooksFs
-      (f3CliGhostHooksFixed keep P_real P_sub T mmpl brkStart lim stk fMemset fMemcpy) where
+      (f3CliGhostHooksFixed keep P_real P_sub T mmpl brkStart lim stk fMemset fMemcpy extra) where
   alloc_fsT := f3AllocGhostHookFine_fsT keep P_real P_sub T.alloc mmpl brkStart lim
   dealloc_fsT := f3DeallocGhostHookFine_fsT keep P_real P_sub T.dealloc mmpl brkStart lim
   realloc_fsT := f3ReallocGhostHookFine_fsT keep P_real P_sub T.realloc mmpl brkStart lim
@@ -3538,6 +3547,7 @@ theorem cliGhostHooksFs_f3CliGhostHooksFixed [LibsignalPlacement]
     exact f3StringCloneGhostHookFine_fsT keep P_real P_sub T.stringClone mmpl brkStart lim
   memset_fsT := hMsFsT
   memcpy_fsT := hMcFsT
+  extra_fsT := hExtraFsT
 
 theorem fsTHooks_f3CliGhostHooksFixed [LibsignalPlacement]
     (keep : BitVec 64 → Bool) (P_real P_sub : Program)
@@ -3545,15 +3555,20 @@ theorem fsTHooks_f3CliGhostHooksFixed [LibsignalPlacement]
     (mmpl : Obj.MultiPlacement) (W : CliHooks) (brkStart : BitVec 64)
     (lim : BudgetLimits) (stk : Nat)
     (fMemset fMemcpy : Option (State → State))
+    (extra : ExtraGhostTable := [])
     (hMsFsT : ∀ f, fMemset = some f → HookFsTraced IsFsC f := by intro _ h; cases h)
-    (hMcFsT : ∀ f, fMemcpy = some f → HookFsTraced IsFsC f := by intro _ h; cases h) :
+    (hMcFsT : ∀ f, fMemcpy = some f → HookFsTraced IsFsC f := by intro _ h; cases h)
+    (hExtraFsT : ∀ sym f,
+      cliExtraGhostSyms.contains sym = true →
+      extra.lookup sym = some f →
+      HookFsTraced IsFsC f := by intro _ _ _ h; cases h) :
     FsTHooks
       (cliGhostExterns
-        (f3CliGhostHooksFixed keep P_real P_sub T mmpl brkStart lim stk fMemset fMemcpy)
+        (f3CliGhostHooksFixed keep P_real P_sub T mmpl brkStart lim stk fMemset fMemcpy extra)
         (cliExternsPlaced mmpl W)) :=
   fsTHooks_cliGhostExterns_of_fs
     (cliGhostHooksFs_f3CliGhostHooksFixed keep P_real P_sub T mmpl brkStart lim stk
-      fMemset fMemcpy hMsFsT hMcFsT)
+      fMemset fMemcpy extra hMsFsT hMcFsT hExtraFsT)
     (fsTHooks_cliExternsPlaced mmpl W)
 
 open LibsignalBinary.Proofs.SignalSession.Cli.HooksDehook.MemcpyExactCore (HookExactMemcpy)
@@ -3564,6 +3579,7 @@ theorem cliGhostSpqrAllocHooks_f3CliGhostHooksFixed [LibsignalPlacement]
     {mmpl : Obj.MultiPlacement} {brkStart : BitVec 64}
     {lim : BudgetLimits} {stk : Nat}
     {fMemset fMemcpy : Option (State → State)}
+    {extra : ExtraGhostTable}
     (hsvc_real : P_real.svc = Syscall.standard)
     (hsvc_sub : P_sub.svc = Syscall.standard)
     (hreal_no : ∀ pc, keep pc = true → P_real.externAt? pc = none)
@@ -3600,9 +3616,10 @@ theorem cliGhostSpqrAllocHooks_f3CliGhostHooksFixed [LibsignalPlacement]
       HookFsTraced IsFsC f)
     (hMemcpyExact : ∀ f, fMemcpy = some f → HookExactMemcpy f)
     (hMemsetAcp : ∀ f, fMemset = some f →
-      ∀ s : State, (f s).sigActions = s.sigActions ∧ (f s).oracle = s.oracle) :
+      ∀ s : State, (f s).sigActions = s.sigActions ∧ (f s).oracle = s.oracle)
+    (hExtraOk : ExtraFullListSpecOk extra) :
     CliGhostSpqrAllocHooks fineCostModel (fineHookRustCliAllocBudget γ mmpl tp brkStart) lim
-      (f3CliGhostHooksFixed keep P_real P_sub T mmpl brkStart lim stk fMemset fMemcpy) where
+      (f3CliGhostHooksFixed keep P_real P_sub T mmpl brkStart lim stk fMemset fMemcpy extra) where
   alloc := f3AllocGhostHookFine_ok hsvc_real hsvc_sub hreal_no hsub_no hPl hKeepMallocng γ tp hAlloc
   dealloc := f3DeallocGhostHookFine_ok hsvc_real hsvc_sub hreal_no hsub_no hPl hKeepMallocng γ tp hDealloc
   realloc := f3ReallocGhostHookFine_ok hsvc_real hsvc_sub hreal_no hsub_no hPl hKeepMallocng γ tp hRealloc
@@ -3617,6 +3634,7 @@ theorem cliGhostSpqrAllocHooks_f3CliGhostHooksFixed [LibsignalPlacement]
   memcpy := hMemcpy
   memcpy_exact := hMemcpyExact
   memset_acp := hMemsetAcp
+  extraOk := hExtraOk
   allocZeroed :=
     f3AllocZeroedGhostHookFine_ok hsvc_real hsvc_sub hreal_no hsub_no hPl hKeepMallocng γ tp hAllocZeroed
   allocZeroed_fs := f3AllocZeroedGhostHookFine_fs keep P_real P_sub T.allocZeroed mmpl brkStart lim
@@ -3628,6 +3646,7 @@ theorem cliGhostAllocHooks_f3CliGhostHooksFixed [LibsignalPlacement]
     {mmpl : Obj.MultiPlacement} {brkStart : BitVec 64}
     {lim : BudgetLimits} {stk : Nat}
     {fMemset fMemcpy : Option (State → State)}
+    {extra : ExtraGhostTable}
     (hsvc_real : P_real.svc = Syscall.standard)
     (hsvc_sub : P_sub.svc = Syscall.standard)
     (hreal_no : ∀ pc, keep pc = true → P_real.externAt? pc = none)
@@ -3662,9 +3681,10 @@ theorem cliGhostAllocHooks_f3CliGhostHooksFixed [LibsignalPlacement]
       HookFsTraced IsFsC f)
     (hMemcpyExact : ∀ f, fMemcpy = some f → HookExactMemcpy f)
     (hMemsetAcp : ∀ f, fMemset = some f →
-      ∀ s : State, (f s).sigActions = s.sigActions ∧ (f s).oracle = s.oracle) :
+      ∀ s : State, (f s).sigActions = s.sigActions ∧ (f s).oracle = s.oracle)
+    (hExtraOk : ExtraFullListSpecOk extra) :
     CliGhostAllocHooks fineCostModel (fineHookRustCliAllocBudget γ mmpl tp brkStart) lim
-      (f3CliGhostHooksFixed keep P_real P_sub T mmpl brkStart lim stk fMemset fMemcpy) where
+      (f3CliGhostHooksFixed keep P_real P_sub T mmpl brkStart lim stk fMemset fMemcpy extra) where
   alloc := f3AllocGhostHookFine_ok hsvc_real hsvc_sub hreal_no hsub_no hPl hKeepMallocng γ tp hAlloc
   dealloc := f3DeallocGhostHookFine_ok hsvc_real hsvc_sub hreal_no hsub_no hPl hKeepMallocng γ tp hDealloc
   realloc := f3ReallocGhostHookFine_ok hsvc_real hsvc_sub hreal_no hsub_no hPl hKeepMallocng γ tp hRealloc
@@ -3679,6 +3699,7 @@ theorem cliGhostAllocHooks_f3CliGhostHooksFixed [LibsignalPlacement]
   memcpy := hMemcpy
   memcpy_exact := hMemcpyExact
   memset_acp := hMemsetAcp
+  extraOk := hExtraOk
 
 theorem stringClone_hookSat_f3CliGhostHooksFixed [LibsignalPlacement]
     {keep : BitVec 64 → Bool} {P_real P_sub : Program}
@@ -3686,6 +3707,7 @@ theorem stringClone_hookSat_f3CliGhostHooksFixed [LibsignalPlacement]
     {mmpl : Obj.MultiPlacement} {brkStart : BitVec 64}
     {lim : BudgetLimits} {stk : Nat}
     {fMemset fMemcpy : Option (State → State)}
+    {extra : ExtraGhostTable}
     (baseExt : LibsignalHooks)
     (hsvc_real : P_real.svc = Syscall.standard)
     (hsvc_sub : P_sub.svc = Syscall.standard)
@@ -3699,7 +3721,7 @@ theorem stringClone_hookSat_f3CliGhostHooksFixed [LibsignalPlacement]
       (stringCloneBudgetCondSpec fineCostModel (fineHookRustCliAllocBudget γ mmpl tp brkStart) lim)) :
     HookSat
       (cliGhostExterns
-        (f3CliGhostHooksFixed keep P_real P_sub T mmpl brkStart lim stk fMemset fMemcpy) baseExt)
+        (f3CliGhostHooksFixed keep P_real P_sub T mmpl brkStart lim stk fMemset fMemcpy extra) baseExt)
       lsStringCloneSym
       (stringCloneBudgetSpec fineCostModel (fineHookRustCliAllocBudget γ mmpl tp brkStart) lim) :=
   ⟨f3StringCloneGhostHookFine keep P_real P_sub T.stringClone mmpl brkStart lim,
@@ -3712,6 +3734,7 @@ theorem allocContractsXCliPlaced_f3CliGhostHooksFixed [LibsignalPlacement]
     (mmpl : Obj.MultiPlacement) (W : CliHooks) {brkStart : BitVec 64}
     {lim : BudgetLimits} {stk : Nat}
     {fMemset fMemcpy : Option (State → State)}
+    {extra : ExtraGhostTable}
     (hsvc_real : P_real.svc = Syscall.standard)
     (hsvc_sub : P_sub.svc = Syscall.standard)
     (hreal_no : ∀ pc, keep pc = true → P_real.externAt? pc = none)
@@ -3746,14 +3769,15 @@ theorem allocContractsXCliPlaced_f3CliGhostHooksFixed [LibsignalPlacement]
       HookFsTraced IsFsC f)
     (hMemcpyExact : ∀ f, fMemcpy = some f → HookExactMemcpy f)
     (hMemsetAcp : ∀ f, fMemset = some f →
-      ∀ s : State, (f s).sigActions = s.sigActions ∧ (f s).oracle = s.oracle) :
+      ∀ s : State, (f s).sigActions = s.sigActions ∧ (f s).oracle = s.oracle)
+    (hExtraOk : ExtraFullListSpecOk extra) :
     AllocContractsXCliPlaced (fineHookRustCliAllocBudget γ mmpl tp brkStart) lim
       (cliGhostExterns
-        (f3CliGhostHooksFixed keep P_real P_sub T mmpl brkStart lim stk fMemset fMemcpy)
+        (f3CliGhostHooksFixed keep P_real P_sub T mmpl brkStart lim stk fMemset fMemcpy extra)
         (cliExternsPlaced mmpl W)) :=
   allocContractsXCliPlaced_of_hooks mmpl _ W
     (cliGhostAllocHooks_f3CliGhostHooksFixed hsvc_real hsvc_sub hreal_no hsub_no
-      hPl hKeepMallocng γ tp hAlloc hDealloc hRealloc hMemset hMemcpy hMemcpyExact hMemsetAcp)
+      hPl hKeepMallocng γ tp hAlloc hDealloc hRealloc hMemset hMemcpy hMemcpyExact hMemsetAcp hExtraOk)
 
 theorem allocContractsFsPlaced_f3CliGhostHooksFixed [LibsignalPlacement]
     {keep : BitVec 64 → Bool} {P_real P_sub : Program}
@@ -3761,6 +3785,7 @@ theorem allocContractsFsPlaced_f3CliGhostHooksFixed [LibsignalPlacement]
     (mmpl : Obj.MultiPlacement) (W : CliHooks) {brkStart : BitVec 64}
     {lim : BudgetLimits} {stk : Nat}
     {fMemset fMemcpy : Option (State → State)}
+    {extra : ExtraGhostTable}
     (hsvc_real : P_real.svc = Syscall.standard)
     (hsvc_sub : P_sub.svc = Syscall.standard)
     (hreal_no : ∀ pc, keep pc = true → P_real.externAt? pc = none)
@@ -3795,14 +3820,15 @@ theorem allocContractsFsPlaced_f3CliGhostHooksFixed [LibsignalPlacement]
       HookFsTraced IsFsC f)
     (hMemcpyExact : ∀ f, fMemcpy = some f → HookExactMemcpy f)
     (hMemsetAcp : ∀ f, fMemset = some f →
-      ∀ s : State, (f s).sigActions = s.sigActions ∧ (f s).oracle = s.oracle) :
+      ∀ s : State, (f s).sigActions = s.sigActions ∧ (f s).oracle = s.oracle)
+    (hExtraOk : ExtraFullListSpecOk extra) :
     AllocContractsFsPlaced (fineHookRustCliAllocBudget γ mmpl tp brkStart) lim
       (cliGhostExterns
-        (f3CliGhostHooksFixed keep P_real P_sub T mmpl brkStart lim stk fMemset fMemcpy)
+        (f3CliGhostHooksFixed keep P_real P_sub T mmpl brkStart lim stk fMemset fMemcpy extra)
         (cliExternsPlaced mmpl W)) :=
   allocContractsFsPlaced_of_hooks mmpl _ W
     (cliGhostAllocHooks_f3CliGhostHooksFixed hsvc_real hsvc_sub hreal_no hsub_no
-      hPl hKeepMallocng γ tp hAlloc hDealloc hRealloc hMemset hMemcpy hMemcpyExact hMemsetAcp)
+      hPl hKeepMallocng γ tp hAlloc hDealloc hRealloc hMemset hMemcpy hMemcpyExact hMemsetAcp hExtraOk)
 
 theorem stage2ContractsMinPlaced_f3CliGhostHooksFixed [LibsignalPlacement]
     {keep : BitVec 64 → Bool} {P_real P_sub : Program}
@@ -3810,6 +3836,7 @@ theorem stage2ContractsMinPlaced_f3CliGhostHooksFixed [LibsignalPlacement]
     (mmpl : Obj.MultiPlacement) (W : CliHooks) {brkStart : BitVec 64}
     {lim : BudgetLimits} {stk : Nat}
     {fMemset fMemcpy : Option (State → State)}
+    {extra : ExtraGhostTable}
     (hsvc_real : P_real.svc = Syscall.standard)
     (hsvc_sub : P_sub.svc = Syscall.standard)
     (hreal_no : ∀ pc, keep pc = true → P_real.externAt? pc = none)
@@ -3844,14 +3871,15 @@ theorem stage2ContractsMinPlaced_f3CliGhostHooksFixed [LibsignalPlacement]
       HookFsTraced IsFsC f)
     (hMemcpyExact : ∀ f, fMemcpy = some f → HookExactMemcpy f)
     (hMemsetAcp : ∀ f, fMemset = some f →
-      ∀ s : State, (f s).sigActions = s.sigActions ∧ (f s).oracle = s.oracle) :
+      ∀ s : State, (f s).sigActions = s.sigActions ∧ (f s).oracle = s.oracle)
+    (hExtraOk : ExtraFullListSpecOk extra) :
     Stage2ContractsMinPlaced fineCostModel (fineHookRustCliAllocBudget γ mmpl tp brkStart) lim
       (cliGhostExterns
-        (f3CliGhostHooksFixed keep P_real P_sub T mmpl brkStart lim stk fMemset fMemcpy)
+        (f3CliGhostHooksFixed keep P_real P_sub T mmpl brkStart lim stk fMemset fMemcpy extra)
         (cliExternsPlaced mmpl W)) :=
   stage2ContractsMinPlaced_of_hooks mmpl _ W
     (cliGhostAllocHooks_f3CliGhostHooksFixed hsvc_real hsvc_sub hreal_no hsub_no
-      hPl hKeepMallocng γ tp hAlloc hDealloc hRealloc hMemset hMemcpy hMemcpyExact hMemsetAcp)
+      hPl hKeepMallocng γ tp hAlloc hDealloc hRealloc hMemset hMemcpy hMemcpyExact hMemsetAcp hExtraOk)
 
 theorem codecHooksPlaced_f3CliGhostHooksFixed [LibsignalPlacement]
     {keep : BitVec 64 → Bool} {P_real P_sub : Program}
@@ -3859,6 +3887,7 @@ theorem codecHooksPlaced_f3CliGhostHooksFixed [LibsignalPlacement]
     (mmpl : Obj.MultiPlacement) (W : CliHooks) {brkStart : BitVec 64}
     {lim : BudgetLimits} {stk : Nat}
     {fMemset fMemcpy : Option (State → State)}
+    {extra : ExtraGhostTable}
     (hsvc_real : P_real.svc = Syscall.standard)
     (hsvc_sub : P_sub.svc = Syscall.standard)
     (hreal_no : ∀ pc, keep pc = true → P_real.externAt? pc = none)
@@ -3893,14 +3922,15 @@ theorem codecHooksPlaced_f3CliGhostHooksFixed [LibsignalPlacement]
       HookFsTraced IsFsC f)
     (hMemcpyExact : ∀ f, fMemcpy = some f → HookExactMemcpy f)
     (hMemsetAcp : ∀ f, fMemset = some f →
-      ∀ s : State, (f s).sigActions = s.sigActions ∧ (f s).oracle = s.oracle) :
+      ∀ s : State, (f s).sigActions = s.sigActions ∧ (f s).oracle = s.oracle)
+    (hExtraOk : ExtraFullListSpecOk extra) :
     CodecHooksPlaced fineCostModel (fineHookRustCliAllocBudget γ mmpl tp brkStart) lim
       (cliGhostExterns
-        (f3CliGhostHooksFixed keep P_real P_sub T mmpl brkStart lim stk fMemset fMemcpy)
+        (f3CliGhostHooksFixed keep P_real P_sub T mmpl brkStart lim stk fMemset fMemcpy extra)
         (cliExternsPlaced mmpl W)) :=
   codecHooksPlaced_of_hooks mmpl _ W
     (cliGhostAllocHooks_f3CliGhostHooksFixed hsvc_real hsvc_sub hreal_no hsub_no
-      hPl hKeepMallocng γ tp hAlloc hDealloc hRealloc hMemset hMemcpy hMemcpyExact hMemsetAcp)
+      hPl hKeepMallocng γ tp hAlloc hDealloc hRealloc hMemset hMemcpy hMemcpyExact hMemsetAcp hExtraOk)
 
 theorem publicApiDecHooksPlaced_f3CliGhostHooksFixed [LibsignalPlacement]
     {keep : BitVec 64 → Bool} {P_real P_sub : Program}
@@ -3908,6 +3938,7 @@ theorem publicApiDecHooksPlaced_f3CliGhostHooksFixed [LibsignalPlacement]
     (mmpl : Obj.MultiPlacement) (W : CliHooks) {brkStart : BitVec 64}
     {lim : BudgetLimits} {stk : Nat}
     {fMemset fMemcpy : Option (State → State)}
+    {extra : ExtraGhostTable}
     (hsvc_real : P_real.svc = Syscall.standard)
     (hsvc_sub : P_sub.svc = Syscall.standard)
     (hreal_no : ∀ pc, keep pc = true → P_real.externAt? pc = none)
@@ -3944,14 +3975,15 @@ theorem publicApiDecHooksPlaced_f3CliGhostHooksFixed [LibsignalPlacement]
       HookFsTraced IsFsC f)
     (hMemcpyExact : ∀ f, fMemcpy = some f → HookExactMemcpy f)
     (hMemsetAcp : ∀ f, fMemset = some f →
-      ∀ s : State, (f s).sigActions = s.sigActions ∧ (f s).oracle = s.oracle) :
+      ∀ s : State, (f s).sigActions = s.sigActions ∧ (f s).oracle = s.oracle)
+    (hExtraOk : ExtraFullListSpecOk extra) :
     PublicApiDecHooksPlaced (fineHookRustCliAllocBudget γ mmpl tp brkStart) lim
       (cliGhostExterns
-        (f3CliGhostHooksFixed keep P_real P_sub T mmpl brkStart lim stk fMemset fMemcpy)
+        (f3CliGhostHooksFixed keep P_real P_sub T mmpl brkStart lim stk fMemset fMemcpy extra)
         (cliExternsPlaced mmpl W)) :=
   publicApiDecHooksPlaced_of_hooks mmpl _ W
     (cliGhostAllocHooks_f3CliGhostHooksFixed hsvc_real hsvc_sub hreal_no hsub_no
-      hPl hKeepMallocng γ tp hAlloc hDealloc hRealloc hMemset hMemcpy hMemcpyExact hMemsetAcp)
+      hPl hKeepMallocng γ tp hAlloc hDealloc hRealloc hMemset hMemcpy hMemcpyExact hMemsetAcp hExtraOk)
     (stringClone_hookSat_f3CliGhostHooksFixed (cliExternsPlaced mmpl W)
       hsvc_real hsvc_sub hreal_no hsub_no hPl hKeepMallocng γ tp hStrClone)
 
@@ -3970,6 +4002,7 @@ theorem mainIoOfPlaced_f3CliGhostHooksFixed [LibsignalPlacement]
     (mmpl : Obj.MultiPlacement) (W : CliHooks) {brkStart : BitVec 64}
     {lim : BudgetLimits} {stk : Nat}
     {fMemset fMemcpy : Option (State → State)}
+    {extra : ExtraGhostTable}
     (hsvc_real : P_real.svc = Syscall.standard)
     (hsvc_sub : P_sub.svc = Syscall.standard)
     (hreal_no : ∀ pc, keep pc = true → P_real.externAt? pc = none)
@@ -3985,7 +4018,7 @@ theorem mainIoOfPlaced_f3CliGhostHooksFixed [LibsignalPlacement]
     (γ : GhostName) (tp : BitVec 64) :
     MainIoOfPlaced (fineHookRustCliAllocBudget γ mmpl tp brkStart) lim
       (cliGhostExterns
-        (f3CliGhostHooksFixed keep P_real P_sub T mmpl brkStart lim stk fMemset fMemcpy)
+        (f3CliGhostHooksFixed keep P_real P_sub T mmpl brkStart lim stk fMemset fMemcpy extra)
         (cliExternsPlaced mmpl W))
       cliIo stk ReadStdinBoundedEnv (ReadFileRuleEnvFixed cliIo.rd) where
   readStdin := ls_hook_617_rocl_ok
@@ -4017,10 +4050,11 @@ theorem hReadFixed_of_f3CliGhostHooksFixed [LibsignalPlacement]
     {mmpl : Obj.MultiPlacement} {brkStart : BitVec 64}
     {lim : BudgetLimits} {stk : Nat}
     {fMemset fMemcpy : Option (State → State)}
+    {extra : ExtraGhostTable}
     {baseExt : LibsignalHooks} {callerProg : Program} {i bi : Nat}
     [IsLsBlockProg callerProg i
       (cliGhostExterns
-        (f3CliGhostHooksFixed keep P_real P_sub T mmpl brkStart lim stk fMemset fMemcpy) baseExt)]
+        (f3CliGhostHooksFixed keep P_real P_sub T mmpl brkStart lim stk fMemset fMemcpy extra) baseExt)]
     [CryptoVerification.LsBlockBound bi]
     (hsvc_real : P_real.svc = Syscall.standard)
     (hsvc_sub : P_sub.svc = Syscall.standard)
@@ -4048,11 +4082,12 @@ theorem hReadFixed_withPanics_of_f3CliGhostHooksFixed [LibsignalPlacement]
     {mmpl : Obj.MultiPlacement} {brkStart : BitVec 64}
     {lim : BudgetLimits} {stk : Nat}
     {fMemset fMemcpy : Option (State → State)}
+    {extra : ExtraGhostTable}
     {baseExt : LibsignalHooks} {callerProg : Program} {i bi : Nat}
     [IsLsBlockProg callerProg i
       (Rust.withPanics
         (cliGhostExterns
-          (f3CliGhostHooksFixed keep P_real P_sub T mmpl brkStart lim stk fMemset fMemcpy) baseExt))]
+          (f3CliGhostHooksFixed keep P_real P_sub T mmpl brkStart lim stk fMemset fMemcpy extra) baseExt))]
     [CryptoVerification.LsBlockBound bi]
     (hsvc_real : P_real.svc = Syscall.standard)
     (hsvc_sub : P_sub.svc = Syscall.standard)

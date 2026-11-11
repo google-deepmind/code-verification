@@ -73,7 +73,7 @@ open LibsignalBinary.Heap.IfaceBudgetLemmas (
   rustCliAllocNoOomSpecWithStack rustCliReallocNoOomExternSpecWithStack
 )
 open LibsignalBinary.Proofs.TripleRatchet.Hooks.DefsBudget (
-  sessionShimBudgetSpec sessionMemcpyBudgetSpec sessionMemmoveBudgetSpec
+  sessionShimBudgetSpec sessionMemcpyBudgetSpec
 )
 open LibsignalBinary.Proofs.TripleRatchet.Alloc.DefsBudget (session2ShimBudgetSpecX)
 open LibsignalBinary.Proofs.E2E.Record.Serialization.DefsBudget (
@@ -256,7 +256,7 @@ def serializeCanonSpecX (M : AllocCostModel) (A : RustCliAllocBudget M)
 /-! ## Relocatable `[LibsignalPlacement]` stub contracts (`SerContractsXPlaced`) -/
 
 /-- Relocatable budget-threaded `[LibsignalPlacement]` counterpart of `SerContractsX`:
-allocator / `shim` / `memmove` (`AllocContractsPlaced M A lim H` at `extHookStack`) plus
+allocator / `shim` (`AllocContractsPlaced M A lim H` at `extHookStack`) plus
 `VmPreserved`-preserving owned-source `memcpy` (`sessionMemcpyBudgetSpec extHookStack`). -/
 structure SerContractsXPlaced [LibsignalPlacement] (M : AllocCostModel)
     (A : RustCliAllocBudget M) (lim : BudgetLimits) (H : LibsignalHooks) : Prop where
@@ -277,12 +277,10 @@ theorem SerContractsXPlaced.of_block0 [LibsignalPlacement] {M : AllocCostModel}
       (withLsCodeLoaded lsmpl (rustCliReallocBudgetExternSpecWithStack M A lim extHookStack)))
     (hshim : subroutine_ok blk0Prog (lsρ lsRustNoAllocShimSym)
       (withLsCodeLoaded lsmpl session2ShimBudgetSpecX))
-    (hmemmove : subroutine_ok blk0Prog (lsρ "memmove")
-      (withLsCodeLoaded lsmpl (sessionMemmoveBudgetSpec extHookStack)))
     (hmemcpy : subroutine_ok blk0Prog (lsρ lsMemcpySym)
       (withLsCodeLoaded lsmpl (sessionMemcpyBudgetSpec extHookStack))) :
     SerContractsXPlaced M A lim H where
-  alloc := AllocContractsPlaced.of_block0 halloc hdealloc hrealloc hshim hmemmove
+  alloc := AllocContractsPlaced.of_block0 halloc hdealloc hrealloc hshim
   memcpy := ls_subroutine_ok_cl_of_callee (j := 0) hmemcpy
 
 /-- Construct `SerContractsXPlaced M A lim H` from `HookSat H` single-step hooks. -/
@@ -292,10 +290,9 @@ theorem SerContractsXPlaced.of_hooks [LibsignalPlacement] {M : AllocCostModel}
     (hdealloc : HookSat H lsRustDeallocSym (rustCliDeallocBudgetSpec M A lim))
     (hrealloc : HookSat H lsRustReallocSym (rustCliReallocBudgetSpec M A lim))
     (hshim : HookSat H lsRustNoAllocShimSym sessionShimBudgetSpec)
-    (hmemmove : HookSat H "memmove" (sessionMemmoveBudgetSpec extHookStack))
     (hmemcpy : HookSat H lsMemcpySym (sessionMemcpyBudgetSpec extHookStack)) :
     SerContractsXPlaced M A lim H where
-  alloc := AllocContractsPlaced.of_hooks halloc hdealloc hrealloc hshim hmemmove
+  alloc := AllocContractsPlaced.of_hooks halloc hdealloc hrealloc hshim
   memcpy := ls_subroutine_ok_cl_of_plain_prog (ls_hook_ok_of_caller hmemcpy)
 
 theorem serContractsXPlaced_of_stage2ContractsPlaced [LibsignalPlacement] {M : AllocCostModel}

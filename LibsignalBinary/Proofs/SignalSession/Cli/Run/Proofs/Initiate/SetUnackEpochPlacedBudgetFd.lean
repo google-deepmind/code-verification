@@ -53,14 +53,13 @@ open CryptoVerification.E2E.Pqxdh.Initiator (
   sp_setMem_setPC_pre sp_setPC_pre stackAt_split_top vecU8
 )
 open CryptoVerification.SignalSession (
-  CliHooks cliExternsPlaced durationSinceExactHook lsDurationSinceSym
+  CliHooks cliExternsPlaced lsDurationSinceSym
 )
 open CryptoVerification.SignalSession.Cli.RunGlue (
-  CliGhostHooks cliExternsPlaced_row cliGhostExterns
+  CliGhostHooks cliGhostExterns
 )
 open CryptoVerification.SignalSession.Cli.Slots (
-  cliGhostExterns_sat_of_cliExternsPlaced
-  durationSinceEpochAllocSpec durationSinceEpochAtSpec durationSince_row_placed
+  durationSinceEpochAllocSpec durationSinceEpochAtSpec
 )
 open LibsignalBinary.Heap (
   AllocCallPreserved AllocCostModel BudgetLimits FitsEvent FitsEvents RustCliAllocBudget
@@ -81,47 +80,25 @@ open LibsignalBinary.Proofs.E2E.Pqxdh.Initiator.SessionStateCalleesBudget (
   rustDeallocBytesSpec setUnackPreKeyMsgEvents
 )
 open LibsignalBinary.Proofs.HookDischarge.Libc.Common (keepsFs)
+open LibsignalBinary.Proofs.Placed.ElfLsRetAddr (LsRetAddr624 lsRetAddr624_blockPlacement_base_add)
 open LibsignalBinary.Proofs.SignalSession.Cli.F3.HRead.FdThreadKit (
-  hookSat_keepsFs_of_fs_eq subroutine_ok_withLsCodeRoLoaded_withFdsGe3Closed_of_keepsFs
+  subroutine_ok_withLsCodeRoLoaded_withFdsGe3Closed_of_keepsFs
 )
 open LibsignalBinary.Proofs.SignalSession.Cli.F3.HRead.ReadFileBudgetPlaced (
   withFdsGe3Closed
 )
+open LibsignalBinary.Proofs.SignalSession.Cli.HooksDehook.WithLsRet (withLsRet)
 open LibsignalBinary.Proofs.SignalSession.Cli.Run.Proofs.Initiate.HooksPlacedBudget (
   RunHooksPlaced
 )
 open LibsignalBinary.Proofs.SignalSession.Cli.Run.Slots.SetUnackEpochPlacedBudget (
-  cliExternsPlaced_durationSinceEpochAlloc_budget_sat durationSinceEpochAllocBudgetSpec
+  durationSinceEpochAllocBudgetSpec
   setUnackPreKeyMsgEpochEvents setUnackPreKeyMsgEpochInnerSpec
   setUnackPreKeyMsgExactStackEpochSpecPlaced
 )
 open LibsignalBinary.Proofs.TripleRatchet.Hooks.DefsBudget (
   sessionMemcpyRegionBudgetSpec sessionShimBudgetSpec
 )
-
-/-! ## `durationSinceExactHook` preserves `State.fs` -/
-
-private theorem durationSinceExactHook_fs_local (s : State) :
-    (durationSinceExactHook s).fs = s.fs := by
-  unfold durationSinceExactHook; try dsimp only
-  split
-  · rfl
-  · try dsimp only
-    split
-    · rfl
-    · rfl
-
-theorem cliExternsPlaced_durationSinceEpochAlloc_budget_keepsFs_sat (mmpl : Obj.MultiPlacement)
-    (W : CliHooks) :
-    HookSat (cliExternsPlaced mmpl W) lsDurationSinceSym
-      (keepsFs durationSinceEpochAllocBudgetSpec) := by
-  rcases cliExternsPlaced_durationSinceEpochAlloc_budget_sat mmpl W with ⟨g, hg, hok⟩
-  have hfeq : cliExternsPlaced mmpl W lsDurationSinceSym = some durationSinceExactHook :=
-    cliExternsPlaced_row mmpl W (durationSince_row_placed mmpl W)
-  rw [hfeq] at hg
-  injection hg with hfg
-  subst hfg
-  exact hookSat_keepsFs_of_fs_eq hfeq durationSinceExactHook_fs_local hok
 
 /-! ## Block `33` `.keepsFs` and `withFdsGe3Closed` proofs -/
 
@@ -235,7 +212,7 @@ theorem setUnackPreKeyMsg_exact_stack_epoch_keepsFs_placed_cl_ok [LibsignalPlace
     (halloc : HookSat H lsRustAllocSym (rustCliAllocBudgetSpec M A lim false))
     (hdealloc : HookSat H lsRustDeallocSym (rustCliDeallocBudgetSpec M A lim))
     (hmemcpy : HookSat H lsMemcpySym (keepsFs sessionMemcpyRegionBudgetSpec))
-    (hTime : HookSat H lsDurationSinceSym (keepsFs durationSinceEpochAllocBudgetSpec)) :
+    (hTime : HookSat H lsDurationSinceSym (withLsRet (keepsFs durationSinceEpochAllocBudgetSpec))) :
     subroutine_ok ((blkPC_33).rebase (blkPl_33).base H) (blkPl_33).base
       (withLsCodeLoaded lsmpl (keepsFs (setUnackPreKeyMsgEpochInnerSpec A lim))) := by
   unfold withLsCodeLoaded keepsFs setUnackPreKeyMsgEpochInnerSpec
@@ -258,7 +235,7 @@ theorem setUnackPreKeyMsg_exact_stack_epoch_keepsFs_placed_cl_ok [LibsignalPlace
   have hmemcpy' : subroutine_ok ((blkPC_33).rebase (blkPl_33).base H)
       (lsρ lsMemcpySym) (keepsFs sessionMemcpyRegionBudgetSpec) := ls_hook_ok_of_mem hmemcpy
   have htime' : subroutine_ok ((blkPC_33).rebase (blkPl_33).base H)
-      (lsρ lsDurationSinceSym) (keepsFs durationSinceEpochAllocBudgetSpec) :=
+      (lsρ lsDurationSinceSym) (withLsRet (keepsFs durationSinceEpochAllocBudgetSpec)) :=
     ls_hook_ok_of_mem hTime
   dsimp only [keepsFs, sessionShimBudgetSpec,
     CryptoVerification.LibsignalTripleRatchet.sessionShimSpec] at hshim'
@@ -267,7 +244,7 @@ theorem setUnackPreKeyMsg_exact_stack_epoch_keepsFs_placed_cl_ok [LibsignalPlace
   dsimp only [keepsFs, rustDeallocBytesSpec] at hdealloc'
   dsimp only [keepsFs, sessionMemcpyRegionBudgetSpec,
     CryptoVerification.LibsignalTripleRatchet.sessionMemcpyRegionSpec, memcpyRegionSpec] at hmemcpy'
-  dsimp only [keepsFs, durationSinceEpochAllocBudgetSpec, withVmPreserved,
+  dsimp only [withLsRet, keepsFs, durationSinceEpochAllocBudgetSpec, withVmPreserved,
     durationSinceEpochAllocSpec, durationSinceEpochAtSpec] at htime'
   wp_init x s0
   rcases x with ⟨⟨statePtr, optOpkTag, optOpkVal, spkId, baseKeyPtr, baseKeyBytes⟩, st⟩
@@ -340,6 +317,8 @@ theorem setUnackPreKeyMsg_exact_stack_epoch_keepsFs_placed_cl_ok [LibsignalPlace
   apply SepWP.replace_pre (by sep_focus)
     (h120_8 ▸ h120_16 ▸ pointsTo64_triple_entails_memRegion24_epoch_placed_fd (s0.sp - 120#64) _ _ _)
   have hsp3 : sf_3.sp = s0.sp - 144#64 := by simp only [*, arm64_norm]
+  have hlr_ds : LsRetAddr624 ((blkPl_33).base + 160#64) :=
+    lsRetAddr624_blockPlacement_base_add 33 160#64 (by decide) (by decide)
   wp_call htime' (s0.sp - 136#64, s0.sp - 120#64)
   refine SepWP.transport_budgetPool ‹VmPreserved _ sf_4› (hnext := ?_)
   rw [memRegion_16_split_64_epoch_placed_fd (s0.sp - 136#64), h136_eq]
@@ -366,7 +345,7 @@ theorem setUnackPreKeyMsg_exact_stack_epoch_keepsFs_placed_ok [LibsignalPlacemen
     (halloc : HookSat H lsRustAllocSym (rustCliAllocBudgetSpec M A lim false))
     (hdealloc : HookSat H lsRustDeallocSym (rustCliDeallocBudgetSpec M A lim))
     (hmemcpy : HookSat H lsMemcpySym (keepsFs sessionMemcpyRegionBudgetSpec))
-    (hTime : HookSat H lsDurationSinceSym (keepsFs durationSinceEpochAllocBudgetSpec)) :
+    (hTime : HookSat H lsDurationSinceSym (withLsRet (keepsFs durationSinceEpochAllocBudgetSpec))) :
     subroutine_ok ((blkPC_33).rebase (blkPl_33).base H) (blkPl_33).base
       (setUnackPreKeyMsgExactStackEpochSpecPlaced A lim).keepsFs :=
   subroutine_ok_withLsCodeRoLoaded_of_withLsCodeLoaded
@@ -380,7 +359,7 @@ theorem setUnackPreKeyMsg_exact_stack_epoch_keepsFs_placed_at_block [LibsignalPl
     (halloc : HookSat H lsRustAllocSym (rustCliAllocBudgetSpec M A lim false))
     (hdealloc : HookSat H lsRustDeallocSym (rustCliDeallocBudgetSpec M A lim))
     (hmemcpy : HookSat H lsMemcpySym (keepsFs sessionMemcpyRegionBudgetSpec))
-    (hTime : HookSat H lsDurationSinceSym (keepsFs durationSinceEpochAllocBudgetSpec))
+    (hTime : HookSat H lsDurationSinceSym (withLsRet (keepsFs durationSinceEpochAllocBudgetSpec)))
     (hi : i < 619 := by decide) :
     subroutine_ok callerProg (blkPl_33).base
       (setUnackPreKeyMsgExactStackEpochSpecPlaced A lim).keepsFs := by
@@ -412,8 +391,7 @@ theorem setUnackPreKeyMsg_cli_keepsFs_placed_ok [LibsignalPlacement]
     hh.rawAlloc
     hh.rawDealloc
     (hookSat_sessionMemcpyRegionBudget_keepsFs_of_allocMemcpyVm hh.allocMemcpyVm)
-    (cliGhostExterns_sat_of_cliExternsPlaced mmpl gh W
-      (cliExternsPlaced_durationSinceEpochAlloc_budget_keepsFs_sat mmpl W))
+    hh.durationSince
     hi
 
 theorem setUnackPreKeyMsg_cli_fds_placed_ok [LibsignalPlacement]

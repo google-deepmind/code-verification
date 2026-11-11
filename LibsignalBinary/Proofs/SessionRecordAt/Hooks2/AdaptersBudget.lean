@@ -39,7 +39,7 @@ open CryptoVerification (
 )
 open CryptoVerification.LibsignalTripleRatchet (
   extHookStack sessionShimSpec sessionMemcpySpec sessionMemcpyROXSpec
-  sessionMemmoveSpec sessionMemsetSpec
+  sessionMemsetSpec
   ls_hook_ok_of_caller ls_subroutine_ok_cl_of_plain_prog ls_subroutine_ok_cl_of_callee
 )
 open Proofs.libsignal.Hooks2 (
@@ -191,9 +191,6 @@ structure Stage2ContractsPlaced [LibsignalPlacement] {M : AllocCostModel}
   memcpyROX : ∀ {callerProg : Program} {callerBlk : Nat} [IsLsBlockProg callerProg callerBlk H],
     subroutine_ok callerProg (lsρ "memcpy")
       (withLsCl lsmpl (withVmPreserved sessionMemcpyROXSpec))
-  memmove : ∀ {callerProg : Program} {callerBlk : Nat} [IsLsBlockProg callerProg callerBlk H],
-    subroutine_ok callerProg (lsρ "memmove")
-      (withLsCl lsmpl (withVmPreserved (sessionMemmoveSpec extHookStack)))
   memset : ∀ {callerProg : Program} {callerBlk : Nat} [IsLsBlockProg callerProg callerBlk H],
     subroutine_ok callerProg (lsρ "memset")
       (withLsCl lsmpl (withVmPreserved (sessionMemsetSpec extHookStack)))
@@ -231,8 +228,6 @@ theorem Stage2ContractsPlaced.of_block0 [LibsignalPlacement] {M : AllocCostModel
       (withLsCodeLoaded lsmpl (withVmPreserved (sessionMemcpySpec extHookStack))))
     (hmemcpyROX : subroutine_ok blk0Prog (lsρ "memcpy")
       (withLsCodeLoaded lsmpl (withVmPreserved sessionMemcpyROXSpec)))
-    (hmemmove : subroutine_ok blk0Prog (lsρ "memmove")
-      (withLsCodeLoaded lsmpl (withVmPreserved (sessionMemmoveSpec extHookStack))))
     (hmemset : subroutine_ok blk0Prog (lsρ "memset")
       (withLsCodeLoaded lsmpl (withVmPreserved (sessionMemsetSpec extHookStack))))
     (hbcmp : subroutine_ok blk0Prog (lsρ "bcmp")
@@ -247,7 +242,6 @@ theorem Stage2ContractsPlaced.of_block0 [LibsignalPlacement] {M : AllocCostModel
   shim := ls_subroutine_ok_cl_of_callee (j := 0) hshim
   memcpy := ls_subroutine_ok_cl_of_callee (j := 0) hmemcpy
   memcpyROX := ls_subroutine_ok_cl_of_callee (j := 0) hmemcpyROX
-  memmove := ls_subroutine_ok_cl_of_callee (j := 0) hmemmove
   memset := ls_subroutine_ok_cl_of_callee (j := 0) hmemset
   bcmp := ls_subroutine_ok_cl_of_callee (j := 0) hbcmp
   panic_handle_error := hpan_err
@@ -262,7 +256,6 @@ theorem Stage2ContractsPlaced.of_hooks [LibsignalPlacement] {M : AllocCostModel}
     (hshim : HookSat H lsRustNoAllocShimSym (withVmPreserved sessionShimSpec))
     (hmemcpy : HookSat H "memcpy" (withVmPreserved (sessionMemcpySpec extHookStack)))
     (hmemcpyROX : HookSat H "memcpy" (withVmPreserved sessionMemcpyROXSpec))
-    (hmemmove : HookSat H "memmove" (withVmPreserved (sessionMemmoveSpec extHookStack)))
     (hmemset : HookSat H "memset" (withVmPreserved (sessionMemsetSpec extHookStack)))
     (hbcmp : HookSat H "bcmp" e2eBcmpSpec)
     (hpan_err : H lsHandleErrorSym = some Rust.panicked)
@@ -291,7 +284,6 @@ theorem Stage2ContractsPlaced.of_hooks [LibsignalPlacement] {M : AllocCostModel}
     exact subroutine_ok_withLsCl_withHookStack_mono (by decide) (by decide) h0
   memcpy := ls_subroutine_ok_cl_of_plain_prog (ls_hook_ok_of_caller hmemcpy)
   memcpyROX := ls_subroutine_ok_cl_of_plain_prog (ls_hook_ok_of_caller hmemcpyROX)
-  memmove := ls_subroutine_ok_cl_of_plain_prog (ls_hook_ok_of_caller hmemmove)
   memset := ls_subroutine_ok_cl_of_plain_prog (ls_hook_ok_of_caller hmemset)
   bcmp := ls_subroutine_ok_cl_of_plain_prog (ls_hook_ok_of_caller hbcmp)
   panic_handle_error := hpan_err
@@ -324,9 +316,6 @@ structure Stage2NoOomContractsPlaced [LibsignalPlacement] {M : AllocCostModel}
   memcpyROX : ∀ {callerProg : Program} {callerBlk : Nat} [IsLsBlockProg callerProg callerBlk H],
     subroutine_ok callerProg (lsρ "memcpy")
       (withLsCl lsmpl (withVmPreserved sessionMemcpyROXSpec))
-  memmove : ∀ {callerProg : Program} {callerBlk : Nat} [IsLsBlockProg callerProg callerBlk H],
-    subroutine_ok callerProg (lsρ "memmove")
-      (withLsCl lsmpl (withVmPreserved (sessionMemmoveSpec extHookStack)))
   memset : ∀ {callerProg : Program} {callerBlk : Nat} [IsLsBlockProg callerProg callerBlk H],
     subroutine_ok callerProg (lsρ "memset")
       (withLsCl lsmpl (withVmPreserved (sessionMemsetSpec extHookStack)))
@@ -364,8 +353,6 @@ theorem Stage2NoOomContractsPlaced.of_block0 [LibsignalPlacement] {M : AllocCost
       (withLsCodeLoaded lsmpl (withVmPreserved (sessionMemcpySpec extHookStack))))
     (hmemcpyROX : subroutine_ok blk0Prog (lsρ "memcpy")
       (withLsCodeLoaded lsmpl (withVmPreserved sessionMemcpyROXSpec)))
-    (hmemmove : subroutine_ok blk0Prog (lsρ "memmove")
-      (withLsCodeLoaded lsmpl (withVmPreserved (sessionMemmoveSpec extHookStack))))
     (hmemset : subroutine_ok blk0Prog (lsρ "memset")
       (withLsCodeLoaded lsmpl (withVmPreserved (sessionMemsetSpec extHookStack))))
     (hbcmp : subroutine_ok blk0Prog (lsρ "bcmp")
@@ -380,7 +367,6 @@ theorem Stage2NoOomContractsPlaced.of_block0 [LibsignalPlacement] {M : AllocCost
   shim := ls_subroutine_ok_cl_of_callee (j := 0) hshim
   memcpy := ls_subroutine_ok_cl_of_callee (j := 0) hmemcpy
   memcpyROX := ls_subroutine_ok_cl_of_callee (j := 0) hmemcpyROX
-  memmove := ls_subroutine_ok_cl_of_callee (j := 0) hmemmove
   memset := ls_subroutine_ok_cl_of_callee (j := 0) hmemset
   bcmp := ls_subroutine_ok_cl_of_callee (j := 0) hbcmp
   panic_handle_error := hpan_err
@@ -395,7 +381,6 @@ theorem Stage2NoOomContractsPlaced.of_hooks [LibsignalPlacement] {M : AllocCostM
     (hshim : HookSat H lsRustNoAllocShimSym (withVmPreserved sessionShimSpec))
     (hmemcpy : HookSat H "memcpy" (withVmPreserved (sessionMemcpySpec extHookStack)))
     (hmemcpyROX : HookSat H "memcpy" (withVmPreserved sessionMemcpyROXSpec))
-    (hmemmove : HookSat H "memmove" (withVmPreserved (sessionMemmoveSpec extHookStack)))
     (hmemset : HookSat H "memset" (withVmPreserved (sessionMemsetSpec extHookStack)))
     (hbcmp : HookSat H "bcmp" e2eBcmpSpec)
     (hpan_err : H lsHandleErrorSym = some Rust.panicked)
@@ -427,7 +412,6 @@ theorem Stage2NoOomContractsPlaced.of_hooks [LibsignalPlacement] {M : AllocCostM
     exact subroutine_ok_withLsCl_withHookStack_mono (by decide) (by decide) h0
   memcpy := ls_subroutine_ok_cl_of_plain_prog (ls_hook_ok_of_caller hmemcpy)
   memcpyROX := ls_subroutine_ok_cl_of_plain_prog (ls_hook_ok_of_caller hmemcpyROX)
-  memmove := ls_subroutine_ok_cl_of_plain_prog (ls_hook_ok_of_caller hmemmove)
   memset := ls_subroutine_ok_cl_of_plain_prog (ls_hook_ok_of_caller hmemset)
   bcmp := ls_subroutine_ok_cl_of_plain_prog (ls_hook_ok_of_caller hbcmp)
   panic_handle_error := hpan_err

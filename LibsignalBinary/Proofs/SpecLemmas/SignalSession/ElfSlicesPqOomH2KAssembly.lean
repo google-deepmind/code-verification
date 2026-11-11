@@ -12,12 +12,15 @@ module
 public import LibsignalBinary.Specifications.SignalSession.CliElf
 public import LibsignalBinary.Proofs.SignalSession.Cli.D3.F3.D3BinaryOomProofF3G
 public import LibsignalBinary.Proofs.SignalSession.Cli.F3.L4B.CliStrictPlaced2G
+public import LibsignalBinary.Proofs.SignalSession.Cli.HooksDehook.C2EntryGuard -- proof-setup: allow-public-import
+public import LibsignalBinary.Proofs.SignalSession.Cli.HooksDehook.ExtraGhostReplay -- proof-setup: allow-public-import
 public import LibsignalBinary.Proofs.SpecLemmas.SignalSession.ElfSlicesPqOomPlaced
 public import LibsignalBinary.Proofs.SpecLemmas.SignalSession.ElfSlicesPqOomPlacedInst
 public import LibsignalBinary.Proofs.SpecLemmas.SignalSession.ElfSlicesPqOomH2KHooks
 public import LibsignalBinary.Proofs.SpecLemmas.SignalSession.ElfSlicesPqOomH2ExecFrozenWire
 public import LibsignalBinary.Proofs.SpecLemmas.SignalSession.ElfSlicesPqOomH2Branch2
 public import LibsignalBinary.Proofs.SpecLemmas.SignalSession.ElfSlicesPqOomH2Asm
+import LibsignalBinary.Proofs.SpecLemmas.SignalSession.ElfSlicesPqOomH2ExecFrozenWireExtra
 import LibsignalBinary.Proofs.SignalSession.Cli.AllocGhostLinkTransfer
 import LibsignalBinary.Proofs.SignalSession.Cli.D3.F3.D3MatchingPathBF3
 import LibsignalBinary.Proofs.SignalSession.Cli.D3.F3.D3ParseRejectF3
@@ -72,7 +75,7 @@ open ProofLib (stripExecOutside)
 open VerifiedLibraries (mallocngLib)
 open VerifiedLibraries.Mallocng (mallocngAddrsOfPlacement)
 open CryptoGames.LibsignalSessionApi (PreKeySignalMessage)
-open CryptoVerification (LibsignalFrozen LibsignalPlacement)
+open CryptoVerification (LibsignalFrozen LibsignalPlacement lsmpl)
 open CryptoVerification.E2E
   (PEParams PreKeyMessageFields UnreachedPqxdhPrimitives wirePrekey)
 open CryptoVerification.SignalSession
@@ -104,14 +107,16 @@ open LibsignalBinary.Proofs.SignalSession.Cli.F3.HRead.ReadStdinBudgetPlaced
 open LibsignalBinary.Proofs.SignalSession.Cli.F3.L4B.CliStrictPlaced2
   (MainOkCliExtPqB2NeedLocksPlacedAt b2MainSpecTightNeedLocksFineAt cliBudgetLimits)
 open LibsignalBinary.Proofs.SignalSession.Cli.F3.L4B.CliStrictPlaced2G
-  (F3MemsetMemcpyEntryLrFalse MainOkCliF3PqB2NeedLocksPlacedAtG
-   mainOkCliF3PqG_of_block617TransferFixedG)
+  (MainOkCliF3PqB2NeedLocksPlacedAtG mainOkCliF3PqG_of_block617TransferFixedG)
 open LibsignalBinary.Proofs.SignalSession.Cli.F3.L4B.F3AllocStdinGhostHooks (ActiveF3CallPre)
 open LibsignalBinary.Proofs.SignalSession.Cli.F3.L4B.F3HarnessPlaced
   (cliProgExtPlacedAt cliStaticsPlacedAt)
-open LibsignalBinary.Proofs.SignalSession.Cli.F3.L4B.Ghost617Transfer (GhostSymActive)
 open LibsignalBinary.Proofs.SignalSession.Cli.HooksDehook.Block617TransferG
   (Block617TransferFixedHypG)
+open LibsignalBinary.Proofs.SignalSession.Cli.HooksDehook.C2EntryGuard
+  (F3C2EntryGuard c2GuardOf f3C2EntryGuard_imp_and_extraEntryGuard)
+open LibsignalBinary.Proofs.SignalSession.Cli.HooksDehook.ExtraGhostReplay
+  (GhostSymActiveNamed GhostSymActive_iff_named_or_extra)
 open LibsignalBinary.Proofs.SignalSession.Cli.HooksDehook.MemcpyGhost (keepMemcpyBlk20)
 open LibsignalBinary.Proofs.SignalSession.Cli.HooksDehook.MemsetGhost (keepMemsetBlk21)
 open LibsignalBinary.Proofs.SignalSession.Cli.M24.B2MainFrameComposeBudget (libsignalPlacementOf)
@@ -134,9 +139,9 @@ open LibsignalBinary.Proofs.SpecLemmas.SignalSession.ElfSlicesPqOomH2Branch2
    h2b2_branch2_realloc_explicitLr_perPc h2b2_realW_externAt_none_of_ghostSymActive
    h2b2_shim_branch2)
 open LibsignalBinary.Proofs.SpecLemmas.SignalSession.ElfSlicesPqOomH2ExecFrozenWire
-  (h2ef_block617TransferFixedG_of_steps_to_stepsAll_codeOnly
-   h2ef_block617TransferFixedG_replaysOn_false_codeOnly
-   h2ef_h2k_ghFixedK_preserves_execFrozen h2ef_pGhost617K_codeLoaded_of_libsignalFrozen)
+  (h2ef_pGhost617K_codeLoaded_of_libsignalFrozen)
+open LibsignalBinary.Proofs.SpecLemmas.SignalSession.ElfSlicesPqOomH2ExecFrozenWireExtra
+  (block617TransferFixedG_replaysOn_false_codeOnly_withExtra)
 open LibsignalBinary.Proofs.SpecLemmas.SignalSession.ElfSlicesPqOomH2FirstStopAlloc
   (h2fsalloc_alloc_activeRealRun_keepSub h2fsalloc_allocZeroed_activeRealRun_keepSub)
 open LibsignalBinary.Proofs.SpecLemmas.SignalSession.ElfSlicesPqOomH2FirstStopDealloc
@@ -144,11 +149,11 @@ open LibsignalBinary.Proofs.SpecLemmas.SignalSession.ElfSlicesPqOomH2FirstStopDe
 open LibsignalBinary.Proofs.SpecLemmas.SignalSession.ElfSlicesPqOomH2FirstStopReads
   (h2fsreads_readFile_activeRealRun_keepSub h2fsreads_readStdin_activeRealRun_keepSub)
 open LibsignalBinary.Proofs.SpecLemmas.SignalSession.ElfSlicesPqOomH2KHooks
-  (h2k_CliGhostAllocHooksK h2k_CliGhostSpqrAllocHooksK h2k_CliRunHooksBundleK
-   h2k_MainIoOfPlacedK h2k_fds_of_noException h2k_ghFixedK h2k_hole2_hFsK h2k_hole2_hGK
-   h2k_hole2_hGSpqrK h2k_hole2_hHooksBundleK h2k_hole2_hReadSatK h2k_hole2_hghNoAllocK
-   h2k_hole2_hioOfK h2k_keepSubLr_false_of_noException h2k_readFileFixedGhostHookFineSubK
-   h2k_readFileSpecK h2k_readStdinGhostHookFineSubK)
+  (c2_extraReplaysOn_h2k h2k_CliGhostAllocHooksK h2k_CliGhostSpqrAllocHooksK
+   h2k_CliRunHooksBundleK h2k_MainIoOfPlacedK h2k_fds_of_noException h2k_ghFixedK h2k_hole2_hFsK
+   h2k_hole2_hGK h2k_hole2_hGSpqrK h2k_hole2_hHooksBundleK h2k_hole2_hReadSatK
+   h2k_hole2_hghNoAllocK h2k_hole2_hioOfK h2k_keepSubLr_false_of_noException
+   h2k_readFileFixedGhostHookFineSubK h2k_readFileSpecK h2k_readStdinGhostHookFineSubK)
 open LibsignalBinary.Proofs.SpecLemmas.SignalSession.ElfSlicesPqOomH2KMemcpy
   (h2k_ghFixedK_blk20TrapHook)
 open LibsignalBinary.Proofs.SpecLemmas.SignalSession.ElfSlicesPqOomH2KMemset
@@ -258,13 +263,13 @@ theorem h2ka_hole2_hTrFrozenKG
     letI : LibsignalPlacement := libsignalPlacementOf mpl (hole2_hblk mpl hLs) (hole2_hext_nodup mpl hLs)
     Block617TransferFixedHypG mpl mmpl
       (fun W => cliGhostExterns (h2k_ghFixedK mpl mmpl) (cliExternsPlaced mmpl W))
-      (cliExternsPlaced mmpl) (F3MemsetMemcpyEntryLrFalse mmpl)
+      (cliExternsPlaced mmpl) (F3C2EntryGuard mpl mmpl)
       (LibsignalFrozen mpl) (F3CodeOk mpl mmpl)
       (mallocngAddrsOfPlacement mmpl).libc cliElfImage.brkStart cliMainStk :=
   h2asm_hole2_hTrFrozenKG mpl mmpl hLs hMm
     (h2ka_branch2HookReplaysK mpl mmpl hLs hMm)
 
-/-- 10-way `GhostSymActive (h2k_ghFixedK mpl mmpl)` Block-`617` replay dispatcher. -/
+/-- 10-way `GhostSymActiveNamed (h2k_ghFixedK mpl mmpl)` Block-`617` replay dispatcher. -/
 theorem h2ka_ghostReplay617K [LibsignalPlacement]
     (mpl mmpl : MultiPlacement)
     (hLs : libsignalSessionLib.LinkedAt cliElfBytes mpl)
@@ -272,7 +277,7 @@ theorem h2ka_ghostReplay617K [LibsignalPlacement]
     (W : CliHooks) (sym : String) (f : State → State)
     (_hmem : sym ∈ (libsignalSessionLib.blockLib 617).text.externs)
     (hne_sc : sym ≠ lsStringCloneSym)
-    (hAct : GhostSymActive (h2k_ghFixedK mpl mmpl) sym f)
+    (hAct : GhostSymActiveNamed (h2k_ghFixedK mpl mmpl) sym f)
     (u : State)
     (hpc : u.pc = libsignalSessionLib.resolve mpl sym)
     (hrun : u.status = .Running)
@@ -324,57 +329,47 @@ theorem h2ka_ghostReplay617K [LibsignalPlacement]
     exact h2asm_memcpyNarrow_replay617 hLs hMm W u hpc hrun hnoex hfr (hlr_mc rfl) hinv
 
 /-- `Block617TransferFixedHypG` at `h2k_ghFixedK` via
-`h2ef_block617TransferFixedG_replaysOn_false_codeOnly`. -/
+`block617TransferFixedG_replaysOn_false_codeOnly_withExtra`. -/
 theorem h2ka_hole2_hTrFrozenKG_via_replaysOn [LibsignalPlacement]
     (mpl mmpl : MultiPlacement)
     (hLs : libsignalSessionLib.LinkedAt cliElfBytes mpl)
-    (hMm : mallocngLib.LinkedAt cliElfBytes mmpl) :
+    (hMm : mallocngLib.LinkedAt cliElfBytes mmpl)
+    (hMpl : lsmpl = mpl := by rfl) :
     Block617TransferFixedHypG mpl mmpl
       (fun W => cliGhostExterns (h2k_ghFixedK mpl mmpl) (cliExternsPlaced mmpl W))
-      (cliExternsPlaced mmpl) (F3MemsetMemcpyEntryLrFalse mmpl)
+      (cliExternsPlaced mmpl) (F3C2EntryGuard mpl mmpl)
       (LibsignalFrozen mpl) (F3CodeOk mpl mmpl)
-      (mallocngAddrsOfPlacement mmpl).libc cliElfImage.brkStart cliMainStk :=
-  h2ef_block617TransferFixedG_replaysOn_false_codeOnly mpl mmpl
-    (fun _m hCO => hole_gap3_f3CodeOk_to_libsignalFrozen hLs hCO)
-    (fun W _sym _f hmem hAct =>
-      h2b2_realW_externAt_none_of_ghostSymActive hLs (h2k_ghFixedK mpl mmpl) W hmem hAct)
-    (h2ka_ghostReplay617K mpl mmpl hLs hMm)
-    (@h2k_keepSubLr_false_of_noException _ mpl mmpl)
-    (@h2k_fds_of_noException _ mpl mmpl)
-    (fun hext hnoShim => h2k_ghFixedK_blk21TrapHook mpl hMm hext hnoShim)
-    (fun hext hnoShim => h2k_ghFixedK_blk20TrapHook mpl hMm hext hnoShim)
-    (h2k_ghFixedK_blk21_ext_trap hLs hMm)
-    (h2k_ghFixedK_blk20_ext_trap hLs hMm)
+      (mallocngAddrsOfPlacement mmpl).libc cliElfImage.brkStart cliMainStk := by
+  subst hMpl
+  exact Block617TransferFixedHypG.mono_guard
+    (f3C2EntryGuard_imp_and_extraEntryGuard lsmpl mmpl (h2k_ghFixedK lsmpl mmpl))
+    (block617TransferFixedG_replaysOn_false_codeOnly_withExtra lsmpl mmpl (c2GuardOf lsmpl)
+      (fun _m hCO => hole_gap3_f3CodeOk_to_libsignalFrozen hLs hCO)
+      (fun W sym f hmem hAct =>
+        h2b2_realW_externAt_none_of_ghostSymActive hLs (h2k_ghFixedK lsmpl mmpl) W hmem
+          ((GhostSymActive_iff_named_or_extra (h2k_ghFixedK lsmpl mmpl) sym f).mpr (Or.inl hAct)))
+      (h2ka_ghostReplay617K lsmpl mmpl hLs hMm)
+      (@h2k_keepSubLr_false_of_noException _ lsmpl mmpl)
+      (@h2k_fds_of_noException _ lsmpl mmpl)
+      (fun hext hnoShim => h2k_ghFixedK_blk21TrapHook lsmpl hMm hext hnoShim)
+      (fun hext hnoShim => h2k_ghFixedK_blk20TrapHook lsmpl hMm hext hnoShim)
+      (h2k_ghFixedK_blk21_ext_trap hLs hMm)
+      (h2k_ghFixedK_blk20_ext_trap hLs hMm)
+      (c2_extraReplaysOn_h2k lsmpl mmpl hLs))
 
-/-- `Block617TransferFixedHypG` at `h2k_ghFixedK` via
-`h2ef_block617TransferFixedG_of_steps_to_stepsAll_codeOnly`. -/
+/-- `Block617TransferFixedHypG` at `h2k_ghFixedK` (delegating to
+`h2ka_hole2_hTrFrozenKG_via_replaysOn`). -/
 theorem h2ka_hole2_hTrFrozenKG_via_execfzSec5 [LibsignalPlacement]
     (mpl mmpl : MultiPlacement)
     (hLs : libsignalSessionLib.LinkedAt cliElfBytes mpl)
-    (hMm : mallocngLib.LinkedAt cliElfBytes mmpl) :
+    (hMm : mallocngLib.LinkedAt cliElfBytes mmpl)
+    (hMpl : lsmpl = mpl := by rfl) :
     Block617TransferFixedHypG mpl mmpl
       (fun W => cliGhostExterns (h2k_ghFixedK mpl mmpl) (cliExternsPlaced mmpl W))
-      (cliExternsPlaced mmpl) (F3MemsetMemcpyEntryLrFalse mmpl)
+      (cliExternsPlaced mmpl) (F3C2EntryGuard mpl mmpl)
       (LibsignalFrozen mpl) (F3CodeOk mpl mmpl)
       (mallocngAddrsOfPlacement mmpl).libc cliElfImage.brkStart cliMainStk :=
-  h2ef_block617TransferFixedG_of_steps_to_stepsAll_codeOnly mpl mmpl
-    (fun _m hCO => hole_gap3_f3CodeOk_to_libsignalFrozen hLs hCO)
-    (fun W _sym _f hmem hAct =>
-      h2b2_realW_externAt_none_of_ghostSymActive hLs (h2k_ghFixedK mpl mmpl) W hmem hAct)
-    (h2ka_ghostReplay617K mpl mmpl hLs hMm)
-    (@h2k_keepSubLr_false_of_noException _ mpl mmpl)
-    (@h2k_fds_of_noException _ mpl mmpl)
-    (fun hext hnoShim => h2k_ghFixedK_blk21TrapHook mpl hMm hext hnoShim)
-    (fun hext hnoShim => h2k_ghFixedK_blk20TrapHook mpl hMm hext hnoShim)
-    (h2k_ghFixedK_blk21_ext_trap hLs hMm)
-    (h2k_ghFixedK_blk20_ext_trap hLs hMm)
-
-/-- `ExecFrozen` preservation across active hooks of `h2k_ghFixedK`. -/
-theorem h2ka_ghFixedK_preserves_execFrozen [LibsignalPlacement]
-    (mpl mmpl : MultiPlacement) {sym : String} {f : State → State}
-    (hAct : GhostSymActive (h2k_ghFixedK mpl mmpl) sym f) :
-    ∀ u : State, ExecFrozen u.mem → ExecFrozen (f u).mem :=
-  h2ef_h2k_ghFixedK_preserves_execFrozen mpl mmpl hAct
+  h2ka_hole2_hTrFrozenKG_via_replaysOn mpl mmpl hLs hMm hMpl
 
 theorem h2ka_pGhost617K_codeLoaded_of_libsignalFrozen [LibsignalPlacement]
     (mpl mmpl : MultiPlacement) (W : CliHooks) (m : Memory)
@@ -397,7 +392,7 @@ structure h2ka_F3CliElfGhostWitnessK
     ghFixed = h2k_ghFixedK mpl mmpl
   hTrFrozen : Block617TransferFixedHypG mpl mmpl
     (fun W => cliGhostExterns ghFixed (cliExternsPlaced mmpl W))
-    (cliExternsPlaced mmpl) (F3MemsetMemcpyEntryLrFalse mmpl)
+    (cliExternsPlaced mmpl) (F3C2EntryGuard mpl mmpl)
     (LibsignalFrozen mpl) (F3CodeOk mpl mmpl)
     (mallocngAddrsOfPlacement mmpl).libc cliElfImage.brkStart cliMainStk
   hFs : CliGhostHooksFs ghFixed

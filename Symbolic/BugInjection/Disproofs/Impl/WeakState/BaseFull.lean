@@ -56,18 +56,18 @@ open Symbolic.BugInjection.Disproofs.Impl.WeakState.BaseLines14 (sub14)
 open Symbolic.BugInjection.Disproofs.Impl.WeakState.BaseLines15 (sub15)
 
 def wsSpec : ElfFullSpecPlaced :=
-  { entry := 0x49c010#64 -- layout-bypass: concrete-mutant-trace-checkpoint
-    phdrVaddr := 0x3ff040#64 -- layout-bypass: concrete-mutant-trace-checkpoint
-    phnum := 11
-    brkStart := 0x4a4000#64 -- layout-bypass: concrete-mutant-trace-checkpoint
-    tokStorageAddr := 0x49a038#64 -- layout-bypass: concrete-mutant-trace-checkpoint
-    tokOnceAddr := 0x49a040#64 -- layout-bypass: concrete-mutant-trace-checkpoint
-    callocAddr := 0x49e418#64 -- layout-bypass: concrete-mutant-trace-checkpoint
-    callocSentinel := 0x49e419#64 -- layout-bypass: concrete-mutant-trace-checkpoint
-    mallocAddr := 0x49e4fc#64 -- layout-bypass: concrete-mutant-trace-checkpoint
-    mallocSentinel := 0x49e4fd#64 -- layout-bypass: concrete-mutant-trace-checkpoint
-    freeAddr := 0x49e4f8#64 -- layout-bypass: concrete-mutant-trace-checkpoint
-    freeSentinel := 0x49e4f9#64 -- layout-bypass: concrete-mutant-trace-checkpoint
+  { entry := 0x46a000#64 -- layout-bypass: concrete-mutant-trace-checkpoint
+    phdrVaddr := 0x400040#64 -- layout-bypass: concrete-mutant-trace-checkpoint
+    phnum := 7
+    brkStart := 0x471000#64 -- layout-bypass: concrete-mutant-trace-checkpoint
+    tokStorageAddr := 0x46f000#64 -- layout-bypass: concrete-mutant-trace-checkpoint
+    tokOnceAddr := 0x46f008#64 -- layout-bypass: concrete-mutant-trace-checkpoint
+    callocAddr := 0x46bbfc#64 -- layout-bypass: concrete-mutant-trace-checkpoint
+    callocSentinel := 0x46bbfd#64 -- layout-bypass: concrete-mutant-trace-checkpoint
+    mallocAddr := 0x46bce0#64 -- layout-bypass: concrete-mutant-trace-checkpoint
+    mallocSentinel := 0x46bce1#64 -- layout-bypass: concrete-mutant-trace-checkpoint
+    freeAddr := 0x46bcdc#64 -- layout-bypass: concrete-mutant-trace-checkpoint
+    freeSentinel := 0x46bcdd#64 -- layout-bypass: concrete-mutant-trace-checkpoint
     hooks := baseHooks
     baseLines := mkDepth3
       (.branch sub0 sub8) (.branch sub1 sub9) (.branch sub2 sub10) (.branch sub3 sub11)

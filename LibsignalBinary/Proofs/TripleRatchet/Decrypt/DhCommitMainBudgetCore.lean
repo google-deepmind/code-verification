@@ -74,6 +74,7 @@ open LibsignalBinary.Heap (
   AllocCostModel AllocEvent BudgetLimits FitsEnv FitsEvents FreeOnlyEvs RustCliAllocBudget
   SeqEnv fitsEvents_append rustCliAllocNoOomSpec rustCliDeallocBudgetSpec
 )
+open LibsignalBinary.Proofs.HookDischarge.Libc.Memmove (sessionMemmoveBoundedBudgetSpec)
 open LibsignalBinary.Proofs.TripleRatchet.Alloc.DefsBudget (
   chainKeyToPbSpecWithStack framelessMemcpyBudgetSpec noAllocShimBudgetSpec
   publicKeySerializeSpecWithStack
@@ -94,7 +95,6 @@ open LibsignalBinary.Proofs.TripleRatchet.Decrypt.DhCommitStep3Budget (
   dhCommitStep3Events dhCommitStep3aEvents dhCommit_step3_of_wp
   fitsEvents_dhCommitStep3a_of_step3 growOneSpecWithStack
 )
-open LibsignalBinary.Proofs.TripleRatchet.Hooks.DefsBudget (sessionMemmoveBudgetSpec)
 
 set_option maxRecDepth 200000
 set_option maxHeartbeats 400000
@@ -175,7 +175,7 @@ theorem dhCommit_withStack_env_of_wp [LibsignalPlacement] {M : AllocCostModel}
     (hAlloc : subroutine_ok prog (lsmpl.ρ lsRustAllocSym) (rustCliAllocNoOomSpec M A lim false))
     (hDealloc : subroutine_ok prog (lsmpl.ρ lsRustDeallocSym) (rustCliDeallocBudgetSpec M A lim))
     (hMemcpy : subroutine_ok prog (lsmpl.ρ "memcpy") framelessMemcpyBudgetSpec)
-    (hMemmove : subroutine_ok prog (lsmpl.ρ "memmove") (sessionMemmoveBudgetSpec dropStk))
+    (hMemmove : subroutine_ok prog (lsmpl.ρ "memmove") (sessionMemmoveBoundedBudgetSpec dropStk))
     (x : TryDecryptGhost) (trG : TrGhost) (tr : TripleRatchet (List (BitVec 8)))
     (st1 : SessionState (List (BitVec 8))) (sc : SenderChain)
     (receiverChainKey : ChainKey) (newSenderKey : KeyPair)

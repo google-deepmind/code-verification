@@ -9,6 +9,7 @@ limitations under the License.
 
 module
 
+public import LibsignalBinary.Proofs.HookDischarge.Libc.Memmove -- proof-setup: allow-public-import
 public import LibsignalBinary.Proofs.SpqrV1.States.Leaves.LeavesTopPlacedBudgetSat -- proof-setup: allow-public-import
 public import LibsignalBinary.Proofs.SpqrV1.States.Recv.TopPlacedBudget -- proof-setup: allow-public-import
 public import LibsignalBinary.Proofs.TripleRatchet.Hkdf.CommonBudgetSat -- proof-setup: allow-public-import
@@ -35,8 +36,9 @@ open CryptoVerification.LibsignalSpqrV1 (
   MlKem mlkemDecapsSpec mlkemEncaps2Spec mlkemValidatePkSpec
 )
 open CryptoVerification.LibsignalTripleRatchet (
-  keys_ls_subroutine_ok_of_block_cro memsetName sessionMemmoveSpec
+  keys_ls_subroutine_ok_of_block_cro memsetName
 )
+open LibsignalBinary.Proofs.HookDischarge.Libc.Memmove (sessionMemmoveBoundedSpec)
 open CryptoVerification.SpqrV1.Alloc (growOneStack spqrMemmoveSym)
 open CryptoVerification.SpqrV1.States.RecvCt2Chunk (spqrMlkemDecapsSym)
 open CryptoVerification.SpqrV1.Unchunked (spqrLibcruxHmacSym spqrMlkemEncaps2Sym)
@@ -86,7 +88,7 @@ theorem statesRecvPlacedContracts_of_ro_leaves_sat [LibsignalPlacement]
     [HkdfPlacedHooksExactBudgetSat F (Rust.withPanics ext)]
     (hA : RecvCt2PlacedAlloc M A lim ext)
     (hmemmove_sat : HookSat (Rust.withPanics ext) spqrMemmoveSym
-      (withAllocVmPreserved (sessionMemmoveSpec growOneStack)))
+      (withAllocVmPreserved (sessionMemmoveBoundedSpec growOneStack)))
     (hmemset_sat : HookSat (Rust.withPanics ext) memsetName sessionMemsetRegionBudgetSpec)
     (hval_pk_sat : HookSat (Rust.withPanics ext)
       "_RNvNtNtCs1mK0QScfTrZ_14libcrux_ml_kem8mlkem76811incremental17validate_pk_bytes"
@@ -161,7 +163,7 @@ theorem states_recv_placed_ok_x_closed_sat [LibsignalPlacement]
     [HkdfPlacedHooksExactBudgetSat F (Rust.withPanics ext)]
     (hA : RecvCt2PlacedAlloc M A lim ext)
     (hmemmove_sat : HookSat (Rust.withPanics ext) spqrMemmoveSym
-      (withAllocVmPreserved (sessionMemmoveSpec growOneStack)))
+      (withAllocVmPreserved (sessionMemmoveBoundedSpec growOneStack)))
     (hmemset_sat : HookSat (Rust.withPanics ext) memsetName sessionMemsetRegionBudgetSpec)
     (hval_pk_sat : HookSat (Rust.withPanics ext)
       "_RNvNtNtCs1mK0QScfTrZ_14libcrux_ml_kem8mlkem76811incremental17validate_pk_bytes"

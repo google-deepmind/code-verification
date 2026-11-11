@@ -275,11 +275,11 @@ theorem stageP4Prev1_placed_inst [LibsignalPlacement] (hDropNz : lsmpl.base 547 
     cliPollSess_prev1VtablesPlacedOk F0 peer σ hDropNz
   have hIkit : IdentityStoreKitPlacedOkI ikit (cliGhostExterns gh (cliExternsPlaced mmpl W)) :=
     cliIdKitPlacedOkI_full
-      (IdKit.cliIdKitOkIE_placed
+      (IdKit.cliIdKitOkIE_placed_sat
         (readProg := dpPollProgPlaced (cliGhostExterns gh (cliExternsPlaced mmpl W))) (jRead := 518)
         hDropNz (fun _ hp => hp.2) hh
         (StoreKit.subroutine_ok_withLsCodeRoLoaded_of_plain hread)
-        (cliGhostExterns_blackBox mmpl gh W)
+        hh.blackBox
         (Nat.le_refl _) (Nat.le_refl _) (Nat.le_refl _) (Nat.le_refl _)
         (by decide) (by decide))
   have hIvt : IdentityVtablesPlacedOk ikit := cliPollId_vtablesPlacedOk F0 peer σ hDropNz

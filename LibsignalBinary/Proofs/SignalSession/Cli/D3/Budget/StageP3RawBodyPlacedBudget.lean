@@ -65,7 +65,7 @@ open CryptoVerification.Cli.E2E.Pqxdh.ResponderClosure.VerNe (
 open CryptoVerification.CliHandshake.RespClosurePlaced (blkPl_518 instIsLsBlockProg_518 lsProg_518)
 open CryptoVerification.E2E.Pqxdh.ResponderClosure (ClosureCalleeSaved decryptPrekeySavedRegsAt)
 open CryptoVerification.LibsignalPublicApi.StoreKit (LibsignalCodeRoLoaded)
-open CryptoVerification.LibsignalTripleRatchet (extHookStack rootStack)
+open CryptoVerification.LibsignalTripleRatchet (rootStack)
 open CryptoVerification.LibsignalTripleRatchet.FromRecordCallees (growOneSpeStack)
 open CryptoVerification.LibsignalTripleRatchetRepr (SessionGhost sessionStateAt)
 open CryptoVerification.RustHeap (allocHookStack)
@@ -77,7 +77,7 @@ open CryptoVerification.SignalSession.Cli.RunGlue (
   CliGhostHooks cliExternsPlaced_row cliGhostExterns cliGhostExterns_shim
 )
 open CryptoVerification.SignalSession.Cli.Slots (
-  cliGhostExterns_panic_handle_error cliGhostExterns_sat_of_cliExternsPlaced
+  cliGhostExterns_panic_handle_error
 )
 open LibsignalBinary.Heap (
   AllocCostModel AllocEvent BudgetLimits FitsEnv FreeOnlyEvs RustCliAllocBudget SeqEnv
@@ -135,13 +135,11 @@ open LibsignalBinary.Proofs.SignalSession.Cli.D3.Budget.D3StageP3Prev1PlacedBudg
 open LibsignalBinary.Proofs.SignalSession.Cli.Run.Slots.CliHookSatPlacedBudget (
   CliGhostAllocHooks cliExternsPlaced_alloc_budget_sat cliExternsPlaced_dealloc_budget_sat
   cliExternsPlaced_framelessMemcpy_budget_sat cliExternsPlaced_realloc_budget_sat
-  cliExternsPlaced_sessionMemmove_budget_sat
 )
 open LibsignalBinary.Proofs.TripleRatchet.Alloc.DefsBudget (framelessMemcpyBudgetSpec)
 open LibsignalBinary.Proofs.TripleRatchet.FromRecordCallees.DefsBudget (
   dropSessionStructureLocal2Spec growOneSpeSpec
 )
-open LibsignalBinary.Proofs.TripleRatchet.Hooks.DefsBudget (sessionMemmoveBudgetSpec)
 open Symbolic.Swarm.TRREF.B3Defs (DeserializeScopeP_Q NonEmptyV1Q)
 open Symbolic.Swarm.TRREF.B3DeserQ (prostSSGQAt ssgqOf)
 
@@ -753,7 +751,6 @@ theorem overVerNe1e04CliAtFrozenPlacedBody_raw_of_hooks_chain5 [LibsignalFullPla
     (hrealloc_sat : HookSat ext lsRustReallocSym (rustCliReallocBudgetSpec M A lim))
     (hdealloc_sat : HookSat ext lsRustDeallocSym (rustCliDeallocBudgetSpec M A lim))
     (hmc_sat : HookSat ext lsMemcpySym framelessMemcpyBudgetSpec)
-    (hmemmove_sat : HookSat ext "memmove" (sessionMemmoveBudgetSpec extHookStack))
     (hpanic_raw : ext lsHandleErrorSym = some Rust.panicked)
     (hChain5 : b518x_ChainMerge5ExactCroPlacedOkExt' A lim ext) :
     OverVerNe1e04CliAtFrozenPlacedBody A lim PrevEncOK VerNeTightTopRawEnv ext :=
@@ -772,7 +769,7 @@ theorem overVerNe1e04CliAtFrozenPlacedBody_raw_of_hooks_chain5 [LibsignalFullPla
               (hookSat_verNeMemcpy_of_frameless allocHookStack hmc_sat))
             (b518x_overPrevDecode_exact_cro_placed_of_hooks_chain5'
               (hookSat_noAllocShimBudget_of_rustAllocShimVm hshim_sat)
-              halloc_sat hrealloc_sat hdealloc_sat hmc_sat hmemmove_sat hpanic_raw hChain5)
+              halloc_sat hrealloc_sat hdealloc_sat hmc_sat hpanic_raw hChain5)
             st_init s0 s s1 coroPtr ctxPtr outPtr initErrsPtr prevCap prevPtr ud0
             hinit_ne hcap msgVer hver_ne b_2c0 enc hEnc hfits G₁ recG st
             hfr1 hF1 hpc1 hrun1 hs1_sp hsp_align htr1
@@ -803,8 +800,6 @@ theorem cliVerNe1e04_full_placed_ok_raw [LibsignalFullPlacement]
     ((show lsRustDeallocSymCli = lsRustDeallocSym by decide) ▸
       cliExternsPlaced_dealloc_budget_sat mmpl gh W hG)
     (rawbody_cli_framelessMemcpy_sat mmpl gh W hG)
-    (cliGhostExterns_sat_of_cliExternsPlaced mmpl gh W
-      (cliExternsPlaced_sessionMemmove_budget_sat mmpl W extHookStack))
     (cliGhostExterns_panic_handle_error mmpl gh W)
     (c3x_chainMerge5ExactCroPlacedOkExt_cli mmpl gh W hG)
 

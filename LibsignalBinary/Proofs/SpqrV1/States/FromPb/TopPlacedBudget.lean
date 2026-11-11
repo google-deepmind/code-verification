@@ -10,6 +10,7 @@ limitations under the License.
 module
 
 public import LibsignalBinary.Heap.SpecBudget
+public import LibsignalBinary.Proofs.HookDischarge.Libc.Memmove
 public import LibsignalBinary.Proofs.SpqrV1.Chain.NextKeyInternalBudget
 public import LibsignalBinary.Proofs.SpqrV1.States.FromPb.DefsPlacedBudget
 public import LibsignalBinary.Proofs.SpqrV1.States.FromPb.TopPlaced
@@ -62,6 +63,7 @@ open CryptoVerification.SpqrV1.Unchunked
 open CryptoVerification.SpqrV1.ProtoRepr
 open CryptoVerification.SpqrV1.States.FromPb
 open LibsignalBinary.Heap
+open LibsignalBinary.Proofs.HookDischarge.Libc.Memmove (sessionMemmoveBoundedSpec)
 open LibsignalBinary.Proofs.SpqrV1.Chain.NextKeyInternalBudget (withAllocVmPreserved)
 open LibsignalBinary.Proofs.SpqrV1.States.FromPb.DefsBudget
 open LibsignalBinary.Proofs.SpqrV1.States.FromPb.Variant2aPlacedBudgetAux
@@ -71,9 +73,9 @@ private theorem hookSat_sessionMemmoveVmAcp_of_withAllocVmPreserved
     {H : String → Option (State → State)} (hookStack : Nat := 0)
     (h : HookSat H spqrMemmoveSym
       (LibsignalBinary.Proofs.SpqrV1.Chain.NextKeyInternalBudget.withAllocVmPreserved
-        (sessionMemmoveSpec hookStack))) :
+        (sessionMemmoveBoundedSpec hookStack))) :
     HookSat H spqrMemmoveSym
-      (LibsignalBinary.Proofs.SpqrV1.Poly.DecoderPb.FromPbInnerPlacedBudget.sessionMemmoveVmAcpSpec
+      (LibsignalBinary.Proofs.SpqrV1.Poly.DecoderPb.FromPbInnerPlacedBudget.sessionMemmoveBoundedVmAcpSpec
         hookStack) := by
   rcases h with ⟨fn, hfn, hbody⟩
   refine ⟨fn, hfn, fun (base, buf, dst, src, len) R s0 hrun hpre hal => ?_⟩
@@ -82,12 +84,13 @@ private theorem hookSat_sessionMemmoveVmAcp_of_withAllocVmPreserved
   rcases hout with ⟨hret, hcc, hpost⟩ | ⟨_, hpan⟩ | ⟨_, _, hex⟩ | ⟨_, hoom⟩
   · refine Or.inl ⟨hret, hcc, ?_⟩
     dsimp only [LibsignalBinary.Proofs.SpqrV1.Chain.NextKeyInternalBudget.withAllocVmPreserved,
-      sessionMemmoveSpec] at hpost
+      sessionMemmoveBoundedSpec, sessionMemmoveSpec] at hpost
     rw [sepConj_assoc, satisfies_pure_sepConj] at hpost
     rcases hpost with ⟨⟨hacp, hvm⟩, hpost⟩
     rw [sepConj_assoc, sepConj_assoc, satisfies_pure_sepConj] at hpost
     rcases hpost with ⟨⟨hx0, htr⟩, hrest⟩
-    dsimp only [LibsignalBinary.Proofs.SpqrV1.Poly.DecoderPb.FromPbInnerPlacedBudget.sessionMemmoveVmAcpSpec]
+    dsimp only [LibsignalBinary.Proofs.SpqrV1.Poly.DecoderPb.FromPbInnerPlacedBudget.sessionMemmoveBoundedVmAcpSpec,
+      LibsignalBinary.Proofs.SpqrV1.Poly.DecoderPb.FromPbInnerPlacedBudget.sessionMemmoveVmAcpSpec]
     rw [sepConj_assoc, sepConj_assoc, satisfies_pure_sepConj]
     exact ⟨⟨hx0, htr, hacp, hvm⟩, hrest⟩
   · exact (not_satisfies_false_sepConj hpan).elim
@@ -105,7 +108,7 @@ theorem decoder_from_pb_ok_of_alloc_placed [LibsignalPlacement]
     {M : AllocCostModel} {A : RustCliAllocBudget M} {lim : BudgetLimits}
     {ext : String → Option (State → State)}
     (hA : FromPbAllocHooksBudget M A lim ext)
-    (hmemmove : HookSat (Rust.withPanics ext) spqrMemmoveSym (withAllocVmPreserved (sessionMemmoveSpec 0))) :
+    (hmemmove : HookSat (Rust.withPanics ext) spqrMemmoveSym (withAllocVmPreserved (sessionMemmoveBoundedSpec 0))) :
     DefsBudget.DecoderFromPbPlacedOkExt M A lim ext :=
   DecoderFromPbClPlacedBudget.decoder_from_pb_on_333_placed_ok_ext
     hA.alloc hA.shim hA.dealloc
@@ -170,7 +173,7 @@ theorem states_from_pb_branch_proof_placed [LibsignalPlacement]
     {M : AllocCostModel} {A : RustCliAllocBudget M} {lim : BudgetLimits}
     {F : ShaCompress} {ext : String → Option (State → State)}
     (hA : FromPbAllocHooksBudget M A lim ext)
-    (hmemmove : HookSat (Rust.withPanics ext) spqrMemmoveSym (withAllocVmPreserved (sessionMemmoveSpec 0)))
+    (hmemmove : HookSat (Rust.withPanics ext) spqrMemmoveSym (withAllocVmPreserved (sessionMemmoveBoundedSpec 0)))
     (pb : V1State) :
     subroutine_ok (lsProg_333 (Rust.withPanics ext))
       (lsmpl.base 333)
@@ -199,7 +202,7 @@ theorem states_from_pb_ok_ext_placed [LibsignalPlacement]
     {M : AllocCostModel} {A : RustCliAllocBudget M} {lim : BudgetLimits}
     {F : ShaCompress} {ext : String → Option (State → State)}
     (hA : FromPbAllocHooksBudget M A lim ext)
-    (hmemmove : HookSat (Rust.withPanics ext) spqrMemmoveSym (withAllocVmPreserved (sessionMemmoveSpec 0))) :
+    (hmemmove : HookSat (Rust.withPanics ext) spqrMemmoveSym (withAllocVmPreserved (sessionMemmoveBoundedSpec 0))) :
     DefsBudget.StatesFromPbPlacedOkExt M A lim F ext :=
   ProofPlacedBudget.states_from_pb_ok_of_forall_pb_placed (states_from_pb_branch_proof_placed hA hmemmove)
 
@@ -207,7 +210,7 @@ theorem states_from_pb_ok_placed [LibsignalPlacement]
     {M : AllocCostModel} {A : RustCliAllocBudget M} {lim : BudgetLimits}
     {F : ShaCompress} {ext : String → Option (State → State)}
     (hA : FromPbAllocHooksBudget M A lim ext)
-    (hmemmove : HookSat (Rust.withPanics ext) spqrMemmoveSym (withAllocVmPreserved (sessionMemmoveSpec 0))) :
+    (hmemmove : HookSat (Rust.withPanics ext) spqrMemmoveSym (withAllocVmPreserved (sessionMemmoveBoundedSpec 0))) :
     DefsBudget.StatesFromPbPlacedOkExt M A lim F ext :=
   states_from_pb_ok_ext_placed hA hmemmove
 
@@ -215,7 +218,7 @@ theorem states_from_pb_ok_x_placed [LibsignalPlacement]
     {M : AllocCostModel} {A : RustCliAllocBudget M} {lim : BudgetLimits}
     {F : ShaCompress} {ext : String → Option (State → State)}
     (hA : FromPbAllocHooksBudget M A lim ext)
-    (hmemmove : HookSat (Rust.withPanics ext) spqrMemmoveSym (withAllocVmPreserved (sessionMemmoveSpec 0))) :
+    (hmemmove : HookSat (Rust.withPanics ext) spqrMemmoveSym (withAllocVmPreserved (sessionMemmoveBoundedSpec 0))) :
     StatesPlacedSeamsBudget.StatesFromPbPlacedOkX M A lim F ext :=
   ProofPlacedBudget.states_from_pb_okX_of_ok_ext_placed (states_from_pb_ok_ext_placed hA hmemmove)
 

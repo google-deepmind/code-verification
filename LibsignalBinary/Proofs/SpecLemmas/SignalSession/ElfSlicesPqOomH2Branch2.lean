@@ -38,6 +38,9 @@ public import LibsignalBinary.Specifications.SignalSession.CliElf
 public import ProofLib
 public import ProofLib.Placed.Multi
 public import ProofLib.ProgramReflection
+import LibsignalBinary.Proofs.SignalSession.Cli.HooksDehook.C2RowLayoutFacts.T4Witness
+import LibsignalBinary.Proofs.SignalSession.Cli.HooksDehook.ExtraGhostReplay
+import LibsignalBinary.Proofs.SpecLemmas.SignalSession.ElfF3Relink.Lib2LayoutFacts
 import LibsignalBinary.Proofs.SpecLemmas.SignalSession.ElfSlicesPqOomH2FirstStopAlloc
 import LibsignalBinary.Proofs.SpecLemmas.SignalSession.ElfSlicesPqOomH2FirstStopDealloc
 import LibsignalBinary.Proofs.SpecLemmas.SignalSession.ElfSlicesPqOomH2FirstStopReads
@@ -80,11 +83,12 @@ open VerifiedLibraries (mallocngLib)
 open CryptoVerification (LibsignalPlacement)
 open CryptoVerification.SignalSession
   (CliHooks cliDehookedSymsPlaced cliElfBytes cliElfImage cliElf_staticOk cliExternsPlaced
-   libsignalSessionLib lsReadFileSym lsReadStdinSym lsRustAllocSymCli lsRustAllocZeroedSymCli
-   lsRustDeallocSymCli lsRustNoAllocShimSymCli lsRustReallocSymCli lsStringCloneSym)
+   libsignalSessionLib lsBlackBoxSym lsDurationSinceSym lsFromUtf8Sym lsMemrchrSym lsReadFileSym
+   lsReadStdinSym lsRustAllocSymCli lsRustAllocZeroedSymCli lsRustDeallocSymCli
+   lsRustNoAllocShimSymCli lsRustReallocSymCli lsSharedSecretDropSym lsStaticSecretDropSym
+   lsStringCloneSym lsTimeAddSym)
 open CryptoVerification.SignalSession.Cli.MainHops (cliIo)
-open CryptoVerification.SignalSession.Cli.RunGlue
-  (CliGhostHooks IsFsC cliGhostExterns cliGhostExterns_memcpy_some cliGhostExterns_memset_some)
+open CryptoVerification.SignalSession.Cli.RunGlue (CliGhostHooks IsFsC cliGhostExterns)
 open CryptoVerification.SignalSession.Placed (DirectOrBranchStub)
 open LibsignalBinary.Heap (rustCliAllocBudgetSpec rustCliDeallocBudgetSpec)
 open LibsignalBinary.Heap.Fine
@@ -107,13 +111,21 @@ open LibsignalBinary.Proofs.SignalSession.Cli.F3.L4B.F3HarnessPlaced
   (cliProgExtPlacedAt loadState_patchElfTokensPlacedAt)
 open LibsignalBinary.Proofs.SignalSession.Cli.F3.L4B.Ghost617Transfer
   (GhostSymActive StubReachesTargetOn stubReachesTargetOn_of_directOrBranchStub)
+open LibsignalBinary.Proofs.SignalSession.Cli.HooksDehook.C2RowLayoutFacts.T4Witness
+  (c2ExternTableFacts_of_linkedAt)
+open LibsignalBinary.Proofs.SignalSession.Cli.HooksDehook.ExtraGhostReplay
+  (cliGhostExternsWithExtra_eq_some_of_active cliGhostExternsWithExtra_nil_of_named)
 open LibsignalBinary.Proofs.SignalSession.Cli.M24.MainIoBoundedPlaced
   (ReadStdinBoundedEnv readStdinSpecOfPlaced)
+open LibsignalBinary.Proofs.SignalSession.Cli.Run.Slots.ExtraGhostSpecs
+  (cliExtraGhostSyms cliGhostExternsWithExtra)
 open LibsignalBinary.Proofs.SpecLemmas.SignalSession.ElfCodeMatchesData
   (cliDehookedSymsPlaced_eq_entries f3DehookedEntries lsInternedMultiLib lsSharedExterns
    ls_block617_externs_eq ls_idsOk ls_names_nodup ls_sharedExterns_lt ls_toMultiPlacedLib_eq)
 open LibsignalBinary.Proofs.SpecLemmas.SignalSession.ElfCodeMatchesPlaced
   (f3TrialElfSymChars f3TrialElfSyms_eq)
+open LibsignalBinary.Proofs.SpecLemmas.SignalSession.ElfF3Relink.Lib2LayoutFacts
+  (keepLib2Text_sub_rxProg keepTextBPre_sub_rxProg)
 open LibsignalBinary.Proofs.SpecLemmas.SignalSession.ElfF3Relink.StartupStatics
   (F3CodeInv cliElf_tokenCellsPlacedAt_of_linkedAt keepsFrozen_cliTokenPatchPlacedAt)
 open LibsignalBinary.Proofs.SpecLemmas.SignalSession.ElfF3Relink.Tie
@@ -141,7 +153,9 @@ open LibsignalBinary.Proofs.SpecLemmas.SignalSession.ElfSlicesPqOomH2StepsLiftR2
 open LibsignalBinary.Proofs.SpecLemmas.SignalSession.ElfSlicesPqOomPlacedInst
   (hole2_emptyProg hole2_hookStack hole2_keep hole2_keepSub hole2_targets)
 open LibsignalBinary.Proofs.SpecLemmas.SignalSession.Wp4LayoutGen
-  (wp4MemcpyRealAddr wp4MemsetRealAddr)
+  (c2BatchLDehookedSyms c2BcmpAddr c2BlackBoxAddr c2DurationSinceAddr c2FromUtf8Addr
+   c2Lib2DehookedSyms c2MemmoveAddr c2MemrchrAddr c2SharedSecretDropAddr c2StaticSecretDropAddr
+   c2StrlenAddr c2TimeAddAddr wp4MemcpyRealAddr wp4MemsetRealAddr)
 
 /-! ## Unpatched Raw ELF Load Bridge -/
 
@@ -171,11 +185,14 @@ theorem h2b2_unpatched_load {mpl mmpl : MultiPlacement} {m : Memory}
 
 /-! ## Dehooked Symbol Resolution and `.symtab` Target-VA Table -/
 
-/-- Expected `(symbol, targetVa)` pairs for the `9` symbols in `cliDehookedSymsPlaced`:
+/-- Expected `(symbol, targetVa)` pairs for the `19` symbols in `cliDehookedSymsPlaced`:
     `shim` (`f3NoShimV2Addr = 0x469640#64`), the `4` `rdl_shim.S` allocator thunk entries
     (`f3StubAddrs.{alloc,dealloc,realloc}`, `f3StubAzAddr`), the `2` IO entries
-    (`readFile` at `0x4691b4#64`, `readStdin` at `0x469000#64`), and
-    `memcpy` (`wp4MemcpyRealAddr`), `memset` (`wp4MemsetRealAddr`). -/
+    (`readFile` at `0x4691b4#64`, `readStdin` at `0x469000#64`),
+    `memcpy` (`wp4MemcpyRealAddr`), `memset` (`wp4MemsetRealAddr`), and the `10` Cutover-2
+    (`C2`) de-hooked entries (`memmove`, `bcmp`, `strlen`, `memrchr`, `from_utf8`,
+    `duration_since`, `SystemTime::add`, `black_box`, `StaticSecret::drop`,
+    `SharedSecret::drop`). -/
 def h2b2_dehookedTargetPairs : List (String × BitVec 64) :=
   [ (lsRustNoAllocShimSymCli, f3NoShimV2Addr),
     (lsRustAllocSymCli, f3StubAddrs.alloc),
@@ -185,7 +202,17 @@ def h2b2_dehookedTargetPairs : List (String × BitVec 64) :=
     (lsReadFileSym, 0x4691b4#64),
     (lsReadStdinSym, 0x469000#64),
     ("memcpy", wp4MemcpyRealAddr),
-    ("memset", wp4MemsetRealAddr) ]
+    ("memset", wp4MemsetRealAddr),
+    ("memmove", c2MemmoveAddr),
+    ("bcmp", c2BcmpAddr),
+    ("strlen", c2StrlenAddr),
+    (lsMemrchrSym, c2MemrchrAddr),
+    (lsFromUtf8Sym, c2FromUtf8Addr),
+    (lsDurationSinceSym, c2DurationSinceAddr),
+    (lsTimeAddSym, c2TimeAddAddr),
+    (lsBlackBoxSym, c2BlackBoxAddr),
+    (lsStaticSecretDropSym, c2StaticSecretDropAddr),
+    (lsSharedSecretDropSym, c2SharedSecretDropAddr) ]
 
 private theorem h2b2_f3DehookedEntries_pairs_eq :
     (f3DehookedEntries.map fun e => (String.ofList e.2.1, e.2.2.2)) = h2b2_dehookedTargetPairs := by
@@ -566,28 +593,8 @@ theorem h2b2_cliGhostExterns_eq_some_of_active
     (g : CliGhostHooks) (baseExt : String → Option (State → State))
     {sym : String} {f : State → State}
     (hAct : GhostSymActive g sym f) :
-    cliGhostExterns g baseExt sym = some f := by
-  rcases hAct with
-    ⟨rfl, rfl⟩ | ⟨rfl, rfl⟩ | ⟨rfl, rfl⟩ | ⟨rfl, rfl⟩ | ⟨rfl, rfl⟩ |
-    ⟨rfl, hsc⟩ | ⟨rfl, hg, hrf⟩ | ⟨rfl, hg, hrs⟩ | ⟨rfl, hms⟩ | ⟨rfl, hmc⟩
-  · unfold cliGhostExterns lsRustAllocSymCli; simp
-  · unfold cliGhostExterns lsRustDeallocSymCli lsRustAllocSymCli; simp
-  · unfold cliGhostExterns lsRustReallocSymCli lsRustAllocSymCli lsRustDeallocSymCli; simp
-  · unfold cliGhostExterns lsRustAllocZeroedSymCli lsRustAllocSymCli lsRustDeallocSymCli
-      lsRustReallocSymCli; simp
-  · unfold cliGhostExterns lsRustNoAllocShimSymCli lsRustAllocSymCli lsRustDeallocSymCli
-      lsRustReallocSymCli lsRustAllocZeroedSymCli; simp
-  · unfold cliGhostExterns lsStringCloneSym lsRustAllocSymCli lsRustDeallocSymCli
-      lsRustReallocSymCli lsRustAllocZeroedSymCli lsRustNoAllocShimSymCli; simp [hsc]
-  · unfold cliGhostExterns lsReadFileSym lsRustAllocSymCli lsRustDeallocSymCli
-      lsRustReallocSymCli lsRustAllocZeroedSymCli lsRustNoAllocShimSymCli lsStringCloneSym
-    simp [hrf]
-  · unfold cliGhostExterns lsReadStdinSym lsRustAllocSymCli lsRustDeallocSymCli
-      lsRustReallocSymCli lsRustAllocZeroedSymCli lsRustNoAllocShimSymCli lsStringCloneSym
-      lsReadFileSym
-    simp [hrs]
-  · exact cliGhostExterns_memset_some g baseExt hms
-  · exact cliGhostExterns_memcpy_some g baseExt hmc
+    cliGhostExterns g baseExt sym = some f :=
+  cliGhostExternsWithExtra_eq_some_of_active g g.extra baseExt hAct
 
 /-- On every active ghost symbol, `cliGhostExterns g (cliExternsPlaced mmpl W) sym` equals
 `cliGhostExterns g (fun _ => none) sym`. -/
@@ -613,7 +620,7 @@ theorem h2b2_realW_externAt_none_of_ghostSymActive
       (libsignalSessionLib.resolve mpl sym) = none := by
   rcases hAct with
     ⟨rfl, _⟩ | ⟨rfl, _⟩ | ⟨rfl, _⟩ | ⟨rfl, _⟩ | ⟨rfl, _⟩ |
-    ⟨rfl, _⟩ | ⟨rfl, _⟩ | ⟨rfl, _⟩ | ⟨rfl, _⟩ | ⟨rfl, _⟩
+    ⟨rfl, _⟩ | ⟨rfl, _⟩ | ⟨rfl, _⟩ | ⟨rfl, _⟩ | ⟨rfl, _⟩ | ⟨hDom, _⟩
   · exact (h2b2_dehooked_stubReachesTargetOn hLs (tgt := f3StubAddrs.alloc)
       (by simp [h2b2_dehookedTargetPairs]) W).1
   · exact (h2b2_dehooked_stubReachesTargetOn hLs (tgt := f3StubAddrs.dealloc)
@@ -633,6 +640,25 @@ theorem h2b2_realW_externAt_none_of_ghostSymActive
       (by simp [h2b2_dehookedTargetPairs]) W).1
   · exact (h2b2_dehooked_stubReachesTargetOn hLs (tgt := wp4MemcpyRealAddr)
       (by simp [h2b2_dehookedTargetPairs]) W).1
+  · have hExt := c2ExternTableFacts_of_linkedAt hLs
+    have hSplit : ∀ s ∈ cliExtraGhostSyms,
+        s ∈ c2BatchLDehookedSyms ∨ s ∈ c2Lib2DehookedSyms := by
+      intro s hs
+      simp only [cliExtraGhostSyms, List.mem_cons, List.not_mem_nil, or_false] at hs
+      rcases hs with rfl | rfl | rfl | rfl | rfl | rfl | rfl | rfl | rfl | rfl
+      · exact Or.inl (.head _)
+      · exact Or.inl (.tail _ (.head _))
+      · exact Or.inl (.tail _ (.tail _ (.head _)))
+      · exact Or.inr (.head _)
+      · exact Or.inr (.tail _ (.head _))
+      · exact Or.inr (.tail _ (.tail _ (.head _)))
+      · exact Or.inr (.tail _ (.tail _ (.tail _ (.tail _ (.tail _ (.tail _ (.head _)))))))
+      · exact Or.inr (.tail _ (.tail _ (.tail _ (.head _))))
+      · exact Or.inr (.tail _ (.tail _ (.tail _ (.tail _ (.tail _ (.head _))))))
+      · exact Or.inr (.tail _ (.tail _ (.tail _ (.tail _ (.head _)))))
+    rcases hSplit sym (List.contains_iff_mem.mp hDom) with hBL | hL2
+    · exact hExt.realRxNoExtern mmpl W (keepTextBPre_sub_rxProg (hExt.batchLInKeep hBL))
+    · exact hExt.realRxNoExtern mmpl W (keepLib2Text_sub_rxProg (hExt.lib2InKeep hL2))
 
 /-! ## Non-`.Exception` Guard Extraction and First-Stop Bundle -/
 
@@ -684,7 +710,7 @@ private theorem h2b2_activeF3CallPre_of_f3LinkedCallHook_noException {α : Type}
 theorem h2b2_keepLr_false_of_noException [LibsignalPlacement]
     (mpl mmpl : MultiPlacement)
     {sym : String} {f : State → State} {a : State}
-    (hext : cliGhostExterns (h2k_ghFixedK mpl mmpl) (fun _ => none) sym = some f)
+    (hext : cliGhostExternsWithExtra (h2k_ghFixedK mpl mmpl) [] (fun _ => none) sym = some f)
     (hnoShim : sym ≠ lsRustNoAllocShimSymCli)
     (hnoex : ∀ msg, (f a).status ≠ .Exception msg)
     (hnoMs : sym ≠ CryptoVerification.SignalSession.lsMemsetSym := by decide)
@@ -697,7 +723,7 @@ theorem h2b2_keepLr_false_of_noException [LibsignalPlacement]
 theorem h2b2_keepSubLr_false_of_noException [LibsignalPlacement]
     (mpl mmpl : MultiPlacement)
     {sym : String} {f : State → State} {a : State}
-    (hext : cliGhostExterns (h2k_ghFixedK mpl mmpl) (fun _ => none) sym = some f)
+    (hext : cliGhostExternsWithExtra (h2k_ghFixedK mpl mmpl) [] (fun _ => none) sym = some f)
     (hnoShim : sym ≠ lsRustNoAllocShimSymCli)
     (hnoex : ∀ msg, (f a).status ≠ .Exception msg)
     (hnoMs : sym ≠ CryptoVerification.SignalSession.lsMemsetSym := by decide)
@@ -920,9 +946,10 @@ theorem h2b2_branch2_alloc_kHook_perPc [LibsignalPlacement] {mpl mmpl : MultiPla
       F3CodeInv mpl mmpl ((h2k_ghFixedK mpl mmpl).alloc u).mem ∧
       ((h2k_ghFixedK mpl mmpl).alloc u).fs = u.fs := by
   have hext0 :
-      cliGhostExterns (h2k_ghFixedK mpl mmpl) (fun _ => none) lsRustAllocSymCli =
+      cliGhostExternsWithExtra (h2k_ghFixedK mpl mmpl) [] (fun _ => none) lsRustAllocSymCli =
         some (h2k_ghFixedK mpl mmpl).alloc :=
-    h2b2_cliGhostExterns_eq_some_of_active (h2k_ghFixedK mpl mmpl) (fun _ => none) (Or.inl ⟨rfl, rfl⟩)
+    cliGhostExternsWithExtra_nil_of_named (h2k_ghFixedK mpl mmpl) (fun _ => none)
+      (Or.inl ⟨rfl, rfl⟩)
   have hlr : hole2_keepSub (u.readReg64 .lr) = false :=
     h2k_keepSubLr_false_of_noException mpl mmpl hext0 (by decide) hnoex
   exact h2b2_branch2_alloc_explicitLr_perPc hLs hMm W hpc hrun hnoex hFr hlr hInv
@@ -963,9 +990,9 @@ theorem h2b2_branch2_allocZeroed_kHook_perPc [LibsignalPlacement] {mpl mmpl : Mu
       F3CodeInv mpl mmpl ((h2k_ghFixedK mpl mmpl).allocZeroed u).mem ∧
       ((h2k_ghFixedK mpl mmpl).allocZeroed u).fs = u.fs := by
   have hext0 :
-      cliGhostExterns (h2k_ghFixedK mpl mmpl) (fun _ => none) lsRustAllocZeroedSymCli =
+      cliGhostExternsWithExtra (h2k_ghFixedK mpl mmpl) [] (fun _ => none) lsRustAllocZeroedSymCli =
         some (h2k_ghFixedK mpl mmpl).allocZeroed :=
-    h2b2_cliGhostExterns_eq_some_of_active (h2k_ghFixedK mpl mmpl) (fun _ => none)
+    cliGhostExternsWithExtra_nil_of_named (h2k_ghFixedK mpl mmpl) (fun _ => none)
       (Or.inr (Or.inr (Or.inr (Or.inl ⟨rfl, rfl⟩))))
   have hlr : hole2_keepSub (u.readReg64 .lr) = false :=
     h2k_keepSubLr_false_of_noException mpl mmpl hext0 (by decide) hnoex
@@ -1007,9 +1034,9 @@ theorem h2b2_branch2_dealloc_kHook_perPc [LibsignalPlacement] {mpl mmpl : MultiP
       F3CodeInv mpl mmpl ((h2k_ghFixedK mpl mmpl).dealloc u).mem ∧
       ((h2k_ghFixedK mpl mmpl).dealloc u).fs = u.fs := by
   have hext0 :
-      cliGhostExterns (h2k_ghFixedK mpl mmpl) (fun _ => none) lsRustDeallocSymCli =
+      cliGhostExternsWithExtra (h2k_ghFixedK mpl mmpl) [] (fun _ => none) lsRustDeallocSymCli =
         some (h2k_ghFixedK mpl mmpl).dealloc :=
-    h2b2_cliGhostExterns_eq_some_of_active (h2k_ghFixedK mpl mmpl) (fun _ => none)
+    cliGhostExternsWithExtra_nil_of_named (h2k_ghFixedK mpl mmpl) (fun _ => none)
       (Or.inr (Or.inl ⟨rfl, rfl⟩))
   have hlr : hole2_keepSub (u.readReg64 .lr) = false :=
     h2k_keepSubLr_false_of_noException mpl mmpl hext0 (by decide) hnoex
@@ -1052,9 +1079,9 @@ theorem h2b2_branch2_realloc_kHook_perPc [LibsignalPlacement] {mpl mmpl : MultiP
       F3CodeInv mpl mmpl ((h2k_ghFixedK mpl mmpl).realloc u).mem ∧
       ((h2k_ghFixedK mpl mmpl).realloc u).fs = u.fs := by
   have hext0 :
-      cliGhostExterns (h2k_ghFixedK mpl mmpl) (fun _ => none) lsRustReallocSymCli =
+      cliGhostExternsWithExtra (h2k_ghFixedK mpl mmpl) [] (fun _ => none) lsRustReallocSymCli =
         some (h2k_ghFixedK mpl mmpl).realloc :=
-    h2b2_cliGhostExterns_eq_some_of_active (h2k_ghFixedK mpl mmpl) (fun _ => none)
+    cliGhostExternsWithExtra_nil_of_named (h2k_ghFixedK mpl mmpl) (fun _ => none)
       (Or.inr (Or.inr (Or.inl ⟨rfl, rfl⟩)))
   have hlr : hole2_keepSub (u.readReg64 .lr) = false :=
     h2k_keepSubLr_false_of_noException mpl mmpl hext0 (by decide) hnoex
@@ -1143,6 +1170,15 @@ theorem h2b2_branch2_readFile_kHook_perPc [LibsignalPlacement] {mpl mmpl : Multi
       F3CodeInv mpl mmpl (f u).mem ∧
       (f u).fs = u.fs := by
   have hext0 :
+      cliGhostExternsWithExtra (h2k_ghFixedK mpl mmpl) [] (fun _ => none) lsReadFileSym =
+        some (h2k_readFileFixedGhostHookFineK hole2_keepSub hole2_emptyProg f3TrialRxProg
+          (hole2_targets mpl).readFile mmpl cliElfImage.brkStart cliBudgetLimits hole2_hookStack) :=
+    cliGhostExternsWithExtra_nil_of_named (h2k_ghFixedK mpl mmpl) (fun _ => none)
+      (Or.inr (Or.inr (Or.inr (Or.inr (Or.inr (Or.inr (Or.inl ⟨rfl,
+        (h2k_readFileFixedGhostHookFineSubK hole2_keepSub hole2_emptyProg f3TrialRxProg
+          (hole2_targets mpl).readFile mmpl cliElfImage.brkStart cliBudgetLimits hole2_hookStack).2,
+        rfl⟩)))))))
+  have hext_fds :
       cliGhostExterns (h2k_ghFixedK mpl mmpl) (fun _ => none) lsReadFileSym =
         some (h2k_readFileFixedGhostHookFineK hole2_keepSub hole2_emptyProg f3TrialRxProg
           (hole2_targets mpl).readFile mmpl cliElfImage.brkStart cliBudgetLimits hole2_hookStack) :=
@@ -1154,7 +1190,7 @@ theorem h2b2_branch2_readFile_kHook_perPc [LibsignalPlacement] {mpl mmpl : Multi
   have hlr : hole2_keepSub (u.readReg64 .lr) = false :=
     h2k_keepSubLr_false_of_noException mpl mmpl hext0 (by decide) hnoex
   have hFds : FdsGe3Closed u.fs :=
-    h2k_fds_of_noException mpl mmpl hext0 hnoex
+    h2k_fds_of_noException mpl mmpl hext_fds hnoex
   exact h2b2_branch2_readFile_explicitLr_perPc hLs hMm W hpc hrun hnoex hFr hlr hFds hInv
 
 /-- Stock-clean explicit-`lr` `readStdin` branch-2 replay on `h2k_readStdinGhostHookFineK`. -/
@@ -1238,10 +1274,10 @@ theorem h2b2_branch2_readStdin_kHook_perPc [LibsignalPlacement] {mpl mmpl : Mult
       F3CodeInv mpl mmpl (f u).mem ∧
       (FdsGe3Closed u.fs → FdsGe3Closed (f u).fs) := by
   have hext0 :
-      cliGhostExterns (h2k_ghFixedK mpl mmpl) (fun _ => none) lsReadStdinSym =
+      cliGhostExternsWithExtra (h2k_ghFixedK mpl mmpl) [] (fun _ => none) lsReadStdinSym =
         some (h2k_readStdinGhostHookFineK hole2_keepSub hole2_emptyProg f3TrialRxProg
           (hole2_targets mpl).readStdin mmpl cliElfImage.brkStart cliBudgetLimits hole2_hookStack) :=
-    h2b2_cliGhostExterns_eq_some_of_active (h2k_ghFixedK mpl mmpl) (fun _ => none)
+    cliGhostExternsWithExtra_nil_of_named (h2k_ghFixedK mpl mmpl) (fun _ => none)
       (Or.inr (Or.inr (Or.inr (Or.inr (Or.inr (Or.inr (Or.inr (Or.inl ⟨rfl,
         (h2k_readStdinGhostHookFineSubK hole2_keepSub hole2_emptyProg f3TrialRxProg
           (hole2_targets mpl).readStdin mmpl cliElfImage.brkStart cliBudgetLimits hole2_hookStack).2,

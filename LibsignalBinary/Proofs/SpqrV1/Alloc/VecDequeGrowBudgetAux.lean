@@ -14,6 +14,7 @@ public import LibsignalBinary.Proofs.SpqrV1.Alloc.GrowOneBudget
 public import LibsignalBinary.Proofs.SpqrV1.Alloc.ConcatBudgetAux
 public import LibsignalBinary.Proofs.SpqrV1.Chain.DefsBudget
 public import LibsignalBinary.Proofs.TripleRatchet.Alloc.DefsBudget
+public import LibsignalBinary.Proofs.HookDischarge.Libc.Memmove -- proof-setup: allow-public-import
 public import LibsignalBinary.Heap.IfaceBudgetLemmas
 public import LibsignalBinary.Heap.RustStdAllocBudgetBridge
 public import LibsignalBinary.Proofs.Placed.BudgetPoolSync
@@ -84,6 +85,9 @@ open LibsignalBinary.Heap.IfaceBudgetLemmas (
 )
 open LibsignalBinary.Proofs.TripleRatchet.Alloc.DefsBudget (sessionMemmoveBudget_hookOk)
 open LibsignalBinary.Proofs.TripleRatchet.Hooks.DefsBudget (sessionMemmoveBudgetSpec)
+open LibsignalBinary.Proofs.HookDischarge.Libc.Memmove (
+  MemmoveArithBound sessionMemmoveBoundedSpec
+)
 open LibsignalBinary.Proofs.SpqrV1.Alloc.GrowOneBudget (
   FG8CellsGhost GrowOneStrideEnv fitsEnv_growOneStride_iff growOneStrideEvents
 )
@@ -254,13 +258,32 @@ theorem hookMemmove_sessionMemmoveAcp_ok (hookStack : Nat := 4096) :
     exact ⟨rfl, rfl, rfl, rfl, rfl, rfl, rfl⟩
   · exact Or.inr hrest
 
+/-- Bounded (`MemmoveArithBound`) counterpart of `sessionMemmoveAcpSpec`:
+    same `AllocCallPreserved ∧ VmPreserved` postcondition, gated by `MemmoveArithBound base buf`
+    in `.pre` so real `libc.a` `memmove` satisfies it (`VecDequeGrowBudget` /
+    `AddChunkCl1PlacedBudget` / `SpqrChainPlacedInstBudget`). -/
+def sessionMemmoveBoundedAcpSpec (hookStack : Nat := 4096) :
+    Spec (BitVec 64 × List (BitVec 8) × Nat × Nat × Nat) :=
+  { sessionMemmoveAcpSpec hookStack with
+    pre := (sessionMemmoveBoundedSpec hookStack).pre }
+
+theorem hookMemmove_sessionMemmoveBoundedAcp_ok (hookStack : Nat := 4096) :
+    HookOk hookMemmove (sessionMemmoveBoundedAcpSpec hookStack) := by
+  have h := hookMemmove_sessionMemmoveAcp_ok hookStack
+  intro x R s0 hrun hpre hsp
+  dsimp only [sessionMemmoveBoundedAcpSpec, sessionMemmoveBoundedSpec] at hpre
+  rw [sepConj_assoc, satisfies_pure_sepConj] at hpre
+  exact h x R s0 hrun hpre.2 hsp
+
 def sessionMemmoveFrontToEndAcpSpec (hookStack : Nat) :
     Spec (BitVec 64 × List (BitVec 8) × Nat) where
   pre := fun (base, bs_front, uninitLen) s0 =>
     ⌜s0.readReg64 .x0 = base + BitVec.ofNat 64 uninitLen ∧
       s0.readReg64 .x1 = base ∧
       (s0.readReg64 .x2).toNat = bs_front.length ∧
-      uninitLen ≤ 2 ^ 64⌝ ∗
+      uninitLen ≤ 2 ^ 64 ∧
+      base.toNat + bs_front.length + uninitLen ≤ 2 ^ 64 ∧
+      bs_front.length + uninitLen < 2 ^ 63⌝ ∗
       (base ↦ₛ bs_front) ∗
       memRegion (base + BitVec.ofNat 64 bs_front.length) uninitLen ∗
       stackAt s0.sp hookStack
@@ -272,11 +295,11 @@ def sessionMemmoveFrontToEndAcpSpec (hookStack : Nat) :
       stackAt s0.sp hookStack
 
 theorem session_memmove_front_to_end_acp_ok {prog : Program} {addr : BitVec 64}
-    {hookStack : Nat} (hmm : subroutine_ok prog addr (sessionMemmoveAcpSpec hookStack)) :
+    {hookStack : Nat} (hmm : subroutine_ok prog addr (sessionMemmoveBoundedAcpSpec hookStack)) :
     subroutine_ok prog addr (sessionMemmoveFrontToEndAcpSpec hookStack) := by
   refine subroutine_ok_outcome_intro fun ⟨base, bs_front, uninitLen⟩ R s0 hpc hrun hpre hsp => ?_
   simp only [sessionMemmoveFrontToEndAcpSpec, sepConj_assoc, satisfies_pure_sepConj] at hpre
-  rcases hpre with ⟨⟨hx0, hx1, hx2, huninit_le⟩, hmem⟩
+  rcases hpre with ⟨⟨hx0, hx1, hx2, huninit_le, hnw, hlt63⟩, hmem⟩
   rw [memRegion_eq_exists_bytes (base + BitVec.ofNat 64 bs_front.length) uninitLen huninit_le,
       sepExists_sepConj_left, sepExists_sepConj_right] at hmem
   rw [satisfies_sepExists] at hmem
@@ -289,20 +312,24 @@ theorem session_memmove_front_to_end_acp_ok {prog : Program} {addr : BitVec 64}
   rw [satisfies_pure_sepConj] at hmem1
   rcases hmem1 with ⟨hbs_uninit, hmem1⟩
   have hpre' : s0.mem ⊨
-      (sessionMemmoveAcpSpec hookStack).pre
+      (sessionMemmoveBoundedAcpSpec hookStack).pre
         (base, bs_front ++ bs_uninit, uninitLen, 0, bs_front.length) s0 ∗ R := by
-    dsimp only [sessionMemmoveAcpSpec, sessionMemmoveSpec, libcMemmoveSpec]
-    rw [sepConj_assoc, satisfies_pure_sepConj]
-    refine ⟨⟨hx0, by rw [BitVec.add_zero]; exact hx1, hx2,
-      by rw [List.length_append, hbs_uninit]; omega,
-      by rw [List.length_append]; omega⟩, ?_⟩
+    dsimp only [sessionMemmoveBoundedAcpSpec, sessionMemmoveBoundedSpec, MemmoveArithBound,
+      sessionMemmoveSpec, libcMemmoveSpec]
+    rw [sepConj_assoc, satisfies_pure_sepConj, sepConj_assoc, satisfies_pure_sepConj]
+    refine ⟨⟨by rw [List.length_append, hbs_uninit]; omega,
+             by rw [List.length_append, hbs_uninit]; omega⟩,
+      ⟨hx0, by rw [BitVec.add_zero]; exact hx1, hx2,
+       by rw [List.length_append, hbs_uninit]; omega,
+       by rw [List.length_append]; omega⟩, ?_⟩
     rw [pointsToBytes_append, sepConj_assoc]
     exact Satisfies.mono (Entails.of_eq (by sep_ac_rfl)) hmem1
   refine hmm.mono_outcome (base, bs_front ++ bs_uninit, uninitLen, 0, bs_front.length) R s0
       hpc hrun hpre' hsp fun sf hout => ?_
   rcases hout with ⟨hret, hcc, hpost⟩ | hfail
   · refine Or.inl ⟨hret, hcc, ?_⟩
-    dsimp only [sessionMemmoveAcpSpec, sessionMemmoveFrontToEndAcpSpec] at hpost ⊢
+    dsimp only [sessionMemmoveBoundedAcpSpec, sessionMemmoveAcpSpec,
+      sessionMemmoveFrontToEndAcpSpec] at hpost ⊢
     simp only [sepConj_assoc, satisfies_pure_sepConj] at hpost ⊢
     refine ⟨hpost.1, ?_⟩
     have hent := pointsToBytes_listMove_append_entails base bs_front bs_uninit

@@ -257,17 +257,12 @@ theorem readStdinHook_ok_placed (stk : Nat) :
 theorem cliExternsPlaced_writeFile (mmpl : Obj.MultiPlacement) (W : CliHooks) :
     cliExternsPlaced mmpl W lsWriteFileSym = some writeFileHook :=
   main_cliExternsPlaced_row mmpl W
-    (List.mem_append_right _ (List.mem_of_getElem? (i := 3) rfl))
+    (List.mem_append_right _ (List.mem_of_getElem? (i := 0) rfl))
 
 theorem cliExternsPlaced_writeStdout (mmpl : Obj.MultiPlacement) (W : CliHooks) :
     cliExternsPlaced mmpl W lsWriteStdoutSym = some writeStdoutHook :=
   main_cliExternsPlaced_row mmpl W
-    (List.mem_append_right _ (List.mem_of_getElem? (i := 4) rfl))
-
-theorem cliExternsPlaced_memrchr (mmpl : Obj.MultiPlacement) (W : CliHooks) :
-    cliExternsPlaced mmpl W lsMemrchrSym = some memrchrHook :=
-  main_cliExternsPlaced_row mmpl W
-    (List.mem_append_right _ (List.mem_of_getElem? (i := 5) rfl))
+    (List.mem_append_right _ (List.mem_of_getElem? (i := 1) rfl))
 
 theorem writeFile_rocl_ok_of_lookup [LibsignalPlacement] {H : LibsignalHooks} (stk : Nat)
     (hLookup : H lsWriteFileSym = some writeFileHook) :

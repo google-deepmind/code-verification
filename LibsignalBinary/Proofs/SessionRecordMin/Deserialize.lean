@@ -858,12 +858,11 @@ theorem Stage2ContractsMinPlaced.of_hooks [LibsignalPlacement] {H : LibsignalHoo
     (hshim : HookSat H CryptoVerification.lsRustNoAllocShimSym sessionShimSpec)
     (hmemcpy : HookSat H "memcpy"
       (sessionMemcpySpec CryptoVerification.LibsignalTripleRatchet.extHookStack))
-    (hmemmove : HookSat H "memmove" (sessionMemmoveSpec Stage1X.extHookStack))
     (hpan_err : H CryptoVerification.lsHandleErrorSym = some Rust.panicked)
     (hpan_alloc : H "_RNvNtCs69KKACWg7bl_5alloc5alloc18handle_alloc_error" = some Rust.panicked) :
     Stage2ContractsMinPlaced H where
   alloc := Stage1X.AllocContractsPlaced.of_hooks
-    halloc hdealloc hrealloc hshim hmemmove hpan_err hpan_alloc
+    halloc hdealloc hrealloc hshim hpan_err hpan_alloc
   memcpy := ls_subroutine_ok_cl_of_plain_prog (ls_hook_ok_of_caller hmemcpy)
 
 /-- `SerContractsXPlaced` at `HooksE.A0` from `Stage2ContractsMinPlaced H`. -/

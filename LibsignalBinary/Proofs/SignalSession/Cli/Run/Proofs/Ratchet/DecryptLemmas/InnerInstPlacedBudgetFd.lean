@@ -76,7 +76,7 @@ open CryptoVerification.SignalSession.Cli (
   DirGetGhost DirGhost ReadRule StoresGhost dirAt getResultAt pathOf
 )
 open CryptoVerification.SignalSession.Cli.KitInst (
-  cliGhostExterns_blackBox cliIdentityVtRoSym cliSessionKitSpecPlaced
+  cliIdentityVtRoSym cliSessionKitSpecPlaced
 )
 open CryptoVerification.SignalSession.Cli.KitInst.IdKit (
   cliIdentityKitSpecPlaced cliIdentityKitSpecPlaced_quiet savePollNeedPlaced saveShimNeedPlaced
@@ -159,7 +159,9 @@ open LibsignalBinary.Proofs.SignalSession.Cli.Run.Proofs.Ratchet.DecryptLemmas.S
   withStoresDecFrozenPlacedSpecVTP withStoresDecPlacedSpecVTP
 )
 open LibsignalBinary.Proofs.SignalSession.Cli.Run.SkeletonPlacedBudget (RunHooksPlaced)
-open LibsignalBinary.Proofs.SignalSession.Cli.Run.Slots.CliHookSatPlacedBudget (CliGhostAllocHooks)
+open LibsignalBinary.Proofs.SignalSession.Cli.Run.Slots.CliHookSatPlacedBudget (
+  CliGhostAllocHooks cliGhostExterns_blackBoxSat_budget_sat
+)
 open LibsignalBinary.Proofs.SignalSession.Cli.SpecsPlacedBudget (
   dirGetSpecPlaced idSavePollSpecPlaced sessDeserializeSpecPlaced
 )
@@ -168,10 +170,11 @@ open LibsignalBinary.Proofs.SignalSession.Cli.Store.IdSavePoll.BranchesPlacedBud
   CliIdSavePollEnv publicKeySerialize_lscro_of_cli
 )
 open LibsignalBinary.Proofs.SignalSession.Cli.Store.IdSavePoll.SymPlacedBudget (
-  idSavePoll_placed_ok_of_deps_core
+  idSavePoll_placed_ok_of_deps_core idSavePoll_placed_ok_of_deps_core_16
 )
 open LibsignalBinary.Proofs.SignalSession.Cli.Store.IdTrustPollPlacedBudget (
-  idTrustPoll_placed_ok_of_deps identityKey_decode_placed_ok publicKeyEq_placed_ok_of_bb
+  idTrustPoll_placed_ok_of_deps idTrustPoll_placed_ok_of_deps_16 identityKey_decode_placed_ok
+  publicKeyEq_mem_placed_ok_of_bb_16_sat publicKeyEq_placed_ok_of_bb
 )
 open LibsignalBinary.Proofs.SignalSession.Cli.Store.LoadPollRecordDeser (
   sessDeserialize_cli_dcan_byBytes_placed_ok
@@ -374,6 +377,47 @@ theorem cliIdKitOkIE_of_dirGet [LibsignalPlacement] {M : AllocCostModel}
     idSavePoll_placed_ok_of_deps_core hh.alloc hSer hGet' hPut' hDec' hEq' hs4
   exact cliIdKitOkIE_placed_of_polls hDropNz hh.alloc h566 h565 hs1 hs3
 
+/-- `HookSat` (`blackBoxSpecSat` / `80`-byte `publicKeyEqMemSpec16`) sibling of
+`cliIdKitOkIE_of_dirGet`. -/
+theorem cliIdKitOkIE_of_dirGet_sat [LibsignalPlacement] {M : AllocCostModel}
+    {A : RustCliAllocBudget M} {lim : BudgetLimits} {H : LibsignalHooks}
+    {rd : ReadRule} {F0 : FsFiles} {pathOk : List (BitVec 8) → Prop} {peer : AddrGhost}
+    {readStk s1 s2 s3 s4 : Nat} {vtSym : String}
+    {ReadEnv : FsFiles → List (BitVec 8) → List AllocEvent → Prop}
+    (hDropNz : lsmpl.base 547 ≠ 0#64)
+    (hh : RunHooksPlaced A lim H)
+    (hGet : subroutine_ok (lsProg_589 H) (lsmpl.base 589)
+      (dirGetSpecPlaced rd pathOk A lim (DirGetEnv PathEnv ReadEnv rd)
+        (RunBudgets.dirGetNeed ⟨readStk⟩)))
+    (h_bb : HookSat H lsBlackBoxU8Sym
+      LibsignalBinary.Proofs.ConsumeMessageKey.FindIndexProofs.CtEqSat.blackBoxSpecSat)
+    (hs1 : trustShimNeedPlaced ≤ s1) (hs2 : trustPollNeedPlaced readStk ≤ s2)
+    (hs3 : saveShimNeedPlaced ≤ s3) (hs4 : savePollNeedPlaced readStk ≤ s4) :
+    IdentityStoreKitPlacedOkI A lim
+      (cliIdentityKitSpecPlaced A.repAlloc rd F0 pathOk peer s1 s2 s3 s4 vtSym)
+      (cliIdentityKitDefaultBudgetEnv A.repAlloc rd F0 pathOk peer s1 s2 s3 s4 vtSym ReadEnv)
+      H := by
+  have hPut := cliDirPutStr_placed_ok hh
+  have hEq := publicKeyEq_mem_placed_ok_of_bb_16_sat h_bb
+  have h566 := idTrustPoll_placed_ok_of_deps_16 hh.alloc hGet
+    (identityKey_decode_placed_ok (A := A) H) hEq hs2
+    (by decide) (by decide) (by decide) (by decide) (by decide) (by decide)
+  have hSer := publicKeySerialize_lscro_of_cli
+    (callerProg := (blkPC_565).rebase (blkPl_565).base H) hh.alloc (by decide)
+  have hGet' := ls_transfer_lscro (callerProg := (blkPC_565).rebase (blkPl_565).base H)
+    hGet (by decide) (by decide) (by decide)
+  have hPut' := ls_transfer_lscro (callerProg := (blkPC_565).rebase (blkPl_565).base H)
+    hPut (by decide) (by decide) (by decide)
+  have hDec' := ls_transfer_cl_to_lscro (callerProg := (blkPC_565).rebase (blkPl_565).base H)
+    (identityKey_decode_placed_ok (A := A) H) (by decide) (by decide) (by decide)
+  have hEq' := ls_transfer_cl_to_lscro (callerProg := (blkPC_565).rebase (blkPl_565).base H)
+    hEq (by decide) (by decide) (by decide)
+  have h565 : subroutine_ok (lsProg_565 H) (lsmpl.base 565)
+      (idSavePollSpecPlaced rd pathOk A lim
+        (CliIdSavePollEnv rd (DirGetEnv PathEnv ReadEnv rd) DirPutStrEnv) s4) :=
+    idSavePoll_placed_ok_of_deps_core_16 hh.alloc hSer hGet' hPut' hDec' hEq' hs4
+  exact cliIdKitOkIE_placed_of_polls hDropNz hh.alloc h566 h565 hs1 hs3
+
 /-! ## Fixed-kit inner instantiation -/
 
 theorem w2_decBinarySessKitPlacedFixed_okSE_of_dirGet [LibsignalPlacement]
@@ -402,12 +446,13 @@ theorem w2_decBinarySessKitPlacedFixed_okSE_of_dirGet [LibsignalPlacement]
     (Nat.le_refl _) (Nat.le_refl _) (Nat.le_refl _) (Nat.le_refl _)
     (by decide) (by decide) (by decide) (by decide)
 
-theorem w2_decBinaryIdKitPlacedFixed_okIE_of_dirGet [LibsignalPlacement]
+theorem w2_decBinaryIdKitPlacedFixed_okIE_of_dirGet_sat [LibsignalPlacement]
     {M : AllocCostModel}
     (mmpl : MultiPlacement) (gh : CliGhostHooks) (W : CliHooks)
     (A : RustCliAllocBudget M) (lim : BudgetLimits) (B : RunBudgets)
     (F0 : FsFiles) (peer : AddrGhost)
     (hDropNz : lsmpl.base 547 ≠ 0#64)
+    (hOk : LibsignalBinary.Proofs.SignalSession.Cli.Run.Slots.ExtraGhostSpecs.ExtraSpecOk gh)
     (hh : RunHooksPlaced A lim (cliGhostExterns gh (cliExternsPlaced mmpl W)))
     (hGet : subroutine_ok (lsProg_589 (cliGhostExterns gh (cliExternsPlaced mmpl W)))
       (lsmpl.base 589)
@@ -418,10 +463,10 @@ theorem w2_decBinaryIdKitPlacedFixed_okIE_of_dirGet [LibsignalPlacement]
       (decIdKitPlaced A.repAlloc F0 peer B)
       (decBinaryIdKitPlacedBudgetFixed A.repAlloc B F0 peer)
       (cliGhostExterns gh (cliExternsPlaced mmpl W)) :=
-  cliIdKitOkIE_of_dirGet
+  cliIdKitOkIE_of_dirGet_sat
     (vtSym := cliIdentityVtRoSym)
     hDropNz hh hGet
-    (cliGhostExterns_blackBox mmpl gh W)
+    (cliGhostExterns_blackBoxSat_budget_sat gh (cliExternsPlaced mmpl W) hOk)
     (by decide) (Nat.le_refl _) (by decide) (Nat.le_refl _)
 
 theorem w2_inner_binaryKitFixed_frozen_placed_ok_of_dirGet_and_region [LibsignalPlacement]
@@ -449,8 +494,8 @@ theorem w2_inner_binaryKitFixed_frozen_placed_ok_of_dirGet_and_region [Libsignal
   intro F0 peer hPeer
   have hSess := w2_decBinarySessKitPlacedFixed_okSE_of_dirGet mmpl gh W A lim B F0 peer
     hDropNz hG hh hGet
-  have hId := w2_decBinaryIdKitPlacedFixed_okIE_of_dirGet mmpl gh W A lim B F0 peer
-    hDropNz hh hGet
+  have hId := w2_decBinaryIdKitPlacedFixed_okIE_of_dirGet_sat mmpl gh W A lim B F0 peer
+    hDropNz hG.extraOk hh hGet
   have hq : (decSessKitPlaced A.repAlloc F0 peer B).Quiet ∧
       (decIdKitPlaced A.repAlloc F0 peer B).Quiet :=
     ⟨cliSessionKitSpecPlaced_quiet, cliIdentityKitSpecPlaced_quiet⟩
@@ -512,9 +557,11 @@ private theorem cliGhost_row_other (mmpl : MultiPlacement) (gh : CliGhostHooks) 
     (hne7 : sym ≠ CryptoVerification.SignalSession.lsReadFileSym := by decide)
     (hne8 : sym ≠ CryptoVerification.SignalSession.lsReadStdinSym := by decide)
     (hne9 : sym ≠ CryptoVerification.SignalSession.lsMemsetSym := by decide)
-    (hne10 : sym ≠ CryptoVerification.SignalSession.lsMemcpySym := by decide) :
+    (hne10 : sym ≠ CryptoVerification.SignalSession.lsMemcpySym := by decide)
+    (hne11 : LibsignalBinary.Proofs.SignalSession.Cli.Run.Slots.ExtraGhostSpecs.cliExtraGhostSyms.contains sym = false ∨
+      gh.extra.lookup sym = none := by left; decide) :
     cliGhostExterns gh (cliExternsPlaced mmpl W) sym = some f :=
-  (cliGhostExterns_other gh _ hne1 hne2 hne3 hne4 hne5 hne6 hne7 hne8 hne9 hne10).trans
+  (cliGhostExterns_other gh _ hne1 hne2 hne3 hne4 hne5 hne6 hne7 hne8 hne9 hne10 hne11).trans
     (cliExternsPlaced_row mmpl W hrow)
 
 private theorem fmtWrite_hookSat {M : AllocCostModel}

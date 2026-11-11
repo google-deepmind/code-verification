@@ -737,7 +737,6 @@ theorem allocContractsPlaced_of_stage2ContractsA0Placed [LibsignalPlacement] {H 
         stackAt_externStack_split_allocHookStack'] at hpost ⊢
       exact Satisfies.mono (Entails.of_eq (by ac_rfl)) hpost
   shim := hC.shim
-  session_memmove := hC.memmove
   panic_handle_error := hC.panic_handle_error
   panic_handle_alloc_error := hC.panic_handle_alloc_error
 

@@ -86,22 +86,20 @@ open CryptoVerification.LibsignalTripleRatchet (
   sessionMemsetRegionSpec sessionMemsetSpec sessionShim_hookOk
 )
 open CryptoVerification.SignalSession (
-  CliHooks cliExternsPlaced
+  CliHooks cliExternsPlaced cliPanicSymbolsPlaced
   lsAesDecSym lsAesEncSym lsFormatInnerSym lsFromUtf8Sym lsMemcpySym lsMemrchrSym lsMemsetSym
   lsReadFileSym lsReadStdinSym
   lsRustAllocSymCli lsRustAllocZeroedSymCli lsRustDeallocSymCli
   lsRustNoAllocShimSymCli lsRustReallocSymCli lsStringCloneSym
 )
 open CryptoVerification.SignalSession.Cli.MainHops (
-  hookMemmove_fs hookNoop_fs
+  hookNoop_fs
 )
 open CryptoVerification.SignalSession.Cli.RunGlue (
-  FsTHooks IsFsC cliExternsPlaced_row cliGhostExterns_memcpy_some cliGhostExterns_memset_some
+  ExtraGhostTable FsTHooks IsFsC cliExtraGhostSyms cliGhostExternsWithExtra
+  cliGhostExterns_memcpy_some cliGhostExterns_memset_some
   fsTHooks_cliExternsPlaced fsTHooks_none fsT_externAt
   hookNoop_fsT panicked_fsT traceFsSound_of_fsTHooks
-)
-open CryptoVerification.SignalSession.Cli.Slots (
-  memmove_row_placed
 )
 open CryptoVerification.SignalSession.Cli.Store.PlacedCommon (
   CliPanicHooksPlaced cliPanicHooksPlaced_cli
@@ -153,10 +151,6 @@ open LibsignalBinary.Proofs.SignalSession.Cli.SpecsPlacedBudget (
 )
 open LibsignalBinary.Proofs.SignalSession.Cli.Run.Slots.CliHookSatPlacedBudget (
   allocContractsFsPlaced_of_hookSat allocContractsXCliPlaced_of_hookSat
-  cliExternsPlaced_bcmp_budget_sat cliExternsPlaced_fromUtf8_budget_sat
-  cliExternsPlaced_memmove_budget_sat cliExternsPlaced_memrchr_budget_sat
-  cliExternsPlaced_noAllocShim_budget_sat
-  cliExternsPlaced_sessionMemmove_budget_sat cliExternsPlaced_shim_budget_sat
   cliGhostExterns_framelessMemcpy_budget_sat cliGhostExterns_memcpyRegionRO_budget_sat
   cliGhostExterns_memcpyRegion_budget_sat cliGhostExterns_memcpy_budget_sat
   cliGhostExterns_memsetRegion_budget_sat cliGhostExterns_memset_budget_sat
@@ -2616,6 +2610,7 @@ export LibsignalBinary.Proofs.SignalSession.Cli.Run.Slots.CliHookSatPlacedBudget
   CliGhostAllocHooks CliGhostSpqrAllocHooks
 )
 open LibsignalBinary.Proofs.SignalSession.Cli.HooksDehook.MemcpyExactCore (HookExactMemcpy)
+open LibsignalBinary.Proofs.SignalSession.Cli.Run.Slots.ExtraGhostSpecs (ExtraFullListSpecOk)
 
 /-- Construct `CliGhostSpqrAllocHooks` for a tuple of `linkedCallHook`s directly from `subroutine_ok`
     witnesses (`linkedGhostAllocEntries_thunks` + `linkedGhostAllocZeroed_thunk_ok`) and terminating
@@ -2627,6 +2622,7 @@ theorem cliGhostSpqrAllocHooks_of_linked [LibsignalPlacement]
     {lim : BudgetLimits}
     {thunkAddrs : RustAllocAddrs} {allocZeroedAddr : BitVec 64}
     {fbAlloc fbDealloc fbRealloc fbAllocZeroed : State → State}
+    {extra : ExtraGhostTable}
     (hsvc_real : P_real.svc = Syscall.standard)
     (hsvc_sub : P_sub.svc = Syscall.standard)
     (hreal_no : ∀ pc, keep pc = true → P_real.externAt? pc = none)
@@ -2673,7 +2669,8 @@ theorem cliGhostSpqrAllocHooks_of_linked [LibsignalPlacement]
       HookFsTraced IsFsC f)
     (hMemcpyExact : ∀ f, fMemcpy = some f → HookExactMemcpy f)
     (hMemsetAcp : ∀ f, fMemset = some f →
-      ∀ s : State, (f s).sigActions = s.sigActions ∧ (f s).oracle = s.oracle) :
+      ∀ s : State, (f s).sigActions = s.sigActions ∧ (f s).oracle = s.oracle)
+    (hExtraOk : ExtraFullListSpecOk extra) :
     let A := linkedGhostBudget allocLib allocMpl γ mmpl tp brkStart
     let spAlloc := rustCliAllocBudgetSpec fineCostModel A lim false
     let spDealloc := rustCliDeallocBudgetSpec fineCostModel A lim
@@ -2687,7 +2684,8 @@ theorem cliGhostSpqrAllocHooks_of_linked [LibsignalPlacement]
         shim := hookNoop
         stringClone := strClone
         memset := fMemset
-        memcpy := fMemcpy } := by
+        memcpy := fMemcpy
+        extra := extra } := by
   dsimp only
   let A := linkedGhostBudget allocLib allocMpl γ mmpl tp brkStart
   have hEntriesP := hEntries.toPlaced
@@ -2741,6 +2739,7 @@ theorem cliGhostSpqrAllocHooks_of_linked [LibsignalPlacement]
       memcpy := hMemcpy
       memcpy_exact := hMemcpyExact
       memset_acp := hMemsetAcp
+      extraOk := hExtraOk
       allocZeroed := linkedCallHook_ok hsvc_real hsvc_sub hreal_no hsub_no hZeroedP
         (specStripSInvariant_alloc allocLib allocMpl γ mmpl tp brkStart hKeepMallocng lim true)
         (specPreservesFsTrace_alloc A lim true)
@@ -2759,7 +2758,7 @@ theorem fsTHooks_cliGhostExterns [LibsignalPlacement] {M : AllocCostModel} {A : 
     (hBase : FsTHooks baseExt) :
     FsTHooks (cliGhostExterns g baseExt) := by
   intro sym f h
-  unfold cliGhostExterns at h
+  unfold cliGhostExterns cliGhostExternsWithExtra at h
   split at h
   · cases h; exact hG.alloc_fsT
   · split at h
@@ -2794,7 +2793,17 @@ theorem fsTHooks_cliGhostExterns [LibsignalPlacement] {M : AllocCostModel} {A : 
                   · split at h
                     · obtain ⟨fc, hfc, _, _, _, _, _, _, _, _, hfcT⟩ := hG.memcpy
                       rw [hfc] at h; cases h; exact hfcT
-                    · exact hBase sym f h
+                    · cases hDom : cliExtraGhostSyms.contains sym
+                      · rw [hDom] at h
+                        simp only [Bool.false_eq_true, ↓reduceIte] at h
+                        exact hBase sym f h
+                      · rw [hDom] at h
+                        simp only [↓reduceIte] at h
+                        cases hex : g.extra.lookup sym with
+                        | some fe =>
+                          rw [hex] at h; cases h; exact hG.extraOk.fsT sym f hDom hex
+                        | none =>
+                          rw [hex] at h; exact hBase sym f h
 
 /-- `TraceFsSound` on any `IsLsBlockProg prog i (cliGhostExterns g baseExt)`. -/
 theorem traceFsSound_lsProg_ghost [LibsignalPlacement]
@@ -2819,12 +2828,6 @@ structure BaseHelperRows (mmpl : Obj.MultiPlacement) (W : CliHooks) (baseExt : L
   utf8_eq : baseExt lsFromUtf8Sym = cliExternsPlaced mmpl W lsFromUtf8Sym
   memrchr_eq : baseExt lsMemrchrSym = cliExternsPlaced mmpl W lsMemrchrSym
   panics : CliPanicHooksPlaced baseExt
-
-theorem cliGhostExterns_memmove_eq (mmpl : Obj.MultiPlacement) (W : CliHooks)
-    {baseExt : LibsignalHooks} (g : CliGhostHooks) (hBase : BaseHelperRows mmpl W baseExt) :
-    cliGhostExterns g baseExt memmoveName = cliExternsPlaced mmpl W memmoveName :=
-  (cliGhostExterns_other g baseExt (by decide) (by decide) (by decide)
-    (by decide) (by decide) (by decide)).trans hBase.memmove_eq
 
 theorem shim_budget_sat_of_eq (baseExt : LibsignalHooks) {g : CliGhostHooks}
     (hShim : g.shim = hookNoop) :
@@ -2853,13 +2856,17 @@ theorem cliGhostExterns_panics {baseExt : LibsignalHooks} (g : CliGhostHooks)
   have h8 : sym ≠ lsReadStdinSym := by intro he; subst he; exact nomatch hmem
   have h9 : sym ≠ lsMemsetSym := by intro he; subst he; exact nomatch hmem
   have h10 : sym ≠ lsMemcpySym := by intro he; subst he; exact nomatch hmem
-  rw [cliGhostExterns_other g baseExt h1 h2 h3 h4 h5 h6 h7 h8 h9 h10]
+  have hEx : cliExtraGhostSyms.contains sym = false := by
+    simp only [cliPanicSymbolsPlaced, List.mem_cons, List.not_mem_nil, or_false] at hmem
+    rcases hmem with rfl | rfl | rfl | rfl | rfl | rfl | rfl | rfl | rfl |
+      rfl | rfl | rfl | rfl | rfl | rfl | rfl | rfl | rfl <;> decide
+  rw [cliGhostExterns_other g baseExt h1 h2 h3 h4 h5 h6 h7 h8 h9 h10 (Or.inl hEx)]
   exact hPan sym hmem
 
 theorem allocContractsXCliPlaced_of_ghost [LibsignalPlacement]
     (mmpl : Obj.MultiPlacement) (W : CliHooks) (baseExt : LibsignalHooks)
     {M : AllocCostModel} {A : RustCliAllocBudget M} {lim : BudgetLimits}
-    (g : CliGhostHooks) (hBase : BaseHelperRows mmpl W baseExt)
+    (g : CliGhostHooks) (_hBase : BaseHelperRows mmpl W baseExt)
     (hG : CliGhostAllocHooks M A lim g) :
     AllocContractsXCliPlaced A lim (cliGhostExterns g baseExt) :=
   allocContractsXCliPlaced_of_hookSat
@@ -2871,10 +2878,6 @@ theorem allocContractsXCliPlaced_of_ghost [LibsignalPlacement]
     (cliGhostExterns_sessionMemcpy_budget_sat baseExt hG)
     (cliGhostExterns_memcpyRegion_budget_sat baseExt hG)
     (cliGhostExterns_sessionMemcpyRegion_budget_sat baseExt hG)
-    (fun stk => hookSat_of_eq (cliGhostExterns_memmove_eq mmpl W g hBase)
-      (cliExternsPlaced_memmove_budget_sat mmpl W stk))
-    (fun stk => hookSat_of_eq (cliGhostExterns_memmove_eq mmpl W g hBase)
-      (cliExternsPlaced_sessionMemmove_budget_sat mmpl W stk))
     (cliGhostExterns_memset_budget_sat baseExt hG)
     (cliGhostExterns_sessionMemset_budget_sat baseExt hG)
     (cliGhostExterns_memsetRegion_budget_sat baseExt hG)
@@ -2883,7 +2886,7 @@ theorem allocContractsXCliPlaced_of_ghost [LibsignalPlacement]
 theorem allocContractsFsPlaced_of_ghost [LibsignalPlacement]
     (mmpl : Obj.MultiPlacement) (W : CliHooks) (baseExt : LibsignalHooks)
     {M : AllocCostModel} {A : RustCliAllocBudget M} {lim : BudgetLimits}
-    (g : CliGhostHooks) (hBase : BaseHelperRows mmpl W baseExt)
+    (g : CliGhostHooks) (_hBase : BaseHelperRows mmpl W baseExt)
     (hG : CliGhostAllocHooks M A lim g) :
     AllocContractsFsPlaced A lim (cliGhostExterns g baseExt) := by
   refine allocContractsFsPlaced_of_hookSat
@@ -2896,10 +2899,6 @@ theorem allocContractsFsPlaced_of_ghost [LibsignalPlacement]
     (cliGhostExterns_memcpyRegion_budget_sat baseExt hG)
     (cliGhostExterns_sessionMemcpyRegion_budget_sat baseExt hG)
     (cliGhostExterns_memcpyRegionRO_budget_sat baseExt hG)
-    (fun stk => hookSat_of_eq (cliGhostExterns_memmove_eq mmpl W g hBase)
-      (cliExternsPlaced_memmove_budget_sat mmpl W stk))
-    (fun stk => hookSat_of_eq (cliGhostExterns_memmove_eq mmpl W g hBase)
-      (cliExternsPlaced_sessionMemmove_budget_sat mmpl W stk))
     (cliGhostExterns_memset_budget_sat baseExt hG)
     (cliGhostExterns_sessionMemset_budget_sat baseExt hG)
     (cliGhostExterns_memsetRegion_budget_sat baseExt hG)
@@ -2907,7 +2906,7 @@ theorem allocContractsFsPlaced_of_ghost [LibsignalPlacement]
     ?_
   intro sym hmem f hf
   simp only [List.mem_cons, List.not_mem_nil, or_false] at hmem
-  rcases hmem with rfl | rfl | rfl | rfl | rfl | rfl | rfl
+  rcases hmem with rfl | rfl | rfl | rfl | rfl | rfl
   · rw [cliGhostExterns_alloc] at hf; cases hf; exact hG.alloc_fs
   · rw [cliGhostExterns_dealloc] at hf; cases hf; exact hG.dealloc_fs
   · rw [cliGhostExterns_realloc] at hf; cases hf; exact hG.realloc_fs
@@ -2915,9 +2914,6 @@ theorem allocContractsFsPlaced_of_ghost [LibsignalPlacement]
   · obtain ⟨fc, hfc, _, _, _, _, _, _, _, hfs, _⟩ := hG.memcpy
     rw [cliGhostExterns_memcpy_some g baseExt hfc] at hf
     cases hf; exact hfs
-  · rw [cliGhostExterns_memmove_eq mmpl W g hBase,
-        cliExternsPlaced_row mmpl W (memmove_row_placed mmpl W)] at hf
-    cases hf; exact hookMemmove_fs
   · obtain ⟨fm, hfm, _, _, _, _, _, hfs, _⟩ := hG.memset
     rw [cliGhostExterns_memset_some g baseExt hfm] at hf
     cases hf; exact hfs
@@ -2925,7 +2921,7 @@ theorem allocContractsFsPlaced_of_ghost [LibsignalPlacement]
 theorem stage2ContractsMinPlaced_of_ghost [LibsignalPlacement]
     (mmpl : Obj.MultiPlacement) (W : CliHooks) (baseExt : LibsignalHooks)
     {M : AllocCostModel} {A : RustCliAllocBudget M} {lim : BudgetLimits}
-    (g : CliGhostHooks) (hBase : BaseHelperRows mmpl W baseExt)
+    (g : CliGhostHooks) (_hBase : BaseHelperRows mmpl W baseExt)
     (hG : CliGhostAllocHooks M A lim g) :
     Stage2ContractsMinPlaced M A lim (cliGhostExterns g baseExt) :=
   stage2ContractsMinPlaced_of_hookSat
@@ -2934,8 +2930,6 @@ theorem stage2ContractsMinPlaced_of_ghost [LibsignalPlacement]
     ⟨g.realloc, cliGhostExterns_realloc g baseExt, hG.realloc⟩
     (shim_budget_sat_of_eq baseExt hG.shim_eq)
     (cliGhostExterns_sessionMemcpy_budget_sat baseExt hG extHookStack)
-    (hookSat_of_eq (cliGhostExterns_memmove_eq mmpl W g hBase)
-      (cliExternsPlaced_sessionMemmove_budget_sat mmpl W extHookStack))
 
 theorem codecHooksPlaced_of_ghost [LibsignalPlacement] (mmpl : Obj.MultiPlacement) (W : CliHooks)
     (baseExt : LibsignalHooks) {M : AllocCostModel} {A : RustCliAllocBudget M}

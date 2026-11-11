@@ -11,12 +11,14 @@ module
 
 public import LibsignalBinary.Heap.RustStdAllocBudgetBridge
 public import LibsignalBinary.Heap.SpecBudget
+public import LibsignalBinary.Proofs.ConsumeMessageKey.FindIndexProofs.CtEqSat
 public import LibsignalBinary.Proofs.RecordCodecs.AssemblyBudget
 public import LibsignalBinary.Proofs.SessionRecordAt.Hooks2.Ser.HSerXBudget
 public import LibsignalBinary.Proofs.SignalSession.Cli.AllocGhostLinkTransfer
 public import LibsignalBinary.Proofs.SignalSession.Cli.Run.Proofs.Initiate.HooksPlaced
 public import LibsignalBinary.Proofs.SignalSession.Cli.Run.SkeletonPlacedBudget
 public import LibsignalBinary.Proofs.SignalSession.Cli.Run.Slots.CliHookSatPlacedBudget
+public import LibsignalBinary.Proofs.SignalSession.Cli.Run.Slots.SetUnackEpochPlacedBudget
 public import LibsignalBinary.Proofs.SignalSession.Cli.SpecsPlacedBudget
 public import LibsignalBinary.Proofs.TripleRatchet.Hkdf.CommonSat
 import Arm64.Trusted.Spec.Hoare
@@ -55,7 +57,7 @@ open CryptoVerification.LibsignalTripleRatchet
    zeroizeSecretSpec)
 open CryptoVerification.RecordCodecs.Placed (blkPl_18 blkPl_65 blkPl_84 lsProg_18 lsProg_65 lsProg_84)
 open CryptoVerification.SignalSession
-  (CliHooks cliExternsPlaced cliPanicSymbolsPlaced durationSinceExactHook lsBlackBoxSym
+  (CliHooks cliExternsPlaced cliPanicSymbolsPlaced lsBlackBoxSym
    lsCompress256Sym lsDiffieHellmanSym lsDurationSinceSym lsFormatInnerSym lsFromUtf8Sym
    lsMemcpySym lsMemrchrSym lsMemsetSym lsPubFromSecretSym lsRustAllocSymCli
    lsRustAllocZeroedSymCli lsRustDeallocSymCli lsRustNoAllocShimSymCli lsRustReallocSymCli
@@ -70,9 +72,9 @@ open CryptoVerification.SignalSession.Cli.RunGlue
 open CryptoVerification.SignalSession.Cli.RunProofs.Initiate
   (lsKemEncapsSym traceFsSound_cliGhostPlaced)
 open CryptoVerification.SignalSession.Cli.Slots
-  (blackBox_row_placed cliGhostExterns_panic_all cliGhostExterns_panic_handle_alloc_error
+  (cliGhostExterns_panic_all cliGhostExterns_panic_handle_alloc_error
    cliGhostExterns_panic_handle_error cliGhostExterns_sat_of_cliExternsPlaced
-   compress256_row_placed durationSince_row_placed kemEncaps_row_placed)
+   compress256_row_placed kemEncaps_row_placed)
 open CryptoVerification.SpqrV1.Alloc (sessionMemcpyRegionROSpec)
 open LibsignalBinary.Heap
   (AllocCallPreserved AllocCostModel AllocEvent BudgetLimits RustCliAllocBudget VmPreserved
@@ -97,26 +99,32 @@ open LibsignalBinary.Proofs.SessionRecordAt.Hooks2.Ser.RecordSerializeExtBudget
 open LibsignalBinary.Proofs.SessionRecordAt.Hooks2.SerDefsXBudget
   (SerContractsXPlaced SerializeEnvX encodeRawSpecX serializeSpecX)
 open LibsignalBinary.Proofs.SignalSession.Cli.AllocGhostLinkTransfer
-  (BaseHelperRows cliExternsPlaced_baseHelperRows
-   cliGhostExterns_memmove_eq shim_budget_sat_of_eq)
+  (BaseHelperRows cliExternsPlaced_baseHelperRows shim_budget_sat_of_eq)
 open LibsignalBinary.Proofs.SignalSession.Cli.Main.Proofs.KeepsFsBudget (hookOk_withVmPreserved)
+open LibsignalBinary.Proofs.SignalSession.Cli.Run.Slots.ExtraGhostSpecs
+  (hookSat_cliGhostExterns_of_extraOk)
 open LibsignalBinary.Proofs.SignalSession.Cli.Run.Slots.CliHookSatPlacedBudget
   (CliGhostAllocHooks CliGhostSpqrAllocHooks allocContractsFsPlaced_of_hooks
    allocContractsXCliPlaced_of_hooks cliExternsPlaced_allocMemcpyVm_budget_sat
-   cliExternsPlaced_alloc_budget_sat
-   cliExternsPlaced_bcmp_budget_sat cliExternsPlaced_dealloc_budget_sat
+   cliExternsPlaced_alloc_budget_sat cliExternsPlaced_dealloc_budget_sat
    cliExternsPlaced_derivePublicKeyBytes_budget_sat cliExternsPlaced_diffieHellman_budget_sat
-   cliExternsPlaced_e2eBcmp_budget_sat cliExternsPlaced_framelessMemcpy_budget_sat
+   cliExternsPlaced_framelessMemcpy_budget_sat
    cliExternsPlaced_memcpyRegionRO_budget_sat cliExternsPlaced_noAllocShim_budget_sat
    cliExternsPlaced_sessionMemcpyRegion_budget_sat cliExternsPlaced_sessionMemcpy_budget_sat
-   cliExternsPlaced_sessionMemmove_budget_sat cliExternsPlaced_sharedSecretDrop_budget_sat
-   cliExternsPlaced_staticSecretDrop_budget_sat cliGhostExterns_sessionMemcpy_budget_sat
+   cliGhostExterns_bcmp_keepsFs_budget_sat cliGhostExterns_blackBoxSat_budget_sat
+   cliGhostExterns_e2eBcmp_budget_sat
+   cliGhostExterns_sessionMemcpy_budget_sat
+   cliGhostExterns_sharedSecretDrop_budget_sat cliGhostExterns_staticSecretDrop_budget_sat
    codecHooksPlaced_of_hooks)
 open LibsignalBinary.Proofs.SignalSession.Cli.SpecsPlacedBudget
   (AllocContractsFsPlaced AllocContractsXCliPlaced)
 open LibsignalBinary.Proofs.TripleRatchet.Hkdf.CommonSat (HkdfPlacedHooksExactSat)
 open LibsignalBinary.Proofs.TripleRatchet.Hooks.DefsBudget
   (sessionMemcpyRegionBudgetSpec sessionMemsetRegionBudgetSpec sessionShimBudgetSpec)
+open LibsignalBinary.Proofs.HookDischarge.Libc.Common (keepsFs)
+open LibsignalBinary.Proofs.SignalSession.Cli.HooksDehook.WithLsRet (withLsRet)
+open LibsignalBinary.Proofs.SignalSession.Cli.Run.Slots.SetUnackEpochPlacedBudget
+  (durationSinceEpochAllocBudgetSpec)
 
 /-! ## Auxiliary `HkdfPlacedHooks` and memory-hook instances -/
 
@@ -215,7 +223,7 @@ theorem cliExternsPlaced_allocMemcpyVm_sat {H : LibsignalHooks}
 theorem serContractsXPlaced_of_ghost [LibsignalPlacement]
     (mmpl : Obj.MultiPlacement) (W : CliHooks) (baseExt : LibsignalHooks)
     {M : AllocCostModel} {A : RustCliAllocBudget M} {lim : BudgetLimits}
-    (g : CliGhostHooks) (hBase : BaseHelperRows mmpl W baseExt)
+    (g : CliGhostHooks) (_hBase : BaseHelperRows mmpl W baseExt)
     (hG : CliGhostAllocHooks M A lim g) :
     SerContractsXPlaced M A lim (cliGhostExterns g baseExt) :=
   SerContractsXPlaced.of_hooks
@@ -223,8 +231,6 @@ theorem serContractsXPlaced_of_ghost [LibsignalPlacement]
     ⟨g.dealloc, cliGhostExterns_dealloc g baseExt, hG.dealloc⟩
     ⟨g.realloc, cliGhostExterns_realloc g baseExt, hG.realloc⟩
     (shim_budget_sat_of_eq baseExt hG.shim_eq)
-    (hookSat_of_eq (cliGhostExterns_memmove_eq mmpl W g hBase)
-      (cliExternsPlaced_sessionMemmove_budget_sat mmpl W extHookStack))
     (cliGhostExterns_sessionMemcpy_budget_sat baseExt hG extHookStack)
 
 theorem serContractsXPlaced_of_hooks [LibsignalPlacement] (mmpl : Obj.MultiPlacement)
@@ -254,7 +260,7 @@ structure RunHooksPlaced [LibsignalPlacement] (W : CliHooks) {M : AllocCostModel
   memsetRegionKeepsFs : HookSat H memsetName sessionMemsetRegionBudgetSpec.keepsFs
   allocMemcpyVm : HookSat H memcpyName allocMemcpyVmSpec
   memcpyRO : HookSat H memcpyName (withVmPreserved sessionMemcpyRegionROSpec)
-  bcmp : HookSat H cliBcmpName (withVmPreserved cliBcmpSpec)
+  bcmp : HookSat H cliBcmpName (withVmPreserved cliBcmpSpec).keepsFs
   e2eBcmp : HookSat H bcmpName (withVmPreserved e2eBcmpSpec)
   allocZeroed : HookSat H lsRustAllocZeroedSymCli (rustCliAllocBudgetSpec M A lim true)
   stringClone : HookSat H lsStringCloneSym (stringCloneBudgetSpec M A lim)
@@ -263,10 +269,12 @@ structure RunHooksPlaced [LibsignalPlacement] (W : CliHooks) {M : AllocCostModel
   dh : HookSat H lsDiffieHellmanSym (withVmPreserved (diffieHellmanSpec W.C.X))
   sharedDrop : HookSat H lsSharedSecretDropSym (withVmPreserved zeroizeSecretSpec)
   staticDrop : HookSat H lsStaticSecretDropSym (withVmPreserved zeroizeSecretSpec)
-  blackBox : H lsBlackBoxSym = some blackBoxHook
+  blackBox :
+    HookSat H lsBlackBoxSym
+      LibsignalBinary.Proofs.ConsumeMessageKey.FindIndexProofs.CtEqSat.blackBoxSpecSat
   hkdf : HkdfPlacedHooksExactSat W.C.F H
   kemEncaps : H lsKemEncapsSym = some (kemEncapsHook W.Q.encaps)
-  durationSince : H lsDurationSinceSym = some durationSinceExactHook
+  durationSince : HookSat H lsDurationSinceSym (withLsRet (keepsFs durationSinceEpochAllocBudgetSpec))
   panic_alloc : H "_RNvNtCs69KKACWg7bl_5alloc5alloc18handle_alloc_error" = some Rust.panicked
   panic_raw : H "_RNvNtCs69KKACWg7bl_5alloc7raw_vec12handle_error" = some Rust.panicked
   panic_sym : ∀ s, s ∈ cliPanicSymbolsPlaced → H s = some Rust.panicked
@@ -306,10 +314,8 @@ theorem RunHooksPlaced.of_hooks [LibsignalPlacement]
     exact ⟨f, cliGhostExterns_memset_some g _ hf, (hookOk_withVmPreserved hReg hVm).keepsFs hFs⟩
   allocMemcpyVm := cliExternsPlaced_allocMemcpyVm_budget_sat mmpl g W hG.toCliGhostAllocHooks
   memcpyRO := cliExternsPlaced_memcpyRegionRO_budget_sat mmpl g W hG.toCliGhostAllocHooks
-  bcmp := cliGhostExterns_sat_of_cliExternsPlaced mmpl g W
-    (cliExternsPlaced_bcmp_budget_sat mmpl W)
-  e2eBcmp := cliGhostExterns_sat_of_cliExternsPlaced mmpl g W
-    (cliExternsPlaced_e2eBcmp_budget_sat mmpl W)
+  bcmp := cliGhostExterns_bcmp_keepsFs_budget_sat g (cliExternsPlaced mmpl W) hG.extraOk
+  e2eBcmp := cliGhostExterns_e2eBcmp_budget_sat g (cliExternsPlaced mmpl W) hG.extraOk
   allocZeroed := ⟨g.allocZeroed, cliGhostExterns_allocZeroed g _, hG.allocZeroed⟩
   stringClone := hStrClone
   formatInner := hFmtInner
@@ -317,20 +323,25 @@ theorem RunHooksPlaced.of_hooks [LibsignalPlacement]
     (cliExternsPlaced_derivePublicKeyBytes_budget_sat mmpl W)
   dh := cliGhostExterns_sat_of_cliExternsPlaced mmpl g W
     (cliExternsPlaced_diffieHellman_budget_sat mmpl W)
-  sharedDrop := cliGhostExterns_sat_of_cliExternsPlaced mmpl g W
-    (cliExternsPlaced_sharedSecretDrop_budget_sat mmpl W)
-  staticDrop := cliGhostExterns_sat_of_cliExternsPlaced mmpl g W
-    (cliExternsPlaced_staticSecretDrop_budget_sat mmpl W)
-  blackBox := (cliGhostExterns_other g _ (by decide) (by decide) (by decide)
-    (by decide) (by decide) (by decide)).trans
-    (cliExternsPlaced_row mmpl W (blackBox_row_placed mmpl W))
+  sharedDrop := cliGhostExterns_sharedSecretDrop_budget_sat g (cliExternsPlaced mmpl W) hG.extraOk
+  staticDrop := cliGhostExterns_staticSecretDrop_budget_sat g (cliExternsPlaced mmpl W) hG.extraOk
+  blackBox := cliGhostExterns_blackBoxSat_budget_sat g (cliExternsPlaced mmpl W) hG.extraOk
   hkdf := HkdfPlacedHooksExactSat.of_allocHooks hG.toCliGhostAllocHooks
   kemEncaps := (cliGhostExterns_other g _ (by decide) (by decide) (by decide)
     (by decide) (by decide) (by decide)).trans
     (cliExternsPlaced_row mmpl W (kemEncaps_row_placed mmpl W))
-  durationSince := (cliGhostExterns_other g _ (by decide) (by decide) (by decide)
-    (by decide) (by decide) (by decide)).trans
-    (cliExternsPlaced_row mmpl W (durationSince_row_placed mmpl W))
+  durationSince :=
+    hookSat_cliGhostExterns_of_extraOk g (cliExternsPlaced mmpl W) hG.extraOk
+      fun f _ hRow x R s0 hrun hpre hsp => by
+        obtain ⟨hkf, hsym, hout⟩ :=
+          hRow.durationSinceEpochAlloc_budget_ok x R s0 hrun hpre hsp
+        refine ⟨hkf, hsym, ?_⟩
+        rcases hout with ⟨hr, hc, hp⟩ | hrest
+        · refine Or.inl ⟨hr, hc, ?_⟩
+          dsimp only [withLsRet, keepsFs]
+          rw [sepConj_assoc, satisfies_pure_sepConj]
+          exact ⟨hRow.fs_eq s0, hp⟩
+        · exact Or.inr hrest
   panic_alloc := cliGhostExterns_panic_handle_alloc_error mmpl g W
   panic_raw := cliGhostExterns_panic_handle_error mmpl g W
   panic_sym := cliGhostExterns_panic_all mmpl g W
@@ -342,7 +353,8 @@ theorem RunHooksPlaced.of_hooks [LibsignalPlacement]
        intro f hf; cases hf₀.symm.trans hf; exact hfsT,
      by
        obtain ⟨f₀, hf₀, _, _, _, _, _, _, _, _, hfsT⟩ := hG.memcpy
-       intro f hf; cases hf₀.symm.trans hf; exact hfsT⟩
+       intro f hf; cases hf₀.symm.trans hf; exact hfsT,
+     hG.extraOk.fsT⟩
 }
 
 theorem RunHooksPlaced.sessionShim [LibsignalPlacement] {W : CliHooks} {M : AllocCostModel}
@@ -361,7 +373,10 @@ theorem RunHooksPlaced.toSkeletonRunHooksPlaced [LibsignalPlacement] {W : CliHoo
     {M : AllocCostModel} {A : RustCliAllocBudget M} {lim : BudgetLimits} {H : LibsignalHooks}
     (hh : RunHooksPlaced W A lim H)
     (hUtf8 : ∀ stk : Nat, HookSat H lsFromUtf8Sym (withVmPreserved (fromUtf8AsciiSpec stk)))
-    (hMemrchr : ∀ stk : Nat, HookSat H lsMemrchrSym (withVmPreserved (memrchrSpec stk))) :
+    (hMemrchr : HookSat H lsMemrchrSym
+      (LibsignalBinary.Proofs.SignalSession.Cli.HooksDehook.WithLsRet.withLsRet
+        (withVmPreserved
+          (memrchrSpec CryptoVerification.LibsignalTripleRatchet.extHookStack)))) :
     LibsignalBinary.Proofs.SignalSession.Cli.Run.SkeletonPlacedBudget.RunHooksPlaced A lim H where
   alloc := hh.alloc
   allocFs := hh.allocFs
@@ -375,6 +390,7 @@ theorem RunHooksPlaced.toSkeletonRunHooksPlaced [LibsignalPlacement] {W : CliHoo
   allocZeroed := hh.allocZeroed
   stringClone := hh.stringClone
   formatInner := hh.formatInner
+  blackBox := hh.blackBox
 
 theorem RunHooksPlaced.portDepsPlaced [LibsignalPlacement] {W : CliHooks} {M : AllocCostModel}
     {A : RustCliAllocBudget M} {lim : BudgetLimits} {H : LibsignalHooks}

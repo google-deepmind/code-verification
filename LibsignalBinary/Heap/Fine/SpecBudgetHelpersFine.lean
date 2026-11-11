@@ -492,7 +492,7 @@ theorem cliMemcpyRO_hookOk : HookOk hookMemcpy memcpyROSpec :=
   hookOk_cliWithStack CryptoVerification.SpqrV1.Alloc.hookMemcpy_region_ro_trace_ok
     memHookStack (fun _ _ _ => rfl) (fun _ _ _ _ => rfl) (fun _ _ _ => rfl)
 
-theorem cliBcmp_hookOk (W : CliHooks) : HookOk (cliBcmpHook W.bcmp) bcmpSpec :=
+theorem cliBcmp_hookOk (W : CliHooks) : HookOk (cliBcmpHook CryptoVerification.SignalSession.cliDefaultBcmp) bcmpSpec :=
   hookOk_map (s₁ := CryptoVerification.SignalSession.Cli.cliBcmpSpec)
     (fun x => ⟨x.a, x.aRo, x.bsA, x.b, x.bRo, x.bsB⟩)
     (fun _ _ => True) (fun _ => trivial)
@@ -533,9 +533,9 @@ theorem cliMemrchr_hookOk : HookOk memrchrHook memrchrSpec :=
     (fun _ _ _ hp => hp) (fun _ _ _ _ _ _ hq => hq) (fun _ _ _ _ hq => hq)
     (fun _ _ _ _ _ hq => hq) (fun _ _ _ _ hq => hq)
 
-theorem cliFromUtf8_hookOk (W : CliHooks) :
-    HookOk (fromUtf8Hook W.utf8Err) fromUtf8Spec :=
-  CryptoVerification.SignalSession.Cli.MainHops.fromUtf8Hook_ok extHookStack W.utf8Err
+theorem cliFromUtf8_hookOk (_W : CliHooks) :
+    HookOk (fromUtf8Hook CryptoVerification.SignalSession.cliDefaultUtf8Err) fromUtf8Spec :=
+  CryptoVerification.SignalSession.Cli.MainHops.fromUtf8Hook_ok extHookStack CryptoVerification.SignalSession.cliDefaultUtf8Err
 
 theorem cliBlackBox_hookOk :
     HookOk CryptoVerification.LibsignalSession.blackBoxHook blackBoxSpec :=

@@ -14,6 +14,7 @@ public import LibsignalBinary.Proofs.SignalSession.Cli.Store.IdTrustPoll
 public import LibsignalBinary.Proofs.SignalSession.Cli.CliSessionCodeSymB
 public import LibsignalBinary.Proofs.RecordCodecs.IdentityKeyDecode
 public import LibsignalBinary.Proofs.ConsumeMessageKey.FindIndexProofs.CtEq
+public import LibsignalBinary.Proofs.ConsumeMessageKey.FindIndexProofs.CtEqSat
 public meta import ProofLib
 public meta import LibsignalBinary.Proofs.Common.InImageKit
 public meta import LibsignalBinary.Proofs.SignalSession.Cli.Store.ShimCommonPlaced
@@ -399,6 +400,55 @@ theorem pkEq_cells_placed_ok [LibsignalPlacement] {prog : Program} {calleeStk : 
   · dsimp only [StoreKit.withLsCodeRoLoaded, Getters.publicKeyEqSpec] at hq
     exact (not_satisfies_false_sepConj hq).elim
   · dsimp only [StoreKit.withLsCodeRoLoaded, Getters.publicKeyEqSpec] at hq
+    exact (not_satisfies_false_sepConj hq).elim
+
+theorem pkEq_cells_placed_ok_16 [LibsignalPlacement] {prog : Program} {calleeStk : Nat}
+    (hEq : subroutine_ok prog (lsmpl.base 212)
+      (StoreKit.withLsCodeRoLoaded lsmpl
+        LibsignalBinary.Proofs.ConsumeMessageKey.FindIndexProofs.CtEqSat.publicKeyEqMemSpec16))
+    (hle : 80 ≤ calleeStk) (hhi : calleeStk ≤ 2 ^ 64) :
+    subroutine_ok prog (lsmpl.base 212)
+      (StoreKit.withLsCodeRoLoaded lsmpl (pkEqCellsSpec calleeStk)) := by
+  apply subroutine_ok.of_codeLoaded
+  intro ⟨p1, ik1, p2, ik2, fsp⟩ R s0 hpc hrun hpre hsp hcl
+  rcases StoreKit.extract_withLsCodeRoLoaded hpre with ⟨hcrl, hpre⟩
+  simp only [pkEqCellsSpec, sepConj_assoc, satisfies_pure_sepConj] at hpre
+  rcases hpre with ⟨⟨hx0, hx1, hfsp⟩, hmem⟩
+  subst hfsp
+  rw [stackAt_sub_split s0.sp hle hhi] at hmem
+  let stkRem := memRegion (s0.sp - BitVec.ofNat 64 calleeStk) (calleeStk - 80)
+  have hpre0 : s0.mem ⊨
+      (StoreKit.withLsCodeRoLoaded lsmpl
+        LibsignalBinary.Proofs.ConsumeMessageKey.FindIndexProofs.CtEqSat.publicKeyEqMemSpec16).pre
+        (p1, ik1.publicKey, p2, ik2.publicKey, s0.sp) s0 ∗ (stkRem ∗ R) := by
+    refine satisfies_lscro_pre hcrl ?_
+    dsimp only [LibsignalBinary.Proofs.ConsumeMessageKey.FindIndexProofs.CtEqSat.publicKeyEqMemSpec16]
+    rw [sepConj_assoc, satisfies_pure_sepConj]
+    refine ⟨⟨hx0, hx1, rfl⟩, ?_⟩
+    dsimp only [stackAt, stkRem] at hmem ⊢
+    convert hmem using 1; ac_rfl
+  rcases hEq.no_fault_before_outcome (p1, ik1.publicKey, p2, ik2.publicKey, s0.sp)
+      (stkRem ∗ R) s0 hpc hrun hpre0 hsp hcl with
+    ⟨sf, hsteps, ⟨hret, hcc, hq⟩ | ⟨_hpan, hq⟩ | ⟨_code, _hex, hq⟩ | ⟨_hoom, hq⟩, -⟩
+  · refine reaches_outcome_steps hsteps (reaches_outcome.of_outcome (Or.inl ⟨hret, hcc, ?_⟩))
+    dsimp only [StoreKit.withLsCodeRoLoaded,
+      LibsignalBinary.Proofs.ConsumeMessageKey.FindIndexProofs.CtEqSat.publicKeyEqMemSpec16,
+      pkEqCellsSpec] at hq ⊢
+    rw [sepConj_assoc, satisfies_pure_sepConj] at hq ⊢
+    rcases hq with ⟨⟨hr0, htr⟩, hq⟩
+    rw [publicKey_beq_eq_decide] at hr0
+    refine ⟨⟨hr0, htr⟩, ?_⟩
+    rw [stackAt_sub_split s0.sp hle hhi]
+    dsimp only [stackAt, stkRem] at hq ⊢
+    convert hq using 1; ac_rfl
+  · dsimp only [StoreKit.withLsCodeRoLoaded,
+      LibsignalBinary.Proofs.ConsumeMessageKey.FindIndexProofs.CtEqSat.publicKeyEqMemSpec16] at hq
+    exact (not_satisfies_false_sepConj hq).elim
+  · dsimp only [StoreKit.withLsCodeRoLoaded,
+      LibsignalBinary.Proofs.ConsumeMessageKey.FindIndexProofs.CtEqSat.publicKeyEqMemSpec16] at hq
+    exact (not_satisfies_false_sepConj hq).elim
+  · dsimp only [StoreKit.withLsCodeRoLoaded,
+      LibsignalBinary.Proofs.ConsumeMessageKey.FindIndexProofs.CtEqSat.publicKeyEqMemSpec16] at hq
     exact (not_satisfies_false_sepConj hq).elim
 
 /-! ## 2. Inner Spec & Outer Wrapper (`idTrustPoll_placed_of_inner`) -/
@@ -818,15 +868,17 @@ private theorem cliIdTrustPollExpandedSpecPlaced_eq [LibsignalPlacement] (rd : R
 set_option pp.deepTerms false in
 set_option pp.maxSteps 1000000 in
 set_option maxHeartbeats 3200000 in
-theorem idTrustPollInner_placed_ok [LibsignalPlacement] {A : RustAlloc} {H : LibsignalHooks}
+private theorem idTrustPollInner_placed_ok_of_eqCells [LibsignalPlacement]
+    {A : RustAlloc} {H : LibsignalHooks}
     {rd : ReadRule} {pathOk : List (BitVec 8) → Prop} {getStk : Nat}
     (hC : AllocContractsXCliPlaced A H)
     (hGet : subroutine_ok ((blkPC_566).rebase (blkPl_566).base H) (lsmpl.base 589)
       (dirGetSpecPlaced rd pathOk A getStk))
     (hDec : subroutine_ok ((blkPC_566).rebase (blkPl_566).base H) (lsmpl.base 18)
       (StoreKit.withLsCodeRoLoaded lsmpl (RecordCodecsBinary.identityKeyDecodeRawSpec A)))
-    (hEq : subroutine_ok ((blkPC_566).rebase (blkPl_566).base H) (lsmpl.base 212)
-      (StoreKit.withLsCodeRoLoaded lsmpl Getters.publicKeyEqSpec))
+    (hEqCells : subroutine_ok ((blkPC_566).rebase (blkPl_566).base H) (lsmpl.base 212)
+      (StoreKit.withLsCodeRoLoaded lsmpl
+        (pkEqCellsSpec (max (max getStk 0x60) (max 64 extHookStack)))))
     (hhi : max (max getStk 0x60) (max 64 extHookStack) ≤ 2 ^ 64) :
     subroutine_ok ((blkPC_566).rebase (blkPl_566).base H) (blkPl_566).base
       (StoreKit.withLsCodeRoLoaded lsmpl
@@ -841,8 +893,7 @@ theorem idTrustPollInner_placed_ok [LibsignalPlacement] {A : RustAlloc} {H : Lib
   have hDecCells := ikDecode_cells_placed_ok (calleeStk := calleeStk) hDec (by omega) hhi
   have hDeallocCells := deallocVecBuf_placed_ok (prog := (blkPC_566).rebase (blkPl_566).base H)
     (i := 566) (calleeStk := calleeStk) hC (by omega) hhi
-  have hEqCells := pkEq_cells_placed_ok (calleeStk := calleeStk) hEq (by omega) hhi
-  clear hGet hDec hEq hC
+  clear hGet hDec hC
   wpp_init x s0
   have hcrl0 : StoreKit.LibsignalCodeRoLoaded lsmpl s0.mem := by
     assumption
@@ -1041,6 +1092,45 @@ theorem idTrustPollInner_placed_ok [LibsignalPlacement] {A : RustAlloc} {H : Lib
           (.ok (b :: bs')) (.ok (some ik)) x.call.call.key s0 (by sep_focus) ?_ ?_
         · exact ⟨⟨hget, by simp only [wp_norm, arm64_norm, *]⟩, ⟨ik, rfl, hser⟩⟩
         wp_done
+
+theorem idTrustPollInner_placed_ok [LibsignalPlacement] {A : RustAlloc} {H : LibsignalHooks}
+    {rd : ReadRule} {pathOk : List (BitVec 8) → Prop} {getStk : Nat}
+    (hC : AllocContractsXCliPlaced A H)
+    (hGet : subroutine_ok ((blkPC_566).rebase (blkPl_566).base H) (lsmpl.base 589)
+      (dirGetSpecPlaced rd pathOk A getStk))
+    (hDec : subroutine_ok ((blkPC_566).rebase (blkPl_566).base H) (lsmpl.base 18)
+      (StoreKit.withLsCodeRoLoaded lsmpl (RecordCodecsBinary.identityKeyDecodeRawSpec A)))
+    (hEq : subroutine_ok ((blkPC_566).rebase (blkPl_566).base H) (lsmpl.base 212)
+      (StoreKit.withLsCodeRoLoaded lsmpl Getters.publicKeyEqSpec))
+    (hhi : max (max getStk 0x60) (max 64 extHookStack) ≤ 2 ^ 64) :
+    subroutine_ok ((blkPC_566).rebase (blkPl_566).base H) (blkPl_566).base
+      (StoreKit.withLsCodeRoLoaded lsmpl
+        (cliIdTrustPollInnerSpecPlaced rd pathOk A
+          (max (max getStk 0x60) (max 64 extHookStack)))) :=
+  idTrustPollInner_placed_ok_of_eqCells hC hGet hDec
+    (pkEq_cells_placed_ok (calleeStk := max (max getStk 0x60) (max 64 extHookStack))
+      hEq (by omega) hhi)
+    hhi
+
+theorem idTrustPollInner_placed_ok_16 [LibsignalPlacement] {A : RustAlloc} {H : LibsignalHooks}
+    {rd : ReadRule} {pathOk : List (BitVec 8) → Prop} {getStk : Nat}
+    (hC : AllocContractsXCliPlaced A H)
+    (hGet : subroutine_ok ((blkPC_566).rebase (blkPl_566).base H) (lsmpl.base 589)
+      (dirGetSpecPlaced rd pathOk A getStk))
+    (hDec : subroutine_ok ((blkPC_566).rebase (blkPl_566).base H) (lsmpl.base 18)
+      (StoreKit.withLsCodeRoLoaded lsmpl (RecordCodecsBinary.identityKeyDecodeRawSpec A)))
+    (hEq : subroutine_ok ((blkPC_566).rebase (blkPl_566).base H) (lsmpl.base 212)
+      (StoreKit.withLsCodeRoLoaded lsmpl
+        LibsignalBinary.Proofs.ConsumeMessageKey.FindIndexProofs.CtEqSat.publicKeyEqMemSpec16))
+    (hhi : max (max getStk 0x60) (max 64 extHookStack) ≤ 2 ^ 64) :
+    subroutine_ok ((blkPC_566).rebase (blkPl_566).base H) (blkPl_566).base
+      (StoreKit.withLsCodeRoLoaded lsmpl
+        (cliIdTrustPollInnerSpecPlaced rd pathOk A
+          (max (max getStk 0x60) (max 64 extHookStack)))) :=
+  idTrustPollInner_placed_ok_of_eqCells hC hGet hDec
+    (pkEq_cells_placed_ok_16 (calleeStk := max (max getStk 0x60) (max 64 extHookStack))
+      hEq (by omega) hhi)
+    hhi
 
 end Placed
 

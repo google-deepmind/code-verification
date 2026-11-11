@@ -44,7 +44,7 @@ set_option linter.dupNamespace false
 
 namespace LibsignalBinary.Proofs.SignalSession.Cli.Main.Proofs.CliSlotCalleesInstPlacedBudgetSeams
 
-open Arm64 Arm64.Obj Arm64.Process ProofLib
+open Arm64 Arm64.Obj Arm64.Process ProofLib SepProp
 open CryptoGames.LibsignalSession (Crypto)
 open CryptoGames.LibsignalSessionApi (SessionRecord)
 open CryptoVerification (LibsignalHooks LibsignalPlacement lsBlackBoxU8Sym lsmpl lsρ)
@@ -64,7 +64,7 @@ open CryptoVerification.SignalSession (
   lsRustAllocZeroedSymCli lsStringCloneSym
 )
 open CryptoVerification.SignalSession.Cli.KitInst (
-  cliGhostExterns_blackBox cliIdentityVtRoSym cliIdentityVtablesPlacedOk cliSessionVtRoSym
+  cliIdentityVtRoSym cliIdentityVtablesPlacedOk cliSessionVtRoSym
 )
 open CryptoVerification.SignalSession.Cli.KitInst.IdKit (
   savePollNeed saveShimNeed trustPollNeed trustShimNeed
@@ -106,7 +106,7 @@ open LibsignalBinary.Proofs.SignalSession.Cli.Dir.Put.PlacedBudgetAux (DirPutEnv
 open LibsignalBinary.Proofs.SignalSession.Cli.Dir.PutStr.PlacedBudget (dirPutStr_placed_ok_of_deps)
 open LibsignalBinary.Proofs.SignalSession.Cli.Dir.PutStr.PlacedBudgetAux (DirPutStrEnv)
 open LibsignalBinary.Proofs.SignalSession.Cli.KitInst.IdentityKitOkPlacedBudget (
-  cliIdKitOkIE_placed cliIdentityKitDefaultBudgetEnv
+  cliIdKitOkIE_placed_sat cliIdentityKitDefaultBudgetEnv
 )
 open LibsignalBinary.Proofs.SignalSession.Cli.KitInst.SessionKitOkCliPlacedBudget (
   cliGrowOneDir_placed_ok cliSessKitOkSE_cli_scopeKit_placed cliSessionKitDefaultBudgetEnv
@@ -248,12 +248,6 @@ theorem skeletonHooks_of_slotHooks [LibsignalPlacement] {M : AllocCostModel}
     RunHooksPlaced A lim (cliGhostExterns g (cliExternsPlaced mmpl W)) :=
   RunHooksPlaced.of_hooks mmpl g W hH.alloc hH.strClone_fsT hH.stringClone hH.formatInner
 
-theorem cliGhostExterns_blackBox_eq (mmpl : Obj.MultiPlacement) (g : CliGhostHooks)
-    (W : CliHooks) :
-    cliGhostExterns g (cliExternsPlaced mmpl W) lsBlackBoxU8Sym =
-      some CryptoVerification.LibsignalSession.blackBoxHook :=
-  cliGhostExterns_blackBox mmpl g W
-
 noncomputable abbrev w1SessKitBudgetEnv [LibsignalPlacement]
     (A : CryptoVerification.RustHeap.RustAlloc) (B : RunBudgets)
     (DeserEnv : SessionRecord (List (BitVec 8)) → List AllocEvent → Prop)
@@ -346,7 +340,7 @@ theorem w1IdKitPlaced_okIE [LibsignalPlacement] {M : AllocCostModel}
     IdentityStoreKitPlacedOkI A lim (w1IdKitPlaced A.repAlloc B F0 peer)
       (w1IdKitBudgetEnv A.repAlloc B ReadEnv F0 peer)
       (cliGhostExterns g (cliExternsPlaced mmpl W)) :=
-  cliIdKitOkIE_placed
+  cliIdKitOkIE_placed_sat
     (rd := cliIo.rd) (F0 := F0) (pathOk := cliWrOk) (peer := peer)
     (readStk := B.readFile)
     (s1 := trustShimNeed) (s2 := trustPollNeed B.readFile)
@@ -354,7 +348,7 @@ theorem w1IdKitPlaced_okIE [LibsignalPlacement] {M : AllocCostModel}
     (vtSym := cliIdentityVtRoSym)
     (readProg := lsProg_589 (cliGhostExterns g (cliExternsPlaced mmpl W))) (jRead := 589)
     hDropNz (fun _ hp => hp.2) (skeletonHooks_of_slotHooks hH) (hH.readFile B.readFile)
-    (cliGhostExterns_blackBox_eq mmpl g W)
+    (skeletonHooks_of_slotHooks hH).blackBox
     (Nat.le_refl _) (Nat.le_refl _) (Nat.le_refl _) (Nat.le_refl _)
     (by decide) (by decide)
 
@@ -377,7 +371,7 @@ theorem dirPutStrPlacedOk_cli [LibsignalPlacement] {M : AllocCostModel}
     (hH : CliSlotAllocHooks mmpl g W A lim ReadEnv) :
     DirPutStrPlacedOk mmpl g W A lim :=
   let hh := skeletonHooks_of_slotHooks hH
-  dirPutStr_placed_ok_of_deps hh.alloc hh.panics hh.memcpyRO hh.bcmp
+  dirPutStr_placed_ok_of_deps hh.alloc hh.panics hh.memcpyRO hh.bcmp.of_keepsFs
     (growProg := lsProg_586 (cliGhostExterns g (cliExternsPlaced mmpl W))) (jGrow := 586)
     (by decide) (by decide) (cliGrowOneDir_placed_ok hh.alloc hh.panics)
     (Nat.le_refl cliDirPutStrNeedPlaced)
@@ -394,7 +388,7 @@ theorem w3DirPut_placed_ok [LibsignalPlacement] {M : AllocCostModel}
   let hh := skeletonHooks_of_slotHooks hH
   dirPut_placed_caller_ok_of_deps
     (callerProg := lsProg_542 (cliGhostExterns g (cliExternsPlaced mmpl W))) (i := 542)
-    hh.alloc hh.bcmp
+    hh.alloc hh.bcmp.of_keepsFs
     (growProg := lsProg_586 (cliGhostExterns g (cliExternsPlaced mmpl W))) (jGrow := 586)
     (by decide) (by decide) (cliGrowOneDir_placed_ok hh.alloc hh.panics)
     (Nat.le_refl dirPutNeedPlaced) (by decide)

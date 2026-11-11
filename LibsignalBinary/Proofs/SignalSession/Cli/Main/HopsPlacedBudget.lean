@@ -36,7 +36,7 @@ open CryptoVerification.SignalSession.Cli (RunAnswer)
 open CryptoVerification.SignalSession.Cli.Main.Placed (lsProg_617)
 open CryptoVerification.SignalSession.Cli.MainHops
   (AtRetPlaced RunCall fromUtf8AsciiSpec lsHandleErrorSymMain mProgPlaced mainFrameSize mainOom
-   mainSaved strlenSpec)
+   mainSaved)
 
 namespace LibsignalBinary.Proofs.SignalSession.Cli.Main.HopsPlacedBudget
 
@@ -70,8 +70,6 @@ structure MainCalleesBlk617 [LibsignalPlacement] {M : AllocCostModel}
     (uuidParse : UuidParser) (hookStack resStack : Nat) : Prop where
   alloc : AllocContractsXCliPlaced A lim H
   allocFs : AllocContractsFsPlaced A lim H
-  strlen : subroutine_ok (lsProg_617 H) (lsρ "strlen")
-    (withLsRoCl lsmpl (withVmPreserved (strlenSpec hookStack)))
   fromUtf8 : subroutine_ok (lsProg_617 H) (lsρ lsFromUtf8Sym)
     (withLsRoCl lsmpl (withVmPreserved (fromUtf8AsciiSpec hookStack)))
   address : subroutine_ok (lsProg_617 H) (lsmpl.base 580)

@@ -10,6 +10,7 @@ limitations under the License.
 module
 
 public import LibsignalBinary.Heap.IfaceBudgetLemmas
+public import LibsignalBinary.Proofs.HookDischarge.Libc.Memmove -- proof-setup: allow-public-import
 public import LibsignalBinary.Proofs.Placed.BudgetVmSteps
 public meta import LibsignalBinary.Proofs.Placed.BudgetVmSteps -- shake: keep
 public import LibsignalBinary.Proofs.SpqrV1.Poly.DecoderPb.FromPbInnerPlaced
@@ -68,6 +69,9 @@ open CryptoVerification.SpqrV1.Poly.DecoderPb (
   truncate16_truncate32 uxth32_of_truncate16_64
 )
 open LibsignalBinary.Heap (AllocCallPreserved VmPreserved)
+open LibsignalBinary.Proofs.HookDischarge.Libc.Memmove (
+  MemmoveArithBound sessionMemmoveBoundedSpec
+)
 open scoped CryptoVerification.SpqrV1.Poly.AddChunk CryptoVerification.SpqrV1.Poly.AddChunk.AddChunkNorm
 
 attribute [local irreducible] Program.fetch Program.externAt? Program.fnOff
@@ -93,6 +97,14 @@ def sessionMemmoveVmAcpSpec (hookStack : Nat := 4096) :
     ⌜sf.readReg64 .x0 = base + BitVec.ofNat 64 dst ∧ sf.trace = s0.trace ∧
       AllocCallPreserved s0 sf ∧ VmPreserved s0 sf⌝ ∗
       (base ↦ₛ listMove buf dst src len) ∗ stackAt s0.sp hookStack
+
+/-- Bounded (`MemmoveArithBound`) counterpart of `sessionMemmoveVmAcpSpec`:
+    same `AllocCallPreserved ∧ VmPreserved` postcondition, gated by `MemmoveArithBound base buf`
+    in `.pre` so real `libc.a` `memmove` satisfies it (`<PolyDecoder>::from_pb`). -/
+def sessionMemmoveBoundedVmAcpSpec (hookStack : Nat := 4096) :
+    Spec (BitVec 64 × List (BitVec 8) × Nat × Nat × Nat) :=
+  { sessionMemmoveVmAcpSpec hookStack with
+    pre := (sessionMemmoveBoundedSpec hookStack).pre }
 
 private theorem seq_vm_clean {P : Program} {b : BitVec 64} {Hk : String → Option (State → State)}
     {mid target : BitVec 64} {s : State}
@@ -331,10 +343,10 @@ theorem fromPb_bsearch_to_492_placed_sepWP [LibsignalPlacement] {ext : String �
 theorem fromPb_bsearch_memmove_insert_placed_sepWP [LibsignalPlacement] {A : RustAlloc}
     {ext : String → Option (State → State)} {target_pc : BitVec 64}
     (hmemmove : subroutine_ok ((blkPC_376).rebase (blkPl_376).base (Rust.withPanics ext))
-      (lsρ spqrMemmoveSym) (sessionMemmoveVmAcpSpec 0))
+      (lsρ spqrMemmoveSym) (sessionMemmoveBoundedVmAcpSpec 0))
     (fsp cap ptr : BitVec 64) (vec : List Pt) (insertIdx : Nat) (pt : Pt)
     (hins : insertIdx < vec.length) (hlt : vec.length < cap.toNat)
-    (hcap : cap.toNat * 4 < 2 ^ 63)
+    (hcap : cap.toNat * 4 < 2 ^ 63) (hptr_nw : ptr.toNat + cap.toNat * 4 < 2 ^ 64)
     (s : State) (P : SepProp) (post : State → SepProp → Prop)
     (hpc : s.pc = (blkPl_376).base + 544#64)
     (hstat : s.status = .Running)
@@ -369,6 +381,8 @@ theorem fromPb_bsearch_memmove_insert_placed_sepWP [LibsignalPlacement] {A : Rus
     SepWP ((blkPC_376).rebase (blkPl_376).base (Rust.withPanics ext)) target_pc s
       (tempVecPtAt A fsp cap ptr { vec := vec } ∗ stackAt s.sp 0 ∗ P)
       post := by
+  dsimp only [sessionMemmoveBoundedVmAcpSpec, sessionMemmoveVmAcpSpec,
+    sessionMemmoveBoundedSpec, sessionMemmoveSpec, libcMemmoveSpec] at hmemmove
   refine SepWP.weaken_pre (sepConj_mono_left (tempVecPtAt_prepare_memmove A fsp cap ptr vec insertIdx hins hlt hcap)) ?_
   rw [sepExists_sepConj_left]
   apply SepWP.exists_left; intro slotBs
@@ -385,8 +399,21 @@ theorem fromPb_bsearch_memmove_insert_placed_sepWP [LibsignalPlacement] {A : Rus
       4 * (vec.length - insertIdx) + 4 := by
     rw [List.length_append, ptListBytes_length, List.length_drop, hslot]
   wp_steps 4
+  have hsplit_cap : 4 * insertIdx + (4 * (vec.length - insertIdx) + 4) ≤ cap.toNat * 4 := by
+    omega
+  have hbound : MemmoveArithBound (ptr + BitVec.ofNat 64 (4 * insertIdx))
+      (ptListBytes (vec.drop insertIdx) ++ slotBs) := by
+    have hmod1 : 4 * insertIdx < 2 ^ 64 := by omega
+    have hmod2 : ptr.toNat + 4 * insertIdx < 2 ^ 64 := by omega
+    have hptr_add :
+        (ptr + BitVec.ofNat 64 (4 * insertIdx)).toNat = ptr.toNat + 4 * insertIdx := by
+      rw [BitVec.toNat_add, BitVec.toNat_ofNat, Nat.mod_eq_of_lt hmod1, Nat.mod_eq_of_lt hmod2]
+    exact ⟨by rw [hptr_add, hbuf_len]; omega, by rw [hbuf_len]; omega⟩
+  have hbound_nw := hbound.1
+  have hbound_lt := hbound.2
   wp_call hmemmove (ptr + BitVec.ofNat 64 (4 * insertIdx),
     ptListBytes (vec.drop insertIdx) ++ slotBs, 4, 0, 4 * (vec.length - insertIdx))
+  clear hptr_nw hsplit_cap hbound hbound_nw hbound_lt
   have hvm_call : VmPreserved s sf := by
     simpa [wp_norm, arm64_norm] using ‹VmPreserved _ sf›
   have hacp_call : AllocCallPreserved s sf := ‹AllocCallPreserved s sf›
@@ -507,10 +534,10 @@ theorem fromPb_bsearch_end_insert_placed_sepWP [LibsignalPlacement] {A : RustAll
 theorem fromPb_bsearch_insert_at_532_placed_sepWP [LibsignalPlacement] {A : RustAlloc}
     {ext : String → Option (State → State)} {target_pc : BitVec 64}
     (hmemmove : subroutine_ok ((blkPC_376).rebase (blkPl_376).base (Rust.withPanics ext))
-      (lsρ spqrMemmoveSym) (sessionMemmoveVmAcpSpec 0))
+      (lsρ spqrMemmoveSym) (sessionMemmoveBoundedVmAcpSpec 0))
     (fsp cap ptr : BitVec 64) (vec : List Pt) (insertIdx : Nat) (pt : Pt)
     (hins : insertIdx ≤ vec.length) (hlt : vec.length < cap.toNat)
-    (hcap : cap.toNat * 4 < 2 ^ 63)
+    (hcap : cap.toNat * 4 < 2 ^ 63) (hptr_nw : ptr.toNat + cap.toNat * 4 < 2 ^ 64)
     (s : State) (P : SepProp) (post : State → SepProp → Prop)
     (hpc : s.pc = (blkPl_376).base + 532#64)
     (hstat : s.status = .Running)
@@ -582,7 +609,7 @@ theorem fromPb_bsearch_insert_at_532_placed_sepWP [LibsignalPlacement] {A : Rust
     · simpa [wp_norm, arm64_norm] using hvregs_f
   · have hle_f : ¬ vec.length ≤ insertIdx := by omega
     simp only [hle_f, decide_false, Bool.false_eq_true, ↓reduceIte]
-    refine hmem hins_lt hlt hcap _ P post
+    refine hmem hins_lt hlt hcap hptr_nw _ P post
       (by simp [wp_norm, arm64_norm])
       (by simp [wp_norm, arm64_norm, hstat])
       (by simpa [wp_norm, arm64_norm] using hsp_align)
@@ -612,10 +639,10 @@ theorem fromPb_bsearch_insert_at_532_placed_sepWP [LibsignalPlacement] {A : Rust
 theorem fromPb_bsearchReplace_placed_sepWP [LibsignalPlacement] {A : RustAlloc}
     {ext : String → Option (State → State)} {target_pc : BitVec 64}
     (hmemmove : subroutine_ok ((blkPC_376).rebase (blkPl_376).base (Rust.withPanics ext))
-      (lsρ spqrMemmoveSym) (sessionMemmoveVmAcpSpec 0))
+      (lsρ spqrMemmoveSym) (sessionMemmoveBoundedVmAcpSpec 0))
     (fsp cap ptr : BitVec 64) (s : SortedSetPt) (pt : Pt)
     (h1 : 1 ≤ s.vec.length) (hlt_cap : s.vec.length < cap.toNat)
-    (hcap : cap.toNat * 4 < 2 ^ 63)
+    (hcap : cap.toNat * 4 < 2 ^ 63) (hptr_nw : ptr.toNat + cap.toNat * 4 < 2 ^ 64)
     (st : State) (P : SepProp) (post : State → SepProp → Prop)
     (hpc : st.pc = (blkPl_376).base + 432#64)
     (hrun : st.status = .Running)
@@ -676,7 +703,8 @@ theorem fromPb_bsearchReplace_placed_sepWP [LibsignalPlacement] {A : RustAlloc}
   dsimp only at hnext
   rw [hb_get] at hnext
   by_cases heq : ((s.vec[base]'hb_lt).x.value == pt.x.value) = true
-  · simp only [heq, ↓reduceIte] at hnext
+  · clear hptr_nw
+    simp only [heq, ↓reduceIte] at hnext
     have hbaseX_eq : (s.vec[base]'hb_lt).x.value = pt.x.value := beq_iff_eq.mp heq
     rw [ptSliceAt_focus s.vec base ptr hb_lt]
     unfold ptAt
@@ -733,7 +761,7 @@ theorem fromPb_bsearchReplace_placed_sepWP [LibsignalPlacement] {A : RustAlloc}
       rw [← ptSliceAt_focus s.vec base ptr hb_lt]
       sep_ac_rfl
     have hins532 := @fromPb_bsearch_insert_at_532_placed_sepWP _ A ext target_pc hmemmove fsp cap ptr
-      s.vec insertIdx pt hins_le hlt_cap hcap
+      s.vec insertIdx pt hins_le hlt_cap hcap hptr_nw
     rw [ptSliceAt_focus s.vec base ptr hb_lt]
     unfold ptAt
     wp_steps 4
@@ -857,9 +885,10 @@ theorem fromPb_bsearch_push_empty_at_400_placed_sepWP [LibsignalPlacement] {A : 
 theorem fromPb_bsearchPush_at_320_placed_sepWP [LibsignalPlacement] {A : RustAlloc}
     {ext : String → Option (State → State)} {target_pc : BitVec 64}
     (hmemmove : subroutine_ok ((blkPC_376).rebase (blkPl_376).base (Rust.withPanics ext))
-      (lsρ spqrMemmoveSym) (sessionMemmoveVmAcpSpec 0))
+      (lsρ spqrMemmoveSym) (sessionMemmoveBoundedVmAcpSpec 0))
     (fsp cap ptr : BitVec 64) (s : SortedSetPt) (pt : Pt)
     (hlt_cap : s.vec.length < cap.toNat) (hcap : cap.toNat * 4 < 2 ^ 63)
+    (hptr_nw : ptr.toNat + cap.toNat * 4 < 2 ^ 64)
     (hlen : s.vec.length ≤ 65536)
     (st : State) (P : SepProp) (post : State → SepProp → Prop)
     (hpc : st.pc = (blkPl_376).base + 320#64)
@@ -909,6 +938,7 @@ theorem fromPb_bsearchPush_at_320_placed_sepWP [LibsignalPlacement] {A : RustAll
     dsimp only at hnext
     cases hcmp : Pt.cmp pt lastPt with
     | eq =>
+      clear hptr_nw
       rw [hcmp] at hnext
       dsimp only at hnext
       have hset_eq : s.vec.dropLast ++ [pt] = s.vec.set lastIdx pt :=
@@ -968,7 +998,7 @@ theorem fromPb_bsearchPush_at_320_placed_sepWP [LibsignalPlacement] {A : RustAll
           (BitVec.zeroExtend 32 (s.vec[lastIdx]'hlast_lt).x.value).ule
             (BitVec.zeroExtend 32 pt.x.value) = false := by
         rw [bv32_ule_zeroExtend16, decide_eq_false_iff_not]; omega
-      have hrep := @fromPb_bsearchReplace_placed_sepWP _ A ext target_pc hmemmove fsp cap ptr s pt h1 hlt_cap hcap
+      have hrep := @fromPb_bsearchReplace_placed_sepWP _ A ext target_pc hmemmove fsp cap ptr s pt h1 hlt_cap hcap hptr_nw
       unfold tempVecPtAt
       rw [ptSliceAt_focus s.vec lastIdx ptr hlast_lt]
       unfold ptAt
@@ -1010,6 +1040,7 @@ theorem fromPb_bsearchPush_at_320_placed_sepWP [LibsignalPlacement] {A : RustAll
       · exact hx29_f
       · simpa [wp_norm, arm64_norm] using hvregs_f
     | gt =>
+      clear hptr_nw
       rw [hcmp] at hnext
       dsimp only at hnext
       have hcmp' : (s.vec[lastIdx]'hlast_lt).x.value.toNat < pt.x.value.toNat :=
@@ -1108,9 +1139,10 @@ theorem fromPb_bsearchPush_at_320_placed_sepWP [LibsignalPlacement] {A : RustAll
 
 theorem fromPb_bsearchPush_at_320_placed_sepWP_of_hookSat [LibsignalPlacement] {A : RustAlloc}
     {ext : String → Option (State → State)} {target_pc : BitVec 64}
-    (hmemmove_sat : HookSat (Rust.withPanics ext) spqrMemmoveSym (sessionMemmoveVmAcpSpec 0))
+    (hmemmove_sat : HookSat (Rust.withPanics ext) spqrMemmoveSym (sessionMemmoveBoundedVmAcpSpec 0))
     (fsp cap ptr : BitVec 64) (s : SortedSetPt) (pt : Pt)
     (hlt_cap : s.vec.length < cap.toNat) (hcap : cap.toNat * 4 < 2 ^ 63)
+    (hptr_nw : ptr.toNat + cap.toNat * 4 < 2 ^ 64)
     (hlen : s.vec.length ≤ 65536)
     (st : State) (P : SepProp) (post : State → SepProp → Prop)
     (hpc : st.pc = (blkPl_376).base + 320#64)
@@ -1145,6 +1177,6 @@ theorem fromPb_bsearchPush_at_320_placed_sepWP_of_hookSat [LibsignalPlacement] {
       (tempVecPtAt A fsp cap ptr s ∗ stackAt st.sp 0 ∗ P)
       post :=
   fromPb_bsearchPush_at_320_placed_sepWP (spqr_hook_ok_of_mem hmemmove_sat) fsp cap ptr s pt
-    hlt_cap hcap hlen st P post hpc hrun hsp_al hx19 hx20 hx22 hx26 hx27 hx29 hnext
+    hlt_cap hcap hptr_nw hlen st P post hpc hrun hsp_al hx19 hx20 hx22 hx26 hx27 hx29 hnext
 
 end LibsignalBinary.Proofs.SpqrV1.Poly.DecoderPb.FromPbInnerPlacedBudget
